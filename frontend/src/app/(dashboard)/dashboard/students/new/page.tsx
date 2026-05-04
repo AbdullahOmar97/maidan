@@ -1,0 +1,310 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api/client";
+import { ArrowRight, UserPlus, Loader2, AlertCircle, Sparkles, MapPin, Phone, Mail, User, Info, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import type { Location } from "@/types";
+import { cn } from "@/lib/utils";
+
+export default function NewStudentPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [error, setError] = useState("");
+
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    email: "",
+    gender: "male",
+    status: "active",
+    location_id: "" as any,
+  });
+
+  useEffect(() => {
+    api.locations.list()
+      .then((res: any) => {
+        const locationData = res.data.results || res.data;
+        setLocations(Array.isArray(locationData) ? locationData : []);
+        if (Array.isArray(locationData) && locationData.length > 0) {
+          setFormData(prev => ({ ...prev, location_id: locationData[0].id }));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch locations", err);
+        setError("فشل تحميل قائمة الفروع. يرجى التأكد من وجود فرع واحد على الأقل.");
+      })
+      .finally(() => {
+        setLocationsLoading(false);
+      });
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.location_id) {
+      setError("يرجى اختيار الفرع");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await api.students.create(formData);
+      router.push("/dashboard/students");
+    } catch (err: any) {
+      let message = "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات.";
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (typeof data === "object") {
+          const errors = Object.entries(data)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+            .join("\n");
+          if (errors) message = `خطأ في البيانات:\n${errors}`;
+        } else if (data.message) {
+          message = data.message;
+        } else if (data.detail) {
+          message = data.detail;
+        }
+      }
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: name === "location_id" ? parseInt(value) : value 
+    }));
+  };
+
+  if (locationsLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          <Loader2 className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+      </div>
+    );
+  }
+
+  const InputWrapper = ({ label, icon: Icon, children, dir }: any) => (
+    <div className="space-y-2 group">
+      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2 group-focus-within:text-primary transition-colors">
+        {Icon && <Icon className="w-3 h-3" />}
+        {label}
+      </label>
+      <div className="relative">
+        {children}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <Link
+            href="/dashboard/students"
+            className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-90"
+          >
+            <ArrowRight className="w-6 h-6 rtl-flip" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-white tracking-tight">إضافة طالب جديد</h1>
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">خطوة 1/1</span>
+            </div>
+            <p className="text-muted-foreground text-sm font-bold mt-1 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              أدخل البيانات الأساسية لتعريف الطالب في النظام
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Form Content */}
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {error && (
+          <div className="p-6 rounded-3xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-3 animate-in fade-in slide-in-from-top-4">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="whitespace-pre-wrap">{error}</div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Section 1: Basic Info */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+                  <User className="w-4 h-4" />
+                </div>
+                <h3 className="text-lg font-black text-white">البيانات الشخصية</h3>
+              </div>
+
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputWrapper label="الاسم الأول" icon={Info}>
+                  <input
+                    required
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    placeholder="مثال: عبدالله"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right"
+                    dir="rtl"
+                  />
+                </InputWrapper>
+
+                <InputWrapper label="الاسم الأخير" icon={Info}>
+                  <input
+                    required
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    placeholder="مثال: عمر"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right"
+                    dir="rtl"
+                  />
+                </InputWrapper>
+              </div>
+            </div>
+
+            {/* Section 2: Contact Info */}
+            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-lg shadow-blue-500/10">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <h3 className="text-lg font-black text-white">معلومات التواصل</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputWrapper label="رقم الهاتف" icon={Phone}>
+                  <input
+                    required
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="+966 5x xxx xxxx"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                    dir="ltr"
+                  />
+                </InputWrapper>
+
+                <InputWrapper label="البريد الإلكتروني" icon={Mail}>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="student@example.com"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                    dir="ltr"
+                  />
+                </InputWrapper>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: System Details (Sidebar) */}
+          <div className="space-y-8">
+            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+                  <Info className="w-4 h-4" />
+                </div>
+                <h3 className="text-lg font-black text-white">تفاصيل النظام</h3>
+              </div>
+
+              <div className="space-y-6">
+                <InputWrapper label="الفرع / النادي" icon={MapPin}>
+                  <select
+                    required
+                    name="location_id"
+                    value={formData.location_id}
+                    onChange={handleChange}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled className="bg-slate-900">اختر الفرع...</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id} className="bg-slate-900">
+                        {loc.name_ar || loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </InputWrapper>
+
+                <InputWrapper label="الجنس" icon={User}>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
+                  >
+                    <option value="male" className="bg-slate-900">ذكر</option>
+                    <option value="female" className="bg-slate-900">أنثى</option>
+                  </select>
+                </InputWrapper>
+
+                <InputWrapper label="الحالة الأولية" icon={CheckCircle2}>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
+                  >
+                    <option value="active" className="bg-slate-900">نشط (مشترك)</option>
+                    <option value="trial" className="bg-slate-900">تجريبي (فترة تجربة)</option>
+                    <option value="lead" className="bg-slate-900">عميل محتمل</option>
+                  </select>
+                </InputWrapper>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-5 rounded-[2rem] gradient-brand text-white text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                  <>
+                    <span>حفظ بيانات الطالب</span>
+                    <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  </>
+                )}
+              </button>
+              <Link
+                href="/dashboard/students"
+                className="w-full py-5 rounded-[2rem] bg-white/5 border border-white/10 text-white text-sm font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center"
+              >
+                إلغاء العملية
+              </Link>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

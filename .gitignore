@@ -1,36 +1,60 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# MAIDAN — Root .gitignore
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
+# Secrets
+.env
+.env.local
+.env.*.local
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.pot
+*.pyc
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
 
-# local env files
-.env*.local
-.env
+# Django
+backend/staticfiles/
+backend/media/
+backend/locale/
 
-# vercel
-.vercel
+# Node.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+backups/
+*.sql.gz
+
+# Certificates
+nginx/ssl/*.pem
+nginx/ssl/*.crt
+nginx/ssl/*.key
+
+# Logs
+*.log
+logs/

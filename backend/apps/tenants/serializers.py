@@ -1,0 +1,117 @@
+"""MAIDAN — Tenants App Serializers"""
+from django.db import transaction
+from django.conf import settings
+from rest_framework import serializers
+from .models import Tenant, Domain, Plan
+from apps.accounts.models import User
+
+class PlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = "__all__"
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+class DomainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Domain
+        fields = ["id", "domain", "is_primary"]
+
+class TenantSerializer(serializers.ModelSerializer):
+    domains = DomainSerializer(many=True, read_only=True)
+    domain_input = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = Tenant
+        fields = [
+            "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
+            "is_active", "plan", "on_trial", "trial_ends_at",
+            "primary_color", "secondary_color", "default_language",
+            "default_currency", "timezone", "country", "created_at",
+            "domains", "domain_input"
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def create(self, validated_data):
+        domain_input = validated_data.pop("domain_input", None)
+        with transaction.atomic():
+            tenant = Tenant.objects.create(**validated_data)
+            if domain_input:
+                Domain.objects.create(
+                    domain=domain_input,
+                    tenant=tenant,
+                    is_primary=True
+                )
+            return tenant
+
+class TenantRegistrationSerializer(serializers.Serializer):
+    # User info
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    
+    # Tenant info
+    academy_name = serializers.CharField(max_length=200)
+    slug = serializers.SlugField()
+    plan_id = serializers.IntegerField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("User with this email already exists.")
+        return value.lower().strip()
+
+    def validate_slug(self, value):
+        value = value.lower().strip()
+        if Tenant.objects.filter(slug=value).exists():
+            raise serializers.ValidationError("This academy slug is already taken.")
+        # Avoid reserved words
+        reserved = ["admin", "public", "api", "www", "mail", "static", "media"]
+        if value in reserved:
+            raise serializers.ValidationError("This slug is reserved.")
+        return value
+
+    def create(self, validated_data):
+        email = validated_data["email"]
+        password = validated_data["password"]
+        first_name = validated_data["first_name"]
+        last_name = validated_data["last_name"]
+        academy_name = validated_data["academy_name"]
+        slug = validated_data["slug"]
+        plan_id = validated_data["plan_id"]
+
+        with transaction.atomic():
+            # 1. Create User
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role="tenant_owner"
+            )
+
+            # 2. Create Tenant
+            # schema_name must be same as slug (sanitized)
+            schema_name = slug.replace("-", "_")
+            tenant = Tenant.objects.create(
+                name=academy_name,
+                business_name=academy_name,
+                slug=slug,
+                schema_name=schema_name,
+                email=email,
+                plan_id=plan_id,
+                is_active=False,
+                status=Tenant.SubscriptionStatus.PENDING,
+                on_trial=False
+            )
+
+            # 3. Create Domain
+            # If PLATFORM_DOMAIN is set, use slug.PLATFORM_DOMAIN
+            platform_domain = getattr(settings, "PLATFORM_DOMAIN", "localhost")
+            domain_name = f"{slug}.{platform_domain}"
+            Domain.objects.create(
+                domain=domain_name,
+                tenant=tenant,
+                is_primary=True
+            )
+
+            return tenant

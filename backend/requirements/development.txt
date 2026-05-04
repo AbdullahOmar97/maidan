@@ -1,0 +1,30 @@
+# Development-only requirements
+-r base.txt
+
+# Debug & Development
+django-debug-toolbar==4.4.6
+ipython==8.29.0
+django-silk==5.3.2
+Werkzeug==3.1.3
+
+# Testing
+pytest==8.3.3
+pytest-django==4.9.0
+pytest-asyncio==0.24.0
+factory-boy==3.3.1
+Faker==30.8.1
+coverage==7.6.8
+pytest-cov==6.0.0
+freezegun==1.5.1
+
+# Code Quality
+black==24.10.0
+isort==5.13.2
+flake8==6.1.0
+flake8-django==1.4
+mypy==1.13.0
+django-stubs==5.1.1
+
+# Shell
+django-extensions==3.2.3
+ipdb==0.13.13

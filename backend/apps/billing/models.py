@@ -1,0 +1,167 @@
+"""
+MAIDAN — Billing App Models
+
+Memberships, invoices, payments tracking.
+"""
+
+import uuid
+
+from django.db import models
+from apps.students.models import Student, Location
+
+
+class MembershipPlan(models.Model):
+    """Dojo-defined membership plan templates."""
+
+    class BillingCycle(models.TextChoices):
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
+        QUARTERLY = "quarterly", "Quarterly (3 months)"
+        SEMI_ANNUAL = "semi_annual", "Semi-Annual (6 months)"
+        ANNUAL = "annual", "Annual"
+        ONE_TIME = "one_time", "One-Time"
+
+    name = models.CharField(max_length=200)
+    name_ar = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+
+    billing_cycle = models.CharField(max_length=20, choices=BillingCycle.choices, default=BillingCycle.MONTHLY)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default="SAR")
+    setup_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.0)  # VAT 15% Saudi
+
+    # Access control
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True)
+    max_classes_per_week = models.PositiveIntegerField(null=True, blank=True)
+    is_unlimited = models.BooleanField(default=True)
+    allowed_class_types = models.ManyToManyField("attendance.ClassType", blank=True)
+
+    is_active = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True)  # Show on registration page
+    sort_order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "price"]
+
+    def __str__(self):
+        return f"{self.name} — {self.price} {self.currency}/{self.billing_cycle}"
+
+
+class Membership(models.Model):
+    """Active/historical membership for a student."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        EXPIRED = "expired", "Expired"
+        CANCELLED = "cancelled", "Cancelled"
+        PAUSED = "paused", "Paused"
+        PENDING = "pending", "Pending Payment"
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="memberships")
+    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name="subscriptions")
+
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    auto_renew = models.BooleanField(default=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancellation_reason = models.TextField(blank=True)
+    paused_at = models.DateTimeField(null=True, blank=True)
+    pause_reason = models.TextField(blank=True)
+
+    notes = models.TextField(blank=True)
+    created_by_id = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["student", "status"]),
+            models.Index(fields=["end_date", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.student} — {self.plan.name} ({self.status})"
+
+    @property
+    def is_active(self):
+        return self.status == self.Status.ACTIVE
+
+
+class Invoice(models.Model):
+    """Invoice issued to a student for a membership or service."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+        OVERDUE = "overdue", "Overdue"
+        VOID = "void", "Void"
+        REFUNDED = "refunded", "Refunded"
+        PARTIALLY_PAID = "partially_paid", "Partially Paid"
+
+    invoice_number = models.CharField(max_length=30, unique=True, blank=True)
+    student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="invoices")
+    membership = models.ForeignKey(
+        Membership, on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices"
+    )
+
+    # Amounts
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.0)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, default="SAR")
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    due_date = models.DateField()
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    notes = models.TextField(blank=True)
+    is_recurring = models.BooleanField(default=False)
+
+    # Retry tracking
+    retry_count = models.PositiveIntegerField(default=0)
+    last_retry_at = models.DateTimeField(null=True, blank=True)
+    next_retry_at = models.DateTimeField(null=True, blank=True)
+
+    created_by_id = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "due_date"]),
+            models.Index(fields=["student", "status"]),
+        ]
+
+    def __str__(self):
+        return f"Invoice {self.invoice_number} — {self.student} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            self._generate_invoice_number()
+        if not self.tax_amount:
+            self.tax_amount = self.subtotal * (self.tax_rate / 100)
+        if not self.total_amount:
+            self.total_amount = self.subtotal - self.discount_amount + self.tax_amount
+        super().save(*args, **kwargs)
+
+    def _generate_invoice_number(self):
+        from django.utils import timezone
+        year = timezone.now().year
+        count = Invoice.objects.filter(created_at__year=year).count() + 1
+        self.invoice_number = f"INV-{year}-{count:05d}"
+
+    @property
+    def amount_due(self):
+        return self.total_amount - self.amount_paid
