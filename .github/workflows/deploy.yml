@@ -43,7 +43,9 @@ jobs:
           # 2. Force GitHub to wait until the execution is completely finished
           aws ssm wait command-executed \
             --command-id "$COMMAND_ID" \
-            --instance-id "i-0ad4417b87ab6dfa4"
+            --instance-id "i-0ad4417b87ab6dfa4" \
+            --delay 30 \
+            --max-attempts 40
 
           # 3. Fetch and print the Standard Output (Logs)
           echo "======================================"
