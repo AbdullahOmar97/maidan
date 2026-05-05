@@ -37,19 +37,24 @@ jobs:
             --query "Command.CommandId" \
             --output text)
             
-          echo "Command sent to AWS. Command ID: $COMMAND_ID"
-          echo "Waiting for the server to finish execution (this might take a few minutes)..."
+          echo "Command sent successfully. ID: $COMMAND_ID"
+          echo "Waiting for the server to finish execution..."
 
-          # 2. Force GitHub to wait until the execution is completely finished
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id "i-0ad4417b87ab6dfa4" \
-            --delay 30 \
-            --max-attempts 40
+          # 2. Custom wait loop (will not give up until the server finishes)
+          STATUS="InProgress"
+          while [ "$STATUS" == "InProgress" ] || [ "$STATUS" == "Pending" ] || [ "$STATUS" == "Delayed" ]; do
+            sleep 15  # Wait 15 seconds between each check
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "i-0ad4417b87ab6dfa4" \
+              --query "Status" \
+              --output text)
+            echo "Current status: $STATUS..."
+          done
 
-          # 3. Fetch and print the Standard Output (Logs)
+          # 3. Fetch and print outputs
           echo "======================================"
-          echo "✅ Script Output (Logs):"
+          echo "✅ Script output (Logs):"
           echo "======================================"
           aws ssm get-command-invocation \
             --command-id "$COMMAND_ID" \
@@ -57,7 +62,6 @@ jobs:
             --query "StandardOutputContent" \
             --output text
 
-          # 4. Fetch and print the Standard Error (if any)
           echo "======================================"
           echo "❌ Errors:"
           echo "======================================"
@@ -67,16 +71,10 @@ jobs:
             --query "StandardErrorContent" \
             --output text
 
-          # 5. Check the final status and tell GitHub the real result
-          STATUS=$(aws ssm get-command-invocation \
-            --command-id "$COMMAND_ID" \
-            --instance-id "i-0ad4417b87ab6dfa4" \
-            --query "Status" \
-            --output text)
-
+          # 4. Declare final result to GitHub
           if [ "$STATUS" != "Success" ]; then
-            echo "⚠️ Deployment failed inside the server! Check the errors above."
-            exit 1  # This command is what turns the circle RED in GitHub!
+            echo "⚠️ Deployment failed inside the server! Check the errors."
+            exit 1
           else
             echo "🎉 Deployment completed successfully!"
           fi
