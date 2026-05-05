@@ -1,0 +1,32 @@
+name: Deploy MAIDAN to EC2 Production
+
+# متى يعمل هذا البايبلاين؟ عند عمل Push أو دمج (Merge) على فرع main
+on:
+  push:
+    branches: [ "main" ]
+
+# هذه الصلاحيات ضرورية للسماح لـ GitHub بطلب مفتاح OIDC المؤقت
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::182399710468:role/GitHubActions-MAIDAN-Deploy
+          aws-region: eu-north-1
+
+      - name: Trigger Deployment Script via AWS SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "i-0ad4417b87ab6dfa4" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["bash /home/ubuntu/maidan/deploy.sh"]' \
+            --comment "Deploying latest main branch via GitHub Actions"
