@@ -4,7 +4,7 @@ version: "3.9"
 # MAIDAN Dojo Management System — Docker Compose (Development)
 # =============================================================================
 
-  x-backend-env: &backend-env
+x-backend-env: &backend-env
   DJANGO_SETTINGS_MODULE: config.settings.development
   DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
