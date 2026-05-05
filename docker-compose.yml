@@ -158,7 +158,8 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    command: pnpm dev
+    # command: pnpm dev
+    command: sh -c "pnpm build && pnpm start"
 
   # ---------------------------------------------------------------------------
   # Nginx Reverse Proxy
