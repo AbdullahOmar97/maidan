@@ -62,14 +62,21 @@ class StudentFilter(django_filters.FilterSet):
         fields = ["status", "location", "gender"]
 
 
-class LocationViewSet(viewsets.ModelViewSet):
+class LocationViewSet(LocationFilterMixin, viewsets.ModelViewSet):
     """CRUD for dojo locations/branches."""
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
+    location_field = "id"
+
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [permissions.IsAuthenticated(), CanManageLocations()]
         return [permissions.IsAuthenticated(), IsStaff()]
+
+    def get_queryset(self):
+        qs = Location.objects.all()
+        return self.get_location_filtered_queryset(qs)
+
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "name_ar", "city"]
 
@@ -387,7 +394,7 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         )
         return Response(stats)
 
-    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated, IsStaff])
     def kiosk_search(self, request):
         """Minimal student search for kiosk mode."""
         search_query = request.query_params.get("search", "")

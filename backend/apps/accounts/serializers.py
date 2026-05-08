@@ -13,17 +13,17 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
-    branch_name = serializers.SerializerMethodField()
+    branch_names = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "email", "phone", "first_name", "last_name", "full_name",
             "role", "is_active", "avatar", "avatar_url",
-            "language_pref", "primary_location_id", "branch_name", "permissions",
+            "language_pref", "assigned_location_ids", "branch_names", "permissions",
             "gdpr_consent", "created_at", "last_login",
         ]
-        read_only_fields = ["id", "created_at", "last_login", "full_name", "branch_name"]
+        read_only_fields = ["id", "created_at", "last_login", "full_name", "branch_names"]
 
     def get_full_name(self, obj):
         return obj.get_full_name()
@@ -35,17 +35,16 @@ class UserSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.avatar.url)
         return None
 
-    def get_branch_name(self, obj):
-        if not obj.primary_location_id:
-            return None
+    def get_branch_names(self, obj):
+        ids = obj.assigned_location_ids
+        if not ids:
+            return []
         try:
             from apps.students.models import Location
-            loc = Location.objects.filter(id=obj.primary_location_id).first()
-            if loc:
-                return loc.name
+            return list(Location.objects.filter(id__in=ids).values_list("name", flat=True))
         except Exception:
             pass
-        return None
+        return []
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -57,7 +56,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = [
             "email", "password", "password_confirm",
             "first_name", "last_name",
-            "phone", "role", "language_pref", "primary_location_id",
+            "phone", "role", "language_pref", "assigned_location_ids",
         ]
 
     def validate(self, attrs):

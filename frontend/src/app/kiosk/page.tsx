@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import {
@@ -10,7 +11,11 @@ import {
 import { cn } from "@/lib/utils";
 import type { Student, ClassSession, Location } from "@/types";
 
+const PRIVILEGED_ROLES = ["platform_admin", "tenant_owner"];
+
 export default function KioskPage() {
+  const { data: session } = useSession();
+  const user = session?.user as any;
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [lastCheckIn, setLastCheckIn] = useState<{ name: string; success: boolean; message: string } | null>(null);
@@ -34,6 +39,48 @@ export default function KioskPage() {
     };
   }, []);
 
+  // Locations list
+  const { data: locations } = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: () => api.locations.list().then((r: any) => r.data.results || r.data),
+  });
+
+  const activeLocations = (locations?.filter((loc: any) => loc.is_active) ?? []).filter((loc: any) => {
+    // If user is admin/owner, they see all
+    if (PRIVILEGED_ROLES.includes(user?.role)) return true;
+    
+    // If user has assigned locations, they only see those
+    if (user?.assigned_location_ids && Array.isArray(user.assigned_location_ids) && user.assigned_location_ids.length > 0) {
+      return user.assigned_location_ids.includes(loc.id);
+    }
+    
+    // Default: see all (for legacy or unassigned staff if any)
+    return true;
+  });
+
+  // Auto-select if only one location is available or load from storage
+  useEffect(() => {
+    if (selectedLocation) return;
+    if (activeLocations.length === 0) return;
+    
+    if (activeLocations.length === 1) {
+      handleSelectLocation(activeLocations[0]);
+      return;
+    }
+
+    const saved = localStorage.getItem("kiosk_location");
+    if (saved) {
+      try {
+        const loc = JSON.parse(saved);
+        if (activeLocations.some((al: any) => al.id === loc.id)) {
+          setSelectedLocation(loc);
+        }
+      } catch (e) {
+        localStorage.removeItem("kiosk_location");
+      }
+    }
+  }, [activeLocations, selectedLocation]);
+
   // Auto-dismiss check-in result after 4 seconds
   useEffect(() => {
     if (lastCheckIn) {
@@ -42,17 +89,10 @@ export default function KioskPage() {
     }
   }, [lastCheckIn]);
 
-  // Locations list
-  const { data: locations } = useQuery<Location[]>({
-    queryKey: ["locations"],
-    queryFn: () => api.locations.list().then((r) => r.data.results || r.data),
-  });
-  const activeLocations = locations?.filter((loc) => loc.is_active) ?? [];
-
   // Today's sessions
   const { data: sessions } = useQuery<ClassSession[]>({
     queryKey: ["kiosk", "sessions", selectedLocation?.id],
-    queryFn: () => api.attendance.sessions.today(selectedLocation?.id).then((r) => r.data),
+    queryFn: () => api.attendance.sessions.today(selectedLocation?.id).then((r: any) => r.data),
     enabled: !!selectedLocation,
     refetchInterval: 60 * 1000, // refresh every minute
   });
@@ -62,7 +102,7 @@ export default function KioskPage() {
     queryKey: ["kiosk", "search", searchValue, selectedLocation?.id],
     queryFn: () =>
       searchValue.length >= 2
-        ? api.students.kioskSearch(searchValue, selectedLocation?.id).then((r) => r.data)
+        ? api.students.kioskSearch(searchValue, selectedLocation?.id).then((r: any) => r.data)
         : Promise.resolve([]),
     enabled: searchValue.length >= 2,
   });
@@ -71,7 +111,7 @@ export default function KioskPage() {
   const checkinMutation = useMutation({
     mutationFn: (studentId: number) =>
       api.attendance.records.kiosk({ student_id: studentId }),
-    onSuccess: (data, studentId) => {
+    onSuccess: (data: any) => {
       const result = data.data;
       setLastCheckIn({
         name: result.student_name,

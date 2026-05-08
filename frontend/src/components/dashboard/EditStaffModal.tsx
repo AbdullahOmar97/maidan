@@ -8,6 +8,7 @@ import { StaffMember, UserRole, Location } from "@/types";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input } from "@/components/ui/form-field";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const STAFF_ROLES: { id: string; label: string }[] = [
   { id: "manager",        label: ROLE_LABELS.manager },
@@ -15,6 +16,7 @@ const STAFF_ROLES: { id: string; label: string }[] = [
   { id: "front_desk",     label: ROLE_LABELS.front_desk },
   { id: "instructor",     label: ROLE_LABELS.instructor },
   { id: "finance",        label: ROLE_LABELS.finance },
+  { id: "staff",          label: ROLE_LABELS.staff },
 ];
 
 interface EditStaffModalProps {
@@ -108,17 +110,14 @@ export function EditStaffModal({
             </Select>
           </FormField>
 
-          {canAssignBranch && locations.length > 0 && (
-            <FormField label="الفرع المخصص">
-              <Select
-                value={staff.primary_location_id ?? ""}
-                onChange={(e) => set("primary_location_id", e.target.value || null)}
-              >
-                <option value="">بدون فرع محدد</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.name}</option>
-                ))}
-              </Select>
+          {canAssignBranch && (
+            <FormField label="الفروع المخصصة">
+              <MultiSelect
+                options={locations}
+                selectedIds={staff.assigned_location_ids || []}
+                onChange={(ids) => set("assigned_location_ids", ids)}
+                placeholder="اختر الفروع المخصصة..."
+              />
             </FormField>
           )}
 

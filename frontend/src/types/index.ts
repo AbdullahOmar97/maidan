@@ -10,6 +10,7 @@ export type UserRole =
   | "front_desk"
   | "instructor"
   | "finance"
+  | "staff"
   | "parent"
   | "student"
   | "read_only";
@@ -26,7 +27,8 @@ export interface User {
   avatar: string | null;
   avatar_url: string | null;
   language_pref: "ar" | "en";
-  primary_location_id: number | null;
+  assigned_location_ids: number[];
+  branch_names: string[];
   created_at: string;
   last_login: string;
 }
@@ -307,8 +309,8 @@ export interface StaffMember {
   role: UserRole;
   is_active: boolean;
   avatar_url: string | null;
-  branch_name: string | null;
-  primary_location_id: string | null;
+  branch_names: string[];
+  assigned_location_ids: number[];
   permissions: StaffPermissions;
 }
 

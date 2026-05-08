@@ -18,6 +18,7 @@ class RoleChoices:
     FRONT_DESK = "front_desk"
     INSTRUCTOR = "instructor"
     FINANCE = "finance"
+    STAFF = "staff"
     PARENT = "parent"
     STUDENT = "student"
     READ_ONLY = "read_only"
@@ -30,6 +31,7 @@ class RoleChoices:
         FRONT_DESK,
         INSTRUCTOR,
         FINANCE,
+        STAFF,
     ]
 
     MANAGEMENT_ROLES = [PLATFORM_ADMIN, TENANT_OWNER, MANAGER]
@@ -317,8 +319,8 @@ class LocationFilterMixin:
 
     location_field: str = "location_id"
 
-    def _get_user_location_id(self):
-        """Return the location pk that this user is restricted to, or None."""
+    def _get_user_location_ids(self):
+        """Return the list of location pks that this user is restricted to, or None."""
         user = self.request.user
         if not user or not user.is_authenticated:
             return None
@@ -329,12 +331,13 @@ class LocationFilterMixin:
             RoleChoices.MANAGER,
         ]:
             return None
-        return getattr(user, "primary_location_id", None)
+        return getattr(user, "assigned_location_ids", [])
 
     def get_location_filtered_queryset(self, queryset):
-        location_id = self._get_user_location_id()
-        if location_id:
-            return queryset.filter(**{self.location_field: location_id})
+        location_ids = self._get_user_location_ids()
+        if location_ids:
+            # If the user has assigned locations, they can only see those.
+            return queryset.filter(**{f"{self.location_field}__in": location_ids})
         return queryset
 
 

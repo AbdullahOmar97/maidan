@@ -42,6 +42,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         FRONT_DESK = "front_desk", "Front Desk"
         INSTRUCTOR = "instructor", "Instructor"
         FINANCE = "finance", "Finance"
+        STAFF = "staff", "Staff"
         PARENT = "parent", "Parent"
         STUDENT = "student", "Student"
         READ_ONLY = "read_only", "Read Only Auditor"
@@ -67,8 +68,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     avatar = models.ImageField(upload_to="avatars/%Y/%m/", null=True, blank=True)
     language_pref = models.CharField(max_length=5, choices=Language.choices, default=Language.ARABIC)
 
-    # Location scoping (for Branch Manager role)
-    primary_location_id = models.BigIntegerField(null=True, blank=True)
+    # Location scoping (multi-select)
+    assigned_location_ids = models.JSONField(default=list, blank=True)
 
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)

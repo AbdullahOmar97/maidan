@@ -471,8 +471,8 @@ class StaffViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         data = self.request.data
         # Strip branch assignment if caller lacks permission
-        if "primary_location_id" in data and not self._can_assign_branch(self.request.user):
-            serializer.save(primary_location_id=None)
+        if "assigned_location_ids" in data and not self._can_assign_branch(self.request.user):
+            serializer.save(assigned_location_ids=[])
             from apps.staff.models import StaffMember
             StaffMember.objects.get_or_create(user=serializer.instance)
             return
@@ -498,8 +498,8 @@ class StaffViewSet(viewsets.ModelViewSet):
                  raise PermissionDenied("لا يمكنك تعيين أدوار إدارية عليا.")
 
         # Guard: only owner / can_manage_locations can change branch assignment
-        if "primary_location_id" in self.request.data and not self._can_assign_branch(current_user):
-            raise PermissionDenied("ليس لديك صلاحية تغيير الفرع المخصص للموظف.")
+        if "assigned_location_ids" in self.request.data and not self._can_assign_branch(current_user):
+            raise PermissionDenied("ليس لديك صلاحية تغيير الفروع المخصصة للموظف.")
 
         # Permission editing logic
         new_permissions = self.request.data.get("permissions")

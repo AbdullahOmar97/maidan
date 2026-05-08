@@ -256,10 +256,14 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
         </span>
       </td>
       <td className="px-4 py-4">
-        {member.branch_name ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-            <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>{member.branch_name}</span>
+        {member.branch_names && member.branch_names.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[200px]">
+            {member.branch_names.map((name, idx) => (
+              <div key={idx} className="flex items-center gap-1 text-[10px] bg-secondary/30 border border-border px-1.5 py-0.5 rounded shadow-sm">
+                <MapPin className="w-2.5 h-2.5 text-primary shrink-0" />
+                <span className="whitespace-nowrap">{name}</span>
+              </div>
+            ))}
           </div>
         ) : (
           <span className="text-xs text-muted-foreground/50">—</span>

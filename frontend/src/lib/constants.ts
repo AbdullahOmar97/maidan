@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   front_desk: "استقبال",
   instructor: "مدرب",
   finance: "مالية",
+  staff: "موظف",
   parent: "ولي أمر",
   student: "طالب",
   read_only: "مراقب",
