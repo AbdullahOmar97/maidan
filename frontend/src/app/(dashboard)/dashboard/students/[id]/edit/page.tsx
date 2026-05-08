@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Location, Student } from "@/types";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function EditStudentPage() {
   const router = useRouter();
@@ -109,6 +110,7 @@ export default function EditStudentPage() {
   }
 
   return (
+    <PermissionGuard permission="can_manage_students">
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -253,5 +255,6 @@ export default function EditStudentPage() {
         </div>
       </form>
     </div>
+    </PermissionGuard>
   );
 }

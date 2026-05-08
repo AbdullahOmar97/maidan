@@ -113,7 +113,13 @@ class HasGranularPermission(permissions.BasePermission):
         user_perms = getattr(request.user, "permissions", {}) or {}
         if user_perms is None:
             user_perms = {}
-        return user_perms.get(self.required_permission, False)
+        
+        result = user_perms.get(self.required_permission, False)
+        
+        # Debug logging (visible in docker logs)
+        print(f"[AUTH DEBUG] User: {request.user.email} | Required: {self.required_permission} | UserPerms: {user_perms} | Result: {result}")
+        
+        return result
 
 
 class CanManageStudents(HasGranularPermission):
@@ -210,9 +216,70 @@ class CanManageLocations(HasGranularPermission):
         return super().has_permission(request, view)
 
 
+class CanManageAcademy(HasGranularPermission):
+    def __init__(self):
+        super().__init__("can_manage_academy")
+
+
+class CanManageBranding(HasGranularPermission):
+    def __init__(self):
+        super().__init__("can_manage_branding")
+
+
+class CanUpdateTenantSettings(permissions.BasePermission):
+    """
+    Combined permission for PATCH /academy/me/.
+    Allows if user is Owner/Manager/Admin OR has can_manage_academy OR can_manage_branding.
+    """
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+
+        if request.user.role in [
+            RoleChoices.PLATFORM_ADMIN,
+            RoleChoices.TENANT_OWNER,
+            RoleChoices.MANAGER,
+        ]:
+            return True
+
+        user_perms = getattr(request.user, "permissions", {}) or {}
+        return user_perms.get("can_manage_academy", False) or user_perms.get(
+            "can_manage_branding", False
+        )
+
+
 class CanViewReports(HasGranularPermission):
+    """
+    Controls access to dashboard KPIs and analytics.
+
+    Auto-granted to:
+      - platform_admin, tenant_owner  (via HasGranularPermission base)
+      - manager
+
+    Configurable (toggleable) for all other staff roles via the
+    'can_view_reports' flag in user.permissions.
+    """
+
+    # Roles that always pass without needing the explicit flag.
+    AUTO_GRANTED_ROLES = [
+        RoleChoices.PLATFORM_ADMIN,
+        RoleChoices.TENANT_OWNER,
+        RoleChoices.MANAGER,
+    ]
+
     def __init__(self):
         super().__init__("can_view_reports")
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+
+        if request.user.role in self.AUTO_GRANTED_ROLES:
+            return True
+
+        # All other staff: honour the granular flag.
+        return super().has_permission(request, view)
 
 
 class IsOwnerOrStaff(permissions.BasePermission):

@@ -1,6 +1,10 @@
 import { useSession } from "next-auth/react";
 
+/** Roles that bypass ALL granular permission checks. */
 const PRIVILEGED_ROLES = ["platform_admin", "tenant_owner"];
+
+/** Roles that are auto-granted dashboard/reporting access (mirrors backend CanViewReports). */
+const REPORTS_PRIVILEGED_ROLES = [...PRIVILEGED_ROLES, "manager"];
 
 /**
  * Returns whether the current user has a specific granular permission.
@@ -15,6 +19,21 @@ export function usePermission(permission: string): boolean {
 
   const perms: Record<string, boolean> = user?.permissions ?? {};
   return perms[permission] === true;
+}
+
+/**
+ * Returns reporting/dashboard-specific permissions.
+ * Managers are auto-granted access (no explicit flag needed).
+ */
+export function useReportingPermissions() {
+  const { data: session } = useSession();
+  const user = session?.user as any;
+  const isReportsPrivileged = REPORTS_PRIVILEGED_ROLES.includes(user?.role);
+  const perms: Record<string, boolean> = user?.permissions ?? {};
+
+  return {
+    canViewReports: isReportsPrivileged || perms["can_view_reports"] === true,
+  };
 }
 
 /**
@@ -39,5 +58,31 @@ export function useBillingPermissions() {
     canRenewSubscription: check("can_renew_subscription"),
     canChangeSubscription: check("can_change_subscription"),
     canApproveSubscription: check("can_approve_subscription"),
+  };
+}
+
+export function useStudentPermissions() {
+  const { data: session } = useSession();
+  const user = session?.user as any;
+  const isPrivileged = PRIVILEGED_ROLES.includes(user?.role);
+  const perms: Record<string, boolean> = user?.permissions ?? {};
+
+  return {
+    canManageStudents: isPrivileged || perms["can_manage_students"] === true,
+  };
+}
+
+export function useSettingsPermissions() {
+  const { data: session } = useSession();
+  const user = session?.user as any;
+  const isPrivileged = PRIVILEGED_ROLES.includes(user?.role);
+  const perms: Record<string, boolean> = user?.permissions ?? {};
+
+  const check = (key: string) => isPrivileged || perms[key] === true;
+
+  return {
+    canManageAcademy: check("can_manage_academy"),
+    canManageBranding: check("can_manage_branding"),
+    canManageStaff: check("can_manage_staff"),
   };
 }

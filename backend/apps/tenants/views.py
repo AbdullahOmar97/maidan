@@ -29,10 +29,10 @@ class TenantViewSet(viewsets.ModelViewSet):
         if self.action == "register":
             return [permissions.AllowAny()]
         if self.action == "me":
-            from shared.permissions import IsTenantOwnerOrManager
+            from shared.permissions import IsStaff, CanUpdateTenantSettings
             if self.request.method in permissions.SAFE_METHODS:
                 return [permissions.IsAuthenticated(), IsStaff()]
-            return [permissions.IsAuthenticated(), IsTenantOwnerOrManager()]
+            return [permissions.IsAuthenticated(), CanUpdateTenantSettings()]
         return [permissions.IsAuthenticated(), IsPlatformAdmin()]
 
     @action(detail=False, methods=["get", "patch"])

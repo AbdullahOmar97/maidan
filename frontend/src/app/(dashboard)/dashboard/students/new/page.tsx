@@ -11,6 +11,7 @@ import type { Location } from "@/types";
 import { cn } from "@/lib/utils";
 import { InputWrapper } from "@/components/form-elements";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function NewStudentPage() {
   const router = useRouter();
@@ -106,8 +107,9 @@ export default function NewStudentPage() {
 
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
-      {/* Header */}
+    <PermissionGuard permission="can_manage_students">
+      <div className="max-w-4xl mx-auto space-y-8 pb-20">
+        {/* Header */}
       <div className="flex items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <Link
@@ -300,5 +302,6 @@ export default function NewStudentPage() {
         </div>
       </form>
     </div>
+    </PermissionGuard>
   );
 }

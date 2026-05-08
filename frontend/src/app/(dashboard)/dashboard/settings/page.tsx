@@ -6,12 +6,14 @@ import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Sa
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { useTenant } from "@/lib/providers/tenant-provider";
+import { useSettingsPermissions } from "@/lib/hooks/use-permission";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/constants";
 
 
 export default function SettingsPage() {
   const { refreshTenant } = useTenant();
+  const perms = useSettingsPermissions();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,7 +44,7 @@ export default function SettingsPage() {
     faviconUrl: "",
   });
   const profileNamesInvalid = !profile.first_name.trim() || !profile.last_name.trim();
-  const canEditAcademy = ["platform_admin", "tenant_owner", "manager"].includes(userRole);
+  const canEditAcademy = perms.canManageAcademy;
 
   useEffect(() => {
     async function fetchData() {
@@ -158,8 +160,8 @@ export default function SettingsPage() {
   };
 
   const handleBrandingSave = async () => {
-    if (userRole !== "tenant_owner") {
-      toast.error("مالك النادي فقط يمكنه تعديل الهوية البصرية.");
+    if (!perms.canManageBranding) {
+      toast.error("ليس لديك صلاحية لتعديل الهوية البصرية.");
       return;
     }
 
@@ -213,11 +215,11 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: "profile", label: "الملف الشخصي", icon: User },
-    { id: "academy", label: "إعدادات الأكاديمية", icon: Building2 },
-    { id: "branding", label: "الهوية البصرية", icon: Palette },
+    ...(perms.canManageAcademy ? [{ id: "academy", label: "إعدادات الأكاديمية", icon: Building2 }] : []),
+    ...(perms.canManageBranding ? [{ id: "branding", label: "الهوية البصرية", icon: Palette }] : []),
     { id: "billing", label: "الفوترة والدفع", icon: CreditCard },
     { id: "notifications", label: "الإشعارات", icon: Bell },
-    { id: "security", label: "الأمان", icon: Shield },
+    ...(userRole === "tenant_owner" ? [{ id: "security", label: "الأمان", icon: Shield }] : []),
     { id: "preferences", label: "التفضيلات", icon: Globe },
   ];
 
@@ -398,7 +400,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab === "branding" && (
+          {activeTab === "branding" && perms.canManageBranding && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div>
                 <h2 className="text-lg font-semibold">الهوية البصرية</h2>
@@ -406,9 +408,7 @@ export default function SettingsPage() {
               </div>
               <hr className="border-border/50" />
               
-              {userRole === "tenant_owner" ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">شعار النادي (Logo)</label>
                       <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
@@ -481,23 +481,16 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={handleBrandingSave}
-                    disabled={saving}
-                    className="px-6 py-2.5 rounded-lg gradient-brand text-white text-sm font-medium shadow-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50 mt-6"
-                  >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    حفظ الهوية البصرية
-                  </button>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <Shield className="w-12 h-12 mb-4 opacity-20" />
-                  <p className="text-sm">عذراً، فقط مالك النادي يمكنه تعديل إعدادات الهوية البصرية.</p>
-                </div>
-              )}
-            </div>
-          )}
+                <button
+                  onClick={handleBrandingSave}
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-lg gradient-brand text-white text-sm font-medium shadow-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50 mt-6"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  حفظ الهوية البصرية
+                </button>
+              </div>
+            )}
 
           {activeTab === "security" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

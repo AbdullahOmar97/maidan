@@ -33,7 +33,7 @@ import { api } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils";
 import type { DashboardKPIs } from "@/types";
 import Link from "next/link";
-import { useBillingPermissions } from "@/lib/hooks/use-permission";
+import { useBillingPermissions, useReportingPermissions, useStudentPermissions } from "@/lib/hooks/use-permission";
 
 // ---------------------------------------------------------------------------
 // Shared chart tooltip style
@@ -123,21 +123,24 @@ function ChartCard({
 // Main Dashboard Page
 // ---------------------------------------------------------------------------
 export default function DashboardPage() {
+  const { canCreateInvoice } = useBillingPermissions();
+  const { canViewReports }   = useReportingPermissions();
+  const { canManageStudents } = useStudentPermissions();
+
   const { data: kpis, isLoading: kpisLoading, refetch } = useQuery<DashboardKPIs>({
     queryKey: ["dashboard", "kpi"],
     queryFn:  () => api.dashboard.kpi().then((r) => r.data),
     staleTime: 30_000,
+    enabled: canViewReports,
   });
 
-  const { data: revenueData }    = useQuery({ queryKey: ["dashboard", "revenue"],    queryFn: () => api.dashboard.revenue(6).then((r) => r.data) });
-  const { data: beltData }       = useQuery({ queryKey: ["dashboard", "belts"],      queryFn: () => api.dashboard.belts().then((r) => r.data) });
-  const { data: attendanceData } = useQuery({ queryKey: ["dashboard", "attendance"], queryFn: () => api.dashboard.attendance("weekly").then((r) => r.data) });
-  const { data: retentionData }  = useQuery({ queryKey: ["dashboard", "retention"],  queryFn: () => api.dashboard.retention().then((r) => r.data) });
-
-  const { canCreateInvoice } = useBillingPermissions();
+  const { data: revenueData }    = useQuery({ queryKey: ["dashboard", "revenue"],    queryFn: () => api.dashboard.revenue(6).then((r) => r.data), enabled: canViewReports });
+  const { data: beltData }       = useQuery({ queryKey: ["dashboard", "belts"],      queryFn: () => api.dashboard.belts().then((r) => r.data), enabled: canViewReports });
+  const { data: attendanceData } = useQuery({ queryKey: ["dashboard", "attendance"], queryFn: () => api.dashboard.attendance("weekly").then((r) => r.data), enabled: canViewReports });
+  const { data: retentionData }  = useQuery({ queryKey: ["dashboard", "retention"],  queryFn: () => api.dashboard.retention().then((r) => r.data), enabled: canViewReports });
 
   const quickActions = [
-    { label: "إضافة طالب",   href: "/dashboard/students/new",  icon: Users,         color: "from-primary/20 to-primary/5 border-primary/20 text-primary shadow-primary/10",          show: true },
+    { label: "إضافة طالب",   href: "/dashboard/students/new",  icon: Users,         color: "from-primary/20 to-primary/5 border-primary/20 text-primary shadow-primary/10",          show: canManageStudents },
     { label: "تسجيل حضور",  href: "/dashboard/attendance",    icon: CalendarCheck,  color: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10", show: true },
     { label: "إنشاء فاتورة", href: "/dashboard/billing/new",   icon: CreditCard,    color: "from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-400 shadow-amber-500/10",   show: canCreateInvoice },
     { label: "إرسال تنبيه",  href: "/dashboard/messaging",     icon: Clock,         color: "from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-400 shadow-purple-500/10", show: true },
@@ -168,6 +171,9 @@ export default function DashboardPage() {
           <span className="hidden xs:inline">تحديث البيانات</span>
         </button>
       </PageHeader>
+
+      {canViewReports && (
+        <>
 
       {/* KPI Grid — 1 col on mobile, 2 on sm, 4 on lg */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -344,6 +350,8 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      </>
+      )}
 
       {/* Quick Actions */}
       <div className="glass-card p-5 md:p-8 relative overflow-hidden">

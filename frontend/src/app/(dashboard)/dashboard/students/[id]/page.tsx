@@ -16,6 +16,7 @@ import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord, In
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
 import ManualAttendanceDialog from "@/components/dashboard/ManualAttendanceDialog";
 import MembershipDialog from "@/components/dashboard/MembershipDialog";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -100,6 +101,7 @@ export default function StudentDetailPage() {
   ];
 
   return (
+    <PermissionGuard permission="can_manage_students">
     <div className="space-y-8 pb-12">
       {/* Navigation & Actions */}
       <div className="flex items-center justify-between">
@@ -714,6 +716,7 @@ export default function StudentDetailPage() {
         />
       )}
     </div>
+    </PermissionGuard>
   );
 }
 

@@ -40,8 +40,8 @@ export default function LoginPage() {
 
   const checkTenantStatus = async () => {
     try {
-      // Use the proxied backend path to correctly hit the backend API via the frontend dev server/nginx
-      const res = await fetch("/api/backend/v1/academy/me/");
+      // Use nginx-proxied path directly — /api/ is routed to Django by nginx
+      const res = await fetch("/api/v1/academy/me/");
       
       if (res.status === 403) {
         const data = await res.json();

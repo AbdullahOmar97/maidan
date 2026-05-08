@@ -49,6 +49,13 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
       { id: "can_manage_staff",     label: "إدارة فريق العمل", description: "تعديل بيانات وصلاحيات الموظفين" },
     ],
   },
+  {
+    group: "إعدادات الأكاديمية",
+    flags: [
+      { id: "can_manage_academy",  label: "إعدادات الأكاديمية", description: "تعديل المعلومات العامة والمنطقة الزمنية والعملة" },
+      { id: "can_manage_branding", label: "الهوية البصرية",     description: "تعديل شعار وأيقونة النادي" },
+    ],
+  },
 ];
 
 const PRIVILEGED_ROLES: UserRole[] = ["tenant_owner", "platform_admin"];

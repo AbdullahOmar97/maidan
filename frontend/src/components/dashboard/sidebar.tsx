@@ -42,24 +42,38 @@ const navItems = [
   { label: "الإعدادات",    labelEn: "Settings",   href: "/dashboard/settings",   icon: Settings },
 ] as const;
 
-// ---------------------------------------------------------------------------
-// Filter helper
-// ---------------------------------------------------------------------------
+/** Roles that bypass ALL permission checks (see backend RoleChoices). */
+const GLOBALLY_PRIVILEGED_ROLES: UserRole[] = ["platform_admin", "tenant_owner"];
+
+/**
+ * Roles that are auto-granted can_view_reports access.
+ * Must stay in sync with CanViewReports.AUTO_GRANTED_ROLES in shared/permissions.py.
+ */
+const REPORTS_PRIVILEGED_ROLES: UserRole[] = [...GLOBALLY_PRIVILEGED_ROLES, "manager"];
+
 function isNavItemVisible(
   item: (typeof navItems)[number],
   role: UserRole,
   permissions: Record<string, boolean>
 ): boolean {
-  if (role === "platform_admin" || role === "tenant_owner") return true;
+  if (GLOBALLY_PRIVILEGED_ROLES.includes(role)) return true;
 
   const itemAny = item as any;
 
   if (itemAny.role)  return itemAny.role  === role;
   if (itemAny.roles) return itemAny.roles.includes(role);
-  if (itemAny.permission) return permissions[itemAny.permission] === true;
+
+  if (itemAny.permission) {
+    // Certain permissions have role-level auto-grants that mirror the backend.
+    if (itemAny.permission === "can_view_reports") {
+      return REPORTS_PRIVILEGED_ROLES.includes(role) || permissions["can_view_reports"] === true;
+    }
+    return permissions[itemAny.permission] === true;
+  }
 
   return true;
 }
+
 
 // ---------------------------------------------------------------------------
 // Shared nav list
