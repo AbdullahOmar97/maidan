@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { ArrowRight, UserPlus, Loader2, AlertCircle, Sparkles, MapPin, Phone, Mail, User, Info, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Location } from "@/types";
 import { cn } from "@/lib/utils";
+import { InputWrapper } from "@/components/form-elements";
+import { toast } from "sonner";
 
 export default function NewStudentPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState("");
@@ -43,20 +46,14 @@ export default function NewStudentPage() {
       });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.location_id) {
-      setError("يرجى اختيار الفرع");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      await api.students.create(formData);
+  const createMutation = useMutation({
+    mutationFn: (data: typeof formData) => api.students.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      toast.success("تم إضافة الطالب بنجاح");
       router.push("/dashboard/students");
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       let message = "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات.";
       if (err.response?.data) {
         const data = err.response.data;
@@ -72,9 +69,19 @@ export default function NewStudentPage() {
         }
       }
       setError(message);
-    } finally {
-      setLoading(false);
+      toast.error("فشل إضافة الطالب");
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.location_id) {
+      setError("يرجى اختيار الفرع");
+      return;
     }
+
+    setError("");
+    createMutation.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -96,17 +103,6 @@ export default function NewStudentPage() {
     );
   }
 
-  const InputWrapper = ({ label, icon: Icon, children, dir }: any) => (
-    <div className="space-y-2 group">
-      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2 group-focus-within:text-primary transition-colors">
-        {Icon && <Icon className="w-3 h-3" />}
-        {label}
-      </label>
-      <div className="relative">
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20">
@@ -285,10 +281,10 @@ export default function NewStudentPage() {
             <div className="space-y-3">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={createMutation.isPending}
                 className="w-full py-5 rounded-[2rem] gradient-brand text-white text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
               >
-                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                {createMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                   <>
                     <span>حفظ بيانات الطالب</span>
                     <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />

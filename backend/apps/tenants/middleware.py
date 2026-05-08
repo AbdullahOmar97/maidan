@@ -18,19 +18,28 @@ class TenantStatusMiddleware:
             
         tenant = getattr(request, "tenant", None)
         
-        # Only check if we are in a tenant schema (not public)
+        # Fallback for development: if in public schema, try to resolve by subdomain
+        if not tenant or tenant.schema_name == get_public_schema_name():
+            host = request.headers.get("X-Forwarded-Host", request.get_host()).split(":")[0]
+            if "." in host:
+                subdomain = host.split(".")[0]
+                try:
+                    tenant = Tenant.objects.get(slug__iexact=subdomain)
+                except Tenant.DoesNotExist:
+                    pass
+
+        # Only check if we are in a tenant schema (or resolved one)
         if tenant and tenant.schema_name != get_public_schema_name():
             
             # Check if tenant is active
             if not tenant.is_active or tenant.status != Tenant.SubscriptionStatus.ACTIVE:
-                # Special case: allow platform admins even if tenant is inactive? 
-                # Usually better to block all and let admin fix it from public schema.
-                
                 message = "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة."
                 if tenant.status == Tenant.SubscriptionStatus.PENDING:
                     message = "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً."
                 elif tenant.status == Tenant.SubscriptionStatus.EXPIRED:
                     message = "لقد انتهى اشتراكك. يرجى التجديد للمتابعة."
+                elif tenant.status == Tenant.SubscriptionStatus.INACTIVE:
+                    message = "هذا النادي معطل حالياً. يرجى مراجعة الإدارة."
                 
                 return JsonResponse({
                     "error": {
@@ -40,18 +49,29 @@ class TenantStatusMiddleware:
                     }
                 }, status=status.HTTP_403_FORBIDDEN)
 
-            # Check for expiration
-            if tenant.subscription_end_date and tenant.subscription_end_date < timezone.now():
+            # Check for expiration (both trial and subscription)
+            now = timezone.now()
+            
+            # 1. Check subscription end date
+            is_expired = False
+            if tenant.subscription_end_date and tenant.subscription_end_date < now:
+                is_expired = True
+            
+            # 2. Check trial end date if on trial
+            if tenant.on_trial and tenant.trial_ends_at and tenant.trial_ends_at < now:
+                is_expired = True
+
+            if is_expired:
                 # Auto-update status to expired if it wasn't already
                 if tenant.status != Tenant.SubscriptionStatus.EXPIRED:
                     tenant.status = Tenant.SubscriptionStatus.EXPIRED
                     tenant.is_active = False
-                    tenant.save()
+                    tenant.save(update_fields=["status", "is_active"])
 
                 return JsonResponse({
                     "error": {
                         "code": "subscription_expired",
-                        "message": "لقد انتهى اشتراكك. يرجى التجديد للمتابعة.",
+                        "message": "لقد انتهى اشتراكك أو الفترة التجريبية. يرجى التجديد للمتابعة.",
                         "status": "expired"
                     }
                 }, status=status.HTTP_403_FORBIDDEN)

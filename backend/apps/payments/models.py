@@ -70,7 +70,7 @@ class Payment(models.Model):
     receipt_url = models.URLField(blank=True)
 
     notes = models.TextField(blank=True)
-    processed_by_id = models.BigIntegerField(null=True, blank=True)
+    processed_by_id = models.UUIDField(null=True, blank=True)
 
     # Refund tracking
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

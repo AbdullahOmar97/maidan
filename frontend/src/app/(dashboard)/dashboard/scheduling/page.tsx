@@ -1,11 +1,12 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Calendar, Clock, MapPin, Users, Plus, Filter } from "lucide-react";
-import { cn, getStatusBadgeClass } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import type { ClassSession } from "@/types";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
@@ -18,6 +19,7 @@ const DAYS_OF_WEEK = [
   { value: 5, label: "السبت" },
   { value: 6, label: "الأحد" },
 ];
+
 
 export default function SchedulingPage() {
   const { data: session } = useSession();
@@ -87,25 +89,22 @@ export default function SchedulingPage() {
 
   return (
     <PermissionGuard permission="can_manage_schedules">
-      <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-primary" />
-            الجدول الزمني
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">إدارة جداول الحصص والجلسات</p>
-        </div>
-        {canManage && (
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-all text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            إضافة حصة
-          </button>
-        )}
-      </div>
+      <div className="space-y-10 pb-12">
+        <PageHeader
+          title="الجدول الزمني"
+          description="تنظيم حصص التدريب، إدارة المواعيد المتكررة، وتخصيص المدربين والفروع لكل جلسة تدريبية."
+          icon={Calendar}
+        >
+          {canManage && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              إضافة حصة
+            </button>
+          )}
+        </PageHeader>
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border">
@@ -163,9 +162,7 @@ export default function SchedulingPage() {
                           {session.location_name}
                         </div>
                       </div>
-                      <span className={cn("px-2 py-0.5 rounded text-[10px] font-medium border uppercase tracking-wider", getStatusBadgeClass(session.status))}>
-                        {session.status === "in_progress" ? "جارية" : session.status === "scheduled" ? "مجدولة" : session.status === "cancelled" ? "ملغاة" : "مكتملة"}
-                      </span>
+                      <StatusBadge status={session.status} />
                     </div>
                     <div className="flex items-center justify-between text-sm text-muted-foreground pt-3 border-t border-border/50">
                       <div className="flex items-center gap-1.5">

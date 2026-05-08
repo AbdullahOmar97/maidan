@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import type { PaginatedResponse, Student } from "@/types";
 import Link from "next/link";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 const STATUS_OPTIONS = [
   { value: "", label: "جميع الحالات" },
@@ -48,7 +51,7 @@ function StudentCard({ student }: { student: Student }) {
         {/* Status indicator */}
         <div
           className={cn(
-            "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20",
+            "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
             student.status === "active" ? "bg-emerald-500 shadow-emerald-500/50" :
             student.status === "trial" ? "bg-blue-500 shadow-blue-500/50" :
             student.status === "lead" ? "bg-amber-500 shadow-amber-500/50" : "bg-gray-500"
@@ -65,9 +68,7 @@ function StudentCard({ student }: { student: Student }) {
             </h3>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-1">{student.student_number}</p>
           </div>
-          <span className={cn("px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border shrink-0 shadow-sm", getStatusBadgeClass(student.status))}>
-            {getStatusLabel(student.status)}
-          </span>
+          <StatusBadge status={student.status} />
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
@@ -139,6 +140,7 @@ function StudentCardSkeleton() {
   );
 }
 
+
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -160,61 +162,28 @@ export default function StudentsPage() {
   });
 
   return (
+    <PermissionGuard permission="can_manage_students">
     <div className="space-y-10 pb-20">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-4">
-            <div className="w-14 h-14 rounded-[1.5rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3">
-              <Users className="w-7 h-7 text-white" />
-            </div>
-            الطلاب
-          </h1>
-          <p className="text-muted-foreground text-sm font-bold mt-3 max-w-xl leading-relaxed">
-            إدارة قاعدة بيانات الطلاب المركزية، تتبع مستويات الأحزمة، ومراقبة حالة الاشتراكات النشطة لجميع الفروع.
-          </p>
-        </div>
+      <PageHeader
+        title="الطلاب"
+        description="إدارة قاعدة بيانات الطلاب المركزية، تتبع مستويات الأحزمة، ومراقبة حالة الاشتراكات النشطة لجميع الفروع."
+        icon={Users}
+      >
         <Link
           href="/dashboard/students/new"
-          id="add-student-btn"
-          className="flex items-center justify-center gap-3 px-8 py-4 rounded-[2rem] gradient-brand text-white text-sm font-black shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all group overflow-hidden relative"
+          className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-          <Plus className="w-6 h-6 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
-          <span className="relative z-10">إضافة طالب جديد</span>
+          <Plus className="w-4 h-4" />
+          إضافة طالب
         </Link>
-      </div>
+      </PageHeader>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: "إجمالي الطلاب", value: stats?.total ?? 0, icon: Users, color: "primary", description: "جميع المسجلين" },
-          { label: "طلاب نشطون", value: stats?.active ?? 0, icon: Sparkles, color: "emerald", description: "اشتراكات جارية" },
-          { label: "تجريبيون", value: stats?.trials ?? 0, icon: Award, color: "blue", description: "فترة تجربة" },
-          { label: "محتملون", value: stats?.leads ?? 0, icon: Filter, color: "amber", description: "قيد المتابعة" },
-        ].map((s) => (
-          <div key={s.label} className="glass-card p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-500">
-            <div className={cn(
-              "absolute -right-8 -top-8 w-24 h-24 blur-[50px] opacity-20 group-hover:opacity-40 transition-opacity",
-              s.color === "primary" ? "bg-primary" :
-              s.color === "emerald" ? "bg-emerald-500" :
-              s.color === "blue" ? "bg-blue-500" : "bg-amber-500"
-            )} />
-            <div className="flex items-center justify-between mb-6">
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
-                s.color === "primary" ? "bg-primary/10 border-primary/20 text-primary shadow-primary/10" :
-                s.color === "emerald" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10" :
-                s.color === "blue" ? "bg-blue-500/10 border-blue-500/20 text-blue-400 shadow-blue-500/10" :
-                "bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-amber-500/10"
-              )}>
-                <s.icon className="w-6 h-6" />
-              </div>
-            </div>
-            <p className="text-4xl font-black tracking-tight text-white mb-2">{s.value}</p>
-            <p className="text-xs font-black text-white/60 uppercase tracking-widest">{s.label}</p>
-          </div>
-        ))}
+        <StatsCard label="إجمالي الطلاب" value={stats?.total ?? 0} icon={Users} color="primary" description="جميع المسجلين" />
+        <StatsCard label="طلاب نشطون" value={stats?.active ?? 0} icon={Sparkles} color="emerald" description="اشتراكات جارية" />
+        <StatsCard label="تجريبيون" value={stats?.trials ?? 0} icon={Award} color="blue" description="فترة تجربة" />
+        <StatsCard label="محتملون" value={stats?.leads ?? 0} icon={Filter} color="amber" description="قيد المتابعة" />
       </div>
 
       {/* Filters & Actions */}
@@ -320,7 +289,6 @@ export default function StudentsPage() {
         </div>
       )}
     </div>
+    </PermissionGuard>
   );
 }
-
-

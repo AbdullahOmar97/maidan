@@ -15,13 +15,20 @@ import {
   AlertCircle,
   Database
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, translateErrorMessage } from "@/lib/utils";
+import { ErrorAlert } from "@/components/ErrorAlert";
 import Link from "next/link";
 
 export default function CreateTenantPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
 
   const [formData, setFormData] = useState({
     name: "",
@@ -39,9 +46,11 @@ export default function CreateTenantPage() {
     setFormData(prev => ({
       ...prev,
       schema_name: slug.replace(/-/g, "_"),
-      domain_input: slug ? `${slug}.${window.location.hostname}` : "",
+      domain_input: slug && mounted ? `${slug}.${window.location.hostname}` : slug ? `${slug}.${process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "localhost"}` : "",
     }));
-  }, [formData.slug]);
+  }, [formData.slug, mounted]);
+
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -58,7 +67,8 @@ export default function CreateTenantPage() {
       router.push("/dashboard/tenants");
       router.refresh();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.response?.data?.detail || "حدث خطأ أثناء إضافة الأكاديمية.");
+      const errorData = err.response?.data;
+      setError(translateErrorMessage(errorData?.message || errorData?.detail || "حدث خطأ أثناء إضافة الأكاديمية."));
     } finally {
       setIsLoading(false);
     }
@@ -184,23 +194,22 @@ export default function CreateTenantPage() {
                   required
                   value={formData.domain_input}
                   onChange={handleChange}
-                  placeholder={`elite.${window.location.hostname}`}
+                  placeholder={`elite.${mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "localhost")}`}
                   className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pr-12 pl-5 text-white focus:outline-none focus:border-primary/50 transition-all font-mono"
                 />
+
+
               </div>
             </div>
           </section>
         </div>
 
-        {error && (
-          <div className="p-6 rounded-[2rem] bg-destructive/10 border border-destructive/20 flex items-start gap-4 text-destructive animate-shake">
-            <AlertCircle className="w-6 h-6 shrink-0" />
-            <div className="flex-1">
-               <p className="font-black">خطأ في الإضافة</p>
-               <p className="text-sm opacity-90 mt-1">{error}</p>
-            </div>
-          </div>
-        )}
+        <ErrorAlert 
+          error={error} 
+          title="خطأ في الإضافة" 
+          subtitle="تحقق من البيانات" 
+          className="mt-4"
+        />
 
         <div className="flex items-center justify-end gap-4">
           <Link

@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = "SAR", locale = "ar-SA"): string {
+export function formatCurrency(amount: number, currency = "JOD", locale = "ar-JO"): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
@@ -14,7 +14,7 @@ export function formatCurrency(amount: number, currency = "SAR", locale = "ar-SA
   }).format(amount);
 }
 
-export function formatDate(dateStr: string, locale = "ar-SA"): string {
+export function formatDate(dateStr: string, locale = "ar-JO"): string {
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "long",
@@ -70,6 +70,34 @@ export function getStatusLabel(status: string): string {
   return map[status] ?? status;
 }
 
+export function isInvoiceOverdue(status: string, dueDate: string): boolean {
+  if (status === "overdue") return true;
+  if (status === "pending" || status === "partially_paid") {
+    return new Date(dueDate) < new Date();
+  }
+  return false;
+}
+
 export function truncate(str: string, length: number): string {
   return str.length > length ? `${str.slice(0, length)}...` : str;
+}
+
+export function translateErrorMessage(message: string): string {
+  const errorTranslations: Record<string, string> = {
+    "This academy slug is already taken.": "رابط الأكاديمية مستخدم بالفعل",
+    "User with this email already exists.": "البريد الإلكتروني مسجل مسبقاً",
+    "This field may not be blank.": "هذا الحقل مطلوب",
+    "This field is required.": "هذا الحقل مطلوب",
+    "Enter a valid email address.": "أدخل بريد إلكتروني صحيح",
+    "Ensure this field has at least 8 characters.": "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل",
+    "This academy slug is already taken": "رابط الأكاديمية مستخدم بالفعل",
+    "User with this email already exists": "البريد الإلكتروني مسجل مسبقاً",
+    "Invalid email or password": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "Authentication failed": "فشل المصادقة",
+  };
+
+  for (const [en, ar] of Object.entries(errorTranslations)) {
+    if (message.includes(en)) return ar;
+  }
+  return message;
 }

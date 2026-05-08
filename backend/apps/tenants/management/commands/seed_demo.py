@@ -49,8 +49,6 @@ class Command(BaseCommand):
                 "slug": schema_name,
                 "email": "admin@dragons-dojo.sa",
                 "plan": plan,
-                "primary_color": "#1a1a2e",
-                "secondary_color": "#e94560",
                 "default_language": "ar",
                 "default_currency": "SAR",
             },

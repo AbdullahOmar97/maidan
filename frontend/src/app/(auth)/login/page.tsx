@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Shield, Eye, EyeOff, Sparkles, ChevronLeft, ArrowLeft } from "lucide-react";
 import { isTenantHost } from "@/lib/auth/host";
 import { cn } from "@/lib/utils";
+import { ErrorAlert } from "@/components/ErrorAlert";
 
 const EMAIL_ERROR = "البريد الإلكتروني غير صالح";
 const EMAIL_REQUIRED = "البريد الإلكتروني مطلوب";
@@ -19,15 +20,44 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
+  const [errorTitle, setErrorTitle] = useState<string>("فشل العملية");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTenantLogin, setIsTenantLogin] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const prefilledEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
 
   useEffect(() => {
-    setIsTenantLogin(isTenantHost(window.location.hostname));
+    const hostname = window.location.hostname;
+    const isTenant = isTenantHost(hostname);
+    setIsTenantLogin(isTenant);
+
+    if (isTenant) {
+      checkTenantStatus();
+    }
   }, []);
+
+  const checkTenantStatus = async () => {
+    try {
+      // Use the proxied backend path to correctly hit the backend API via the frontend dev server/nginx
+      const res = await fetch("/api/backend/v1/academy/me/");
+      
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.error?.code === "tenant_inactive" || data.error?.code === "subscription_expired") {
+          setErrorTitle(
+            data.error.status === "pending" ? "قيد المراجعة" : 
+            data.error.status === "expired" ? "اشتراك منتهي" : "النادي غير مفعل"
+          );
+          setError(data.error.message);
+          setIsLocked(true);
+        }
+      }
+    } catch (err) {
+      console.error("Status check failed:", err);
+    }
+  };
 
   useEffect(() => {
     if (prefilledEmail) {
@@ -41,6 +71,7 @@ export default function LoginPage() {
   const onDiscoverTenant = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setErrorTitle("فشل العملية");
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
@@ -62,7 +93,12 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok || !data?.found || !data?.login_url) {
-        setError("لم نتمكن من العثور على نادٍ مرتبط بهذا البريد الإلكتروني");
+        if (data?.code === "pending_approval") {
+          setErrorTitle("قيد المراجعة");
+          setError("حسابك قيد المراجعة حالياً، يرجى الانتظار لحين تفعيله من قبل الإدارة.");
+        } else {
+          setError("لم نتمكن من العثور على نادٍ مرتبط بهذا البريد الإلكتروني");
+        }
         return;
       }
 
@@ -77,6 +113,7 @@ export default function LoginPage() {
   const onTenantLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setErrorTitle("فشل العملية");
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
@@ -104,6 +141,10 @@ export default function LoginPage() {
       if (result.error.includes("SETUP_REQUIRED")) {
         const email = result.error.split(":")[1];
         router.push(`/setup-password?email=${encodeURIComponent(email)}`);
+      } else if (result.error.includes("TENANT_INACTIVE")) {
+        const message = result.error.split(":")[1];
+        setError(message || "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة.");
+        setErrorTitle("النادي غير مفعل");
       } else {
         setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
       }
@@ -210,20 +251,21 @@ export default function LoginPage() {
               )}
 
               {/* Error Message */}
-              {error && (
-                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center animate-shake">
-                  {error}
-                </div>
-              )}
+              <ErrorAlert 
+                error={error} 
+                title={errorTitle}
+                variant="compact" 
+                className="mb-4"
+              />
 
               {/* Submit Button */}
               <button
                 id="login-submit"
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLocked}
                 className={cn(
                   "w-full py-4 rounded-2xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-2xl shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-3 group/btn overflow-hidden relative",
-                  isSubmitting ? "opacity-70" : "hover:scale-[1.02]"
+                  (isSubmitting || isLocked) ? "opacity-70" : "hover:scale-[1.02]"
                 )}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:animate-shimmer" />

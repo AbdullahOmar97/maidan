@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 import datetime
 from zoneinfo import ZoneInfo
 
-from shared.permissions import CanCheckIn, IsStaff, CanManageSchedules
+from shared.permissions import CanCheckIn, IsStaff, CanManageSchedules, LocationFilterMixin
 from .models import AttendanceRecord, ClassSchedule, ClassSession, ClassType
 
 
@@ -101,11 +101,15 @@ class ClassTypeViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated(), IsStaff()]
 
 
-class ClassScheduleViewSet(viewsets.ModelViewSet):
-    queryset = ClassSchedule.objects.select_related("class_type", "location").all()
+class ClassScheduleViewSet(LocationFilterMixin, viewsets.ModelViewSet):
     serializer_class = ClassScheduleSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["location_id", "day_of_week", "is_active", "class_type_id"]
+    location_field = "location_id"
+
+    def get_queryset(self):
+        qs = ClassSchedule.objects.select_related("class_type", "location").all()
+        return self.get_location_filtered_queryset(qs)
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
@@ -113,12 +117,16 @@ class ClassScheduleViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated(), IsStaff()]
 
 
-class ClassSessionViewSet(viewsets.ModelViewSet):
-    queryset = ClassSession.objects.select_related("schedule__class_type", "schedule__location").all()
+class ClassSessionViewSet(LocationFilterMixin, viewsets.ModelViewSet):
     serializer_class = ClassSessionSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["date", "status", "schedule__location_id"]
     ordering = ["-date"]
+    location_field = "schedule__location_id"
+
+    def get_queryset(self):
+        qs = ClassSession.objects.select_related("schedule__class_type", "schedule__location").all()
+        return self.get_location_filtered_queryset(qs)
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:

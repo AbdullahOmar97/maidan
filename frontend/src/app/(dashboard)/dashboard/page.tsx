@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users,
@@ -32,6 +32,7 @@ import { api } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils";
 import type { DashboardKPIs } from "@/types";
 import Link from "next/link";
+import { useBillingPermissions } from "@/lib/hooks/use-permission";
 
 // ---------------------------------------------------------------------------
 // KPI Card Component
@@ -109,6 +110,7 @@ function KPISkeleton() {
 // ---------------------------------------------------------------------------
 // Main Dashboard Page
 // ---------------------------------------------------------------------------
+
 export default function DashboardPage() {
   const { data: kpis, isLoading: kpisLoading, refetch } = useQuery<DashboardKPIs>({
     queryKey: ["dashboard", "kpi"],
@@ -136,19 +138,22 @@ export default function DashboardPage() {
     queryFn: () => api.dashboard.retention().then((r) => r.data),
   });
 
+  const { canCreateInvoice } = useBillingPermissions();
+
+  const quickActions = [
+    { label: "إضافة طالب", href: "/dashboard/students/new", icon: Users, color: "from-primary/20 to-primary/5 border-primary/20 text-primary shadow-primary/10", show: true },
+    { label: "تسجيل حضور", href: "/dashboard/attendance", icon: CalendarCheck, color: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10", show: true },
+    { label: "إنشاء فاتورة", href: "/dashboard/billing/new", icon: CreditCard, color: "from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-400 shadow-amber-500/10", show: canCreateInvoice },
+    { label: "إرسال تنبيه", href: "/dashboard/messaging", icon: Clock, color: "from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-400 shadow-purple-500/10", show: true },
+  ].filter((a) => a.show);
+
   return (
     <div className="space-y-8 pb-12 page-enter">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-white">نظرة عامة</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <p className="text-muted-foreground text-sm font-medium">
-              نظام ميدان متصل — {new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        title="نظرة عامة"
+        description={`نظام ميدان متصل — ${new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
+        icon={Sparkles}
+      >
         <button
           onClick={() => refetch()}
           className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-primary/40 text-sm font-bold text-muted-foreground hover:text-white transition-all group active:scale-95"
@@ -156,7 +161,7 @@ export default function DashboardPage() {
           <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
           تحديث البيانات
         </button>
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -441,12 +446,7 @@ export default function DashboardPage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[80px] -mr-32 -mt-32 pointer-events-none" />
         <h2 className="text-xl font-black tracking-tight mb-6 relative z-10">إجراءات سريعة</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
-          {[
-            { label: "إضافة طالب", href: "/dashboard/students/new", icon: Users, color: "from-primary/20 to-primary/5 border-primary/20 text-primary shadow-primary/10" },
-            { label: "تسجيل حضور", href: "/dashboard/attendance", icon: CalendarCheck, color: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10" },
-            { label: "إنشاء فاتورة", href: "/dashboard/billing/new", icon: CreditCard, color: "from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-400 shadow-amber-500/10" },
-            { label: "إرسال تنبيه", href: "/dashboard/messaging", icon: Clock, color: "from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-400 shadow-purple-500/10" },
-          ].map((action) => (
+          {quickActions.map((action) => (
             <Link
               key={action.href}
               href={action.href}

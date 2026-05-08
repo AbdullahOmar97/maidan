@@ -99,9 +99,22 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = StudentFilter
     search_fields = [
-        "first_name", "last_name", "first_name_ar", "last_name_ar",
+        "first_name", "last_name",
         "email", "phone", "student_number", "whatsapp",
     ]
+
+    def filter_queryset(self, queryset):
+        search_query = self.request.query_params.get("search", "")
+        if " " in search_query:
+            # Handle full name search (e.g. "Abdullah Omar")
+            from django.db.models import Q
+            parts = search_query.split()
+            if len(parts) >= 2:
+                q_obj = Q()
+                for part in parts:
+                    q_obj &= (Q(first_name__icontains=part) | Q(last_name__icontains=part))
+                return queryset.filter(q_obj)
+        return super().filter_queryset(queryset)
     ordering_fields = ["created_at", "first_name", "last_name", "status"]
     ordering = ["-created_at"]
 
@@ -392,8 +405,6 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         qs = qs.filter(
             Q(first_name__icontains=search_query) |
             Q(last_name__icontains=search_query) |
-            Q(first_name_ar__icontains=search_query) |
-            Q(last_name_ar__icontains=search_query) |
             Q(phone__icontains=search_query)
         )
 

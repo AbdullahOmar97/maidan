@@ -25,7 +25,7 @@ class Plan(models.Model):
     # Pricing
     price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     price_yearly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField(max_length=3, default="SAR")
+    currency = models.CharField(max_length=3, default="JOD")
 
     # Feature flags as JSON
     features = models.JSONField(
@@ -80,15 +80,13 @@ class Tenant(TenantMixin):
 
     # Branding
     logo = models.ImageField(upload_to="tenant_logos/", null=True, blank=True)
-    primary_color = models.CharField(max_length=7, default="#1a1a2e")
-    secondary_color = models.CharField(max_length=7, default="#e94560")
     favicon = models.ImageField(upload_to="tenant_favicons/", null=True, blank=True)
 
     # Locale settings
     default_language = models.CharField(max_length=5, default="ar")
-    default_currency = models.CharField(max_length=3, default="SAR")
-    timezone = models.CharField(max_length=50, default="Asia/Riyadh")
-    country = models.CharField(max_length=2, default="SA")
+    default_currency = models.CharField(max_length=3, default="JOD")
+    timezone = models.CharField(max_length=50, default="Asia/Amman")
+    country = models.CharField(max_length=2, default="JO")
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -180,3 +178,47 @@ class GlobalDefaultBelt(models.Model):
 
     def __str__(self):
         return f"[{self.martial_art}] {self.name} ({self.name_ar})"
+
+class PlatformSettings(models.Model):
+    """
+    Singleton model for global SaaS platform settings.
+    Stores default platform logo, favicon, and other global configurations.
+    """
+    platform_name = models.CharField(max_length=200, default="MAIDAN")
+    logo = models.ImageField(upload_to="platform_branding/", null=True, blank=True)
+    favicon = models.ImageField(upload_to="platform_branding/", null=True, blank=True)
+
+    class Meta:
+        app_label = "tenants"
+        verbose_name = "Platform Settings"
+        verbose_name_plural = "Platform Settings"
+
+    def __str__(self):
+        return "Global Platform Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=Tenant)
+def delete_old_tenant_images(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        old_instance = Tenant.objects.get(pk=instance.pk)
+    except Tenant.DoesNotExist:
+        return
+
+    if old_instance.logo and instance.logo != old_instance.logo:
+        old_instance.logo.delete(save=False)
+        
+    if old_instance.favicon and instance.favicon != old_instance.favicon:
+        old_instance.favicon.delete(save=False)

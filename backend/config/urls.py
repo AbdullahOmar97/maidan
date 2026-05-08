@@ -5,6 +5,8 @@ This file handles PUBLIC schema routes (platform-level).
 
 from django.contrib import admin
 from django.urls import include, path
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
@@ -27,3 +29,6 @@ urlpatterns = [
     # Tenant management (platform admin only)
     path("api/v1/platform/", include("apps.tenants.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

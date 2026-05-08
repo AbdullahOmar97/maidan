@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt
+from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt, PlatformSettings
 
 
 @admin.register(GlobalDefaultBelt)
@@ -10,6 +10,13 @@ class GlobalDefaultBeltAdmin(admin.ModelAdmin):
     list_filter = ("martial_art", "is_active")
     search_fields = ("name", "name_ar")
     ordering = ("martial_art", "order_index")
+
+@admin.register(PlatformSettings)
+class PlatformSettingsAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        if PlatformSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
 
 FEATURE_CHOICES = (
     ("whatsapp", "WhatsApp Notifications (تنبيهات واتساب)"),
@@ -98,7 +105,7 @@ class TenantAdmin(admin.ModelAdmin):
         ("Tenant Identity", {"fields": ("name", "business_name", "slug", "schema_name")}),
         ("Contact", {"fields": ("email", "phone")}),
         ("Subscription", {"fields": ("plan", "status", "is_active", "subscription_end_date", "on_trial", "trial_ends_at")}),
-        ("Branding", {"fields": ("logo", "favicon", "primary_color", "secondary_color")}),
+        ("Branding", {"fields": ("logo", "favicon")}),
         (
             "Locale",
             {"fields": ("default_language", "default_currency", "timezone", "country")},

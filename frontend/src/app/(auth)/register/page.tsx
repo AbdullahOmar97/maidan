@@ -18,7 +18,8 @@ import {
   Clock,
   Check
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, translateErrorMessage } from "@/lib/utils";
+import { ErrorAlert } from "@/components/ErrorAlert";
 import { api } from "@/lib/api/client";
 
 export default function RegisterPage() {
@@ -29,6 +30,8 @@ export default function RegisterPage() {
   const [tenantData, setTenantData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -50,7 +53,10 @@ export default function RegisterPage() {
         }
       })
       .catch((err: any) => console.error("Failed to fetch plans", err));
+    
+    setMounted(true);
   }, []);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -102,7 +108,7 @@ export default function RegisterPage() {
           return Object.entries(obj).map(([key, value]) => {
             const fieldName = fieldLabels[key] || key;
             const errorText = Array.isArray(value) ? value[0] : (typeof value === "object" ? JSON.stringify(value) : String(value));
-            return `${fieldName}: ${errorText}`;
+            return `${fieldName}: ${translateErrorMessage(String(errorText))}`;
           });
         };
 
@@ -114,10 +120,10 @@ export default function RegisterPage() {
             if (messages.length > 0) {
               errorMessage = messages.join(" | ");
             } else {
-              errorMessage = innerError.message || "حدث خطأ في البيانات";
+              errorMessage = translateErrorMessage(innerError.message || "حدث خطأ في البيانات");
             }
           } else {
-            errorMessage = innerError.message || "حدث خطأ في النظام";
+            errorMessage = translateErrorMessage(innerError.message || "حدث خطأ في النظام");
           }
         } else if (typeof errorData === "object" && !Array.isArray(errorData)) {
           const messages = parseFieldErrors(errorData);
@@ -125,7 +131,7 @@ export default function RegisterPage() {
             errorMessage = messages.join(" | ");
           }
         } else if (typeof errorData === "string") {
-          errorMessage = errorData;
+          errorMessage = translateErrorMessage(errorData);
         }
       }
       
@@ -141,22 +147,22 @@ export default function RegisterPage() {
         <div className="w-24 h-24 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-8 shadow-2xl animate-pulse">
           <Clock className="w-12 h-12 text-amber-500" />
         </div>
-        <h1 className="text-4xl font-black text-white mb-4 tracking-tight">تم استلام طلبك بنجاح!</h1>
+        <h1 className="text-5xl font-black text-white mb-4 tracking-tight">تم استلام طلبك بنجاح!</h1>
         <div className="max-w-2xl space-y-6">
-          <p className="text-xl text-muted-foreground leading-relaxed">
+          <p className="text-2xl text-muted-foreground leading-relaxed">
             شكراً لتسجيل أكاديميتك ({formData.academy_name}). 
             حسابك الآن <strong>قيد المراجعة</strong> من قبل فريق الإدارة.
           </p>
           
           <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-right space-y-4">
-            <h3 className="text-lg font-black text-white flex items-center gap-3">
-              <Shield className="w-5 h-5 text-amber-500" />
+            <h3 className="text-xl font-black text-white flex items-center gap-3">
+              <Shield className="w-6 h-6 text-amber-500" />
               ماذا سيحدث الآن؟
             </h3>
-            <ul className="space-y-3 text-sm text-muted-foreground font-bold">
+            <ul className="space-y-4 text-base text-muted-foreground font-bold">
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">1</div>
-                <span>سيقوم أحد مسؤولي المنصة بمراجعة بيانات أكاديميتك وتفعيل الحساب.</span>
+                <span>سيقوم مسؤولو المنصة بمراجعة بيانات أكاديميتك وتفعيل الحساب.</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">2</div>
@@ -186,19 +192,19 @@ export default function RegisterPage() {
   return (
     <div className="max-w-4xl mx-auto py-12 px-6 page-enter">
       <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary mb-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary mb-6">
           <Sparkles className="h-3.5 w-3.5" />
           ابدأ رحلتك مع ميدان اليوم
         </div>
-        <h1 className="text-4xl font-black text-white mb-4 tracking-tight">تسجيل أكاديمية جديدة</h1>
-        <p className="text-muted-foreground font-bold">أدخل تفاصيل الأكاديمية واختر الباقة المناسبة للبدء</p>
+        <h1 className="text-5xl font-black text-white mb-4 tracking-tight">تسجيل أكاديمية جديدة</h1>
+        <p className="text-lg text-muted-foreground font-bold">أدخل تفاصيل الأكاديمية واختر الباقة المناسبة للبدء</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Section 1: Manager & Academy Info */}
           <div className="space-y-8">
-            <h2 className="text-sm font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
+            <h2 className="text-base font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
               <User className="w-5 h-5" />
               بيانات المدير العام للأكاديمية
             </h2>
@@ -206,7 +212,7 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">الاسم الأول</label>
+                  <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">الاسم الأول</label>
                   <input
                     type="text"
                     name="first_name"
@@ -218,7 +224,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">اسم العائلة</label>
+                  <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">اسم العائلة</label>
                   <input
                     type="text"
                     name="last_name"
@@ -258,7 +264,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="pt-4 mt-8 border-t border-white/5">
-                <h2 className="text-sm font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3 mb-6">
+                <h2 className="text-base font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3 mb-6">
                   <Building2 className="w-5 h-5" />
                   بيانات الأكاديمية
                 </h2>
@@ -266,7 +272,7 @@ export default function RegisterPage() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">اسم الأكاديمية</label>
+                  <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">اسم الأكاديمية</label>
                   <input
                     type="text"
                     name="academy_name"
@@ -279,8 +285,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">رابط الأكاديمية (Slug)</label>
-                  <div className="relative group">
+                  <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">رابط الأكاديمية (Slug)</label>
+                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 focus-within:border-primary/50 transition-all group" dir="ltr">
                     <input
                       type="text"
                       name="slug"
@@ -288,10 +294,10 @@ export default function RegisterPage() {
                       value={formData.slug}
                       onChange={handleChange}
                       placeholder="elite-academy"
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pr-5 pl-24 text-white focus:outline-none focus:border-primary/50 transition-all font-mono"
+                      className="flex-1 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-lg"
                     />
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground pointer-events-none">
-                      .{window.location.hostname}
+                    <div className="text-sm font-black text-muted-foreground ml-2">
+                      .{mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "maidan.app")}
                     </div>
                   </div>
                 </div>
@@ -301,12 +307,12 @@ export default function RegisterPage() {
 
           {/* Section 2: Plan Selection */}
           <div className="space-y-8">
-            <h2 className="text-sm font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
+            <h2 className="text-base font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
               <Sparkles className="w-5 h-5" />
               اختر باقة الاشتراك
             </h2>
 
-            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4">
               {plans.map((plan) => (
                 <div 
                   key={plan.id}
@@ -325,25 +331,25 @@ export default function RegisterPage() {
                   )}
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-black text-white text-lg">{plan.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 font-bold">{plan.description || "باقة مرنة تلبي احتياجاتك"}</p>
+                      <h3 className="font-black text-white text-xl">{plan.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-1 font-bold">{plan.description || "باقة مرنة تلبي احتياجاتك"}</p>
                     </div>
                     <div className="text-left">
-                      <span className="text-xl font-black text-white">{plan.price_monthly}</span>
-                      <span className="text-[10px] text-muted-foreground mr-1 font-black uppercase">{plan.currency} / شهرياً</span>
+                      <span className="text-2xl font-black text-white">{plan.price_monthly}</span>
+                      <span className="text-xs text-muted-foreground mr-1 font-black uppercase">{plan.currency} / شهرياً</span>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-y-2 mt-4 pt-4 border-t border-white/5">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                       {plan.max_students} طالب
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                       {plan.max_locations} فرع
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                       {plan.max_staff} موظف
                     </div>
@@ -362,7 +368,7 @@ export default function RegisterPage() {
                         documents: "وثائق الطلاب",
                       };
                       return (
-                        <div key={key} className="flex items-center gap-2 text-white/50 text-[11px] font-bold">
+                        <div key={key} className="flex items-center gap-2 text-white/50 text-xs font-bold">
                           <Check className="w-3 h-3 text-primary" />
                           <span>
                             {labelMap[key] || key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
@@ -383,21 +389,17 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {error && (
-          <div className="p-6 rounded-[2rem] bg-destructive/10 border border-destructive/20 flex items-start gap-4 text-destructive animate-shake">
-            <AlertCircle className="w-6 h-6 shrink-0" />
-            <div className="flex-1">
-               <p className="font-black">فشل التسجيل</p>
-               <p className="text-sm opacity-90 mt-1">{error}</p>
-            </div>
-          </div>
-        )}
+        <ErrorAlert 
+          error={error} 
+          title="فشل التسجيل" 
+          subtitle="خطأ في البيانات" 
+        />
 
         <div className="pt-4">
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group text-xl"
           >
             {isLoading ? (
               <>
@@ -413,7 +415,7 @@ export default function RegisterPage() {
           </button>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-8">
+        <p className="text-center text-base text-muted-foreground mt-8">
           لديك حساب بالفعل؟{" "}
           <Link href="/login" className="text-primary font-bold hover:underline">
             تسجيل الدخول

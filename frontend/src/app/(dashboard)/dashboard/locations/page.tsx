@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import React, { FormEvent, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Building2, MapPin, Phone, Mail, Globe, Clock, Users, Plus, AlertCircle,
 import { cn } from "@/lib/utils";
 import { AxiosError } from "axios";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
 
 type Location = {
   id: number;
@@ -41,6 +42,7 @@ const initialFormState = {
   capacity: "50",
   is_active: true,
 };
+
 
 export default function LocationsPage() {
   const { data: session } = useSession();
@@ -155,25 +157,22 @@ export default function LocationsPage() {
 
   return (
     <PermissionGuard permission="can_manage_locations">
-      <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" />
-            الفروع والمواقع
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">إدارة فروع الأكاديمية والصالات الرياضية</p>
-        </div>
-        {canManage && (
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg gradient-brand text-white font-medium shadow-lg hover:opacity-90 transition-all text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            إضافة فرع
-          </button>
-        )}
-      </div>
+      <div className="space-y-10 pb-12">
+        <PageHeader
+          title="الفروع والمواقع"
+          description="إدارة فروع الأكاديمية، توزيع الطواقم التدريبية، ومراقبة السعة الاستيعابية لكل صالة رياضية بشكل مستقل."
+          icon={Building2}
+        >
+          {canManage && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              إضافة فرع
+            </button>
+          )}
+        </PageHeader>
 
       {isLoading ? (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -223,12 +222,7 @@ export default function LocationsPage() {
                            </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <span className={cn(
-                             "px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider",
-                             location.is_active ? "badge-active" : "badge-inactive"
-                          )}>
-                             {location.is_active ? "نشط" : "مغلق"}
-                          </span>
+                           <StatusBadge status={location.is_active ? "active" : "inactive"} />
                         </div>
                      </div>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ShieldCheck, Sparkles, Users2, Shield } from "lucide-react";
+import { TenantRedirect } from "@/components/TenantRedirect";
 
 const stats = [
   { label: "أكاديميات مسجلة", value: "120+" },
@@ -37,6 +38,7 @@ const highlights = [
 export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
+      <TenantRedirect />
       {/* Dynamic Background Elements */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="gradient-brand-soft absolute -right-24 top-10 h-[500px] w-[500px] rounded-full blur-[120px] opacity-50" />

@@ -131,6 +131,55 @@ class CanManageBilling(HasGranularPermission):
         super().__init__("can_manage_billing")
 
 
+class CanCreateInvoice(HasGranularPermission):
+    """Who can manually create an invoice (e.g. for extra fees)."""
+
+    def __init__(self):
+        super().__init__("can_create_invoice")
+
+
+class CanRenewSubscription(HasGranularPermission):
+    """Who can create a new membership / renew an existing one."""
+
+    def __init__(self):
+        super().__init__("can_renew_subscription")
+
+
+class CanChangeSubscription(HasGranularPermission):
+    """Who can switch a student from one plan to another."""
+
+    def __init__(self):
+        super().__init__("can_change_subscription")
+
+
+class CanApproveSubscription(HasGranularPermission):
+    """Who can approve pending-approval membership requests."""
+
+    def __init__(self):
+        super().__init__("can_approve_subscription")
+
+
+class CanVoidInvoice(HasGranularPermission):
+    """Who can void (cancel) an existing invoice."""
+
+    def __init__(self):
+        super().__init__("can_void_invoice")
+
+
+class CanApplyDiscount(HasGranularPermission):
+    """Who can apply a discount to an invoice."""
+
+    def __init__(self):
+        super().__init__("can_apply_discount")
+
+
+class CanMarkInvoicePaid(HasGranularPermission):
+    """Who can manually mark an invoice as fully paid (cash / offline confirmation)."""
+
+    def __init__(self):
+        super().__init__("can_mark_invoice_paid")
+
+
 class CanManageSchedules(HasGranularPermission):
     def __init__(self):
         super().__init__("can_manage_schedules")
@@ -189,12 +238,44 @@ class IsOwnerOrStaff(permissions.BasePermission):
 
 class LocationFilterMixin:
     """
-    Mixin for viewsets to filter queryset by user's location
-    for Branch Manager role. Managers see all locations.
+    Mixin for viewsets to scope querysets by the requesting user's assigned branch.
+
+    Rules:
+    - tenant_owner / platform_admin / manager → see ALL locations (no restriction).
+    - Any staff member with primary_location_id set → restricted to that branch only.
+    - Staff with no primary_location_id → unrestricted (e.g. a shared role not tied to one branch).
+
+    The queryset field to filter on must be specified in `location_field` (default: "location_id").
     """
 
-    def get_location_filtered_queryset(self, queryset):
+    location_field: str = "location_id"
+
+    def _get_user_location_id(self):
+        """Return the location pk that this user is restricted to, or None."""
         user = self.request.user
-        if user.role == RoleChoices.BRANCH_MANAGER and user.location:
-            return queryset.filter(location=user.location)
+        if not user or not user.is_authenticated:
+            return None
+        # Admins / owners / general managers see everything
+        if user.role in [
+            RoleChoices.PLATFORM_ADMIN,
+            RoleChoices.TENANT_OWNER,
+            RoleChoices.MANAGER,
+        ]:
+            return None
+        return getattr(user, "primary_location_id", None)
+
+    def get_location_filtered_queryset(self, queryset):
+        location_id = self._get_user_location_id()
+        if location_id:
+            return queryset.filter(**{self.location_field: location_id})
         return queryset
+
+
+class BranchScopedMixin(LocationFilterMixin):
+    """
+    Variant of LocationFilterMixin for models that reach location through a
+    related Student (e.g. Invoice, Membership, AttendanceRecord).
+    Override `location_field` to point to the correct traversal path.
+    """
+
+    location_field: str = "student__location_id"

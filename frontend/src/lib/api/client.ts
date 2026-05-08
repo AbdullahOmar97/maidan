@@ -52,9 +52,14 @@ apiClient.interceptors.response.use(
     }
 
     if (status === 403 && (errorCode === "tenant_inactive" || errorCode === "subscription_expired")) {
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/dashboard/status")) {
+      const isStatusPage = typeof window !== "undefined" && (
+        window.location.pathname.includes("/status") || 
+        window.location.pathname === "/login"
+      );
+
+      if (typeof window !== "undefined" && !isStatusPage) {
         const statusType = errorCode === "tenant_inactive" ? data.error.status : "expired";
-        window.location.href = `/dashboard/status?type=${statusType}`;
+        window.location.href = `/status?type=${statusType}&message=${encodeURIComponent(data.error.message)}`;
       }
     }
 
@@ -81,7 +86,13 @@ export const api = {
   // Tenants (Academy Settings)
   tenants: {
     me: () => apiClient.get("/academy/me/"),
-    updateMe: (data: unknown) => apiClient.patch("/academy/me/", data),
+    updateMe: (data: unknown) => {
+      const isFormData = data instanceof FormData;
+      return apiClient.patch("/academy/me/", data, {
+        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+      });
+    },
+    transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
   },
 
   // Dashboard
@@ -173,7 +184,12 @@ export const api = {
 
   // Billing
   billing: {
-    plans: () => apiClient.get("/billing/plans/"),
+    plans: {
+      list: () => apiClient.get("/billing/plans/"),
+      create: (data: unknown) => apiClient.post("/billing/plans/", data),
+      update: (id: number, data: unknown) => apiClient.patch(`/billing/plans/${id}/`, data),
+      delete: (id: number) => apiClient.delete(`/billing/plans/${id}/`),
+    },
     memberships: {
       list: (params?: Record<string, unknown>) =>
         apiClient.get("/billing/memberships/", { params }),
@@ -185,8 +201,13 @@ export const api = {
       list: (params?: Record<string, unknown>) =>
         apiClient.get("/billing/invoices/", { params }),
       get: (id: number) => apiClient.get(`/billing/invoices/${id}/`),
+      create: (data: unknown) => apiClient.post("/billing/invoices/", data),
       summary: () => apiClient.get("/billing/invoices/summary/"),
       overdue: () => apiClient.get("/billing/invoices/overdue/"),
+      markPaid: (id: number, data?: { payment_method?: string; note?: string }) =>
+        apiClient.post(`/billing/invoices/${id}/mark_paid/`, data ?? {}),
+      void: (id: number) =>
+        apiClient.post(`/billing/invoices/${id}/void/`),
     },
     payments: {
       initiate: (data: unknown) => apiClient.post("/billing/payments/initiate/", data),

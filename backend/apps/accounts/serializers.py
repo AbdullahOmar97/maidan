@@ -13,16 +13,17 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    branch_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "email", "phone", "first_name", "last_name", "full_name",
             "role", "is_active", "avatar", "avatar_url",
-            "language_pref", "primary_location_id", "permissions",
+            "language_pref", "primary_location_id", "branch_name", "permissions",
             "gdpr_consent", "created_at", "last_login",
         ]
-        read_only_fields = ["id", "created_at", "last_login", "full_name"]
+        read_only_fields = ["id", "created_at", "last_login", "full_name", "branch_name"]
 
     def get_full_name(self, obj):
         return obj.get_full_name()
@@ -32,6 +33,18 @@ class UserSerializer(serializers.ModelSerializer):
             request = self.context.get("request")
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
+        return None
+
+    def get_branch_name(self, obj):
+        if not obj.primary_location_id:
+            return None
+        try:
+            from apps.students.models import Location
+            loc = Location.objects.filter(id=obj.primary_location_id).first()
+            if loc:
+                return loc.name_ar or loc.name
+        except Exception:
+            pass
         return None
 
 
@@ -44,7 +57,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = [
             "email", "password", "password_confirm",
             "first_name", "last_name",
-            "phone", "role", "language_pref",
+            "phone", "role", "language_pref", "primary_location_id",
         ]
 
     def validate(self, attrs):

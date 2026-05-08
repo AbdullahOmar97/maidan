@@ -19,18 +19,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
+import { useTenant } from "@/lib/providers/tenant-provider";
+import { ROLE_LABELS } from "@/lib/constants";
+import { UserRole } from "@/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  tenant_owner: "المدير العام",
-  manager: "مدير",
-  branch_manager: "مدير فرع",
-  front_desk: "استقبال",
-  instructor: "مدرب",
-  finance: "مالية",
-  parent: "ولي أمر",
-  student: "طالب",
-  read_only: "مراقب",
-};
 
 const navItems = [
   {
@@ -122,7 +114,8 @@ interface SidebarProps {
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-  const role = (user as any)?.role as string;
+  const role = (user as any)?.role as UserRole;
+  const { tenant } = useTenant();
 
   return (
     <aside className="w-64 h-full flex flex-col bg-card/30 border-l border-white/[0.05] backdrop-blur-2xl shrink-0 overflow-hidden relative">
@@ -131,12 +124,20 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Logo */}
       <div className="flex items-center gap-4 px-6 h-20 shrink-0 relative z-10">
-        <div className="w-10 h-10 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/20 group hover:scale-105 transition-transform duration-500">
-          <Shield className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <p className="font-black text-lg tracking-tighter text-gradient leading-none">MAIDAN</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mt-1">نظام الدوجو</p>
+        {tenant?.logo ? (
+          <img src={tenant.logo} alt="Club Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg group hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="w-10 h-10 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/20 group hover:scale-105 transition-transform duration-500">
+            <Shield className="w-5 h-5 text-white" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-black text-lg tracking-tighter text-gradient leading-none truncate">
+            {tenant?.name || "MAIDAN"}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mt-1 truncate">
+            {tenant?.name ? "نظام الأكاديمية" : "نظام الدوجو"}
+          </p>
         </div>
       </div>
 
@@ -147,7 +148,7 @@ export function Sidebar({ user }: SidebarProps) {
             const itemRole = (item as any).role;
             const itemRoles = (item as any).roles;
             const itemPermission = (item as any).permission;
-            
+
             // Platform Admin and Tenant Owner see everything
             if (role === "platform_admin" || role === "tenant_owner") {
               return true;
@@ -156,7 +157,7 @@ export function Sidebar({ user }: SidebarProps) {
             if (itemRole) {
               return itemRole === role;
             }
-            
+
             if (itemRoles && Array.isArray(itemRoles)) {
               return itemRoles.includes(role);
             }
@@ -165,36 +166,36 @@ export function Sidebar({ user }: SidebarProps) {
               const userPermissions = (user as any)?.permissions || {};
               return userPermissions[itemPermission] === true;
             }
-            
+
             return true;
           })
           .map((item) => {
-          const isActive = item.exact
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "sidebar-item group",
-                isActive && "sidebar-item-active"
-              )}
-            >
-              <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                isActive ? "bg-primary/20 text-primary" : "bg-white/[0.03] text-muted-foreground group-hover:bg-white/[0.08] group-hover:text-foreground"
-              )}>
-                <item.icon className="w-4 h-4 shrink-0" />
-              </div>
-              <span className="flex-1 font-bold tracking-tight">{item.label}</span>
-              {isActive && (
-                <div className="w-1.5 h-1.5 rounded-full bg-primary glow-primary" />
-              )}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "sidebar-item group",
+                  isActive && "sidebar-item-active"
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
+                  isActive ? "bg-primary/20 text-primary" : "bg-white/[0.03] text-muted-foreground group-hover:bg-white/[0.08] group-hover:text-foreground"
+                )}>
+                  <item.icon className="w-4 h-4 shrink-0" />
+                </div>
+                <span className="flex-1 font-bold tracking-tight">{item.label}</span>
+                {isActive && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary glow-primary" />
+                )}
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Bottom Section */}
@@ -221,8 +222,8 @@ export function Sidebar({ user }: SidebarProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black text-white truncate leading-none mb-1.5">
-                  {((user as any)?.first_name && (user as any)?.last_name) 
-                    ? `${(user as any).first_name} ${(user as any).last_name}` 
+                  {((user as any)?.first_name && (user as any)?.last_name)
+                    ? `${(user as any).first_name} ${(user as any).last_name}`
                     : (user?.name ?? "المستخدم")}
                 </p>
                 <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">

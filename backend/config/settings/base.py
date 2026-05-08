@@ -108,8 +108,8 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
     "django_tenants.middleware.main.TenantMainMiddleware",
-    "apps.tenants.middleware.TenantStatusMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "apps.tenants.middleware.TenantStatusMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -124,7 +124,7 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 # URLs & WSGI
 # ---------------------------------------------------------------------------
-ROOT_URLCONF = "config.urls_public"
+ROOT_URLCONF = "config.urls_tenant"
 PUBLIC_SCHEMA_URLCONF = "config.urls"
 
 WSGI_APPLICATION = "config.wsgi.application"
@@ -252,7 +252,7 @@ CELERY_TIMEZONE = "UTC"
 # Internationalization
 # ---------------------------------------------------------------------------
 LANGUAGE_CODE = "en"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Amman"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -328,9 +328,9 @@ WHATSAPP_BASE_URL = env("WHATSAPP_BASE_URL", default="")
 # Platform Settings
 # ---------------------------------------------------------------------------
 PLATFORM_NAME = env("PLATFORM_NAME", default="MAIDAN")
-PLATFORM_DOMAIN = env("PLATFORM_DOMAIN", default="maidan.app")
-DEFAULT_CURRENCY = env("DEFAULT_CURRENCY", default="SAR")
-SUPPORTED_CURRENCIES = env.list("SUPPORTED_CURRENCIES", default=["SAR", "AED", "USD", "EUR"])
+PLATFORM_DOMAIN = env("PLATFORM_DOMAIN", default="localhost")
+DEFAULT_CURRENCY = env("DEFAULT_CURRENCY", default="JOD")
+SUPPORTED_CURRENCIES = env.list("SUPPORTED_CURRENCIES", default=["JOD", "SAR", "AED", "USD", "EUR"])
 DEFAULT_LANGUAGE = env("DEFAULT_LANGUAGE", default="ar")
 
 # ---------------------------------------------------------------------------

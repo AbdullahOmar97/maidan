@@ -2,7 +2,7 @@
 from django.db import transaction
 from django.conf import settings
 from rest_framework import serializers
-from .models import Tenant, Domain, Plan
+from .models import Tenant, Domain, Plan, PlatformSettings
 from apps.accounts.models import User
 
 class PlanSerializer(serializers.ModelSerializer):
@@ -25,11 +25,35 @@ class TenantSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
             "is_active", "plan", "on_trial", "trial_ends_at",
-            "primary_color", "secondary_color", "default_language",
+            "logo", "favicon", "default_language",
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input"
         ]
         read_only_fields = ["id", "created_at"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # If no logo or favicon, fall back to platform settings
+        if not data.get("logo") or not data.get("favicon"):
+            try:
+                platform_settings = PlatformSettings.objects.first()
+                if platform_settings:
+                    request = self.context.get("request")
+                    
+                    if not data.get("logo") and platform_settings.logo:
+                        if request:
+                            data["logo"] = request.build_absolute_uri(platform_settings.logo.url)
+                        else:
+                            data["logo"] = platform_settings.logo.url
+                            
+                    if not data.get("favicon") and platform_settings.favicon:
+                        if request:
+                            data["favicon"] = request.build_absolute_uri(platform_settings.favicon.url)
+                        else:
+                            data["favicon"] = platform_settings.favicon.url
+            except Exception:
+                pass
+        return data
 
     def create(self, validated_data):
         domain_input = validated_data.pop("domain_input", None)

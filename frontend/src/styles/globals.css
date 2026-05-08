@@ -243,3 +243,14 @@
 .belt-brown { @apply bg-amber-800 text-white shadow-amber-800/20; }
 .belt-black { @apply bg-gray-950 text-white border border-white/10 shadow-white/5; }
 
+/* Shake animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+

@@ -1,7 +1,41 @@
-import NextAuth from "next-auth";
+import NextAuth, { type JWT } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { isTenantHost } from "@/lib/auth/host";
+
+const ACCESS_TOKEN_TTL_MS = 55 * 60 * 1000; // 55 min (refresh before 1-hour expiry)
+
+/** Singleton promise — prevents concurrent refresh races */
+let refreshPromise: Promise<JWT> | null = null;
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
+  const tenantHostname = (token.tenant as string) || null;
+
+  const response = await fetch(`${internalApiUrl}/api/v1/auth/refresh/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(tenantHostname
+        ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
+        : {}),
+    },
+    body: JSON.stringify({ refresh: token.refreshToken }),
+  });
+
+  if (!response.ok) {
+    // Invalidate token so NextAuth forces re-login instead of looping
+    return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
+  }
+
+  const data = await response.json();
+  return {
+    ...token,
+    accessToken: data.access,
+    accessTokenExpiry: Date.now() + ACCESS_TOKEN_TTL_MS,
+    error: undefined,
+  };
+}
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -56,6 +90,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               if (errorData.code === "setup_required") {
                 throw new Error(`SETUP_REQUIRED:${errorData.email}`);
               }
+              if (errorData.error?.code === "tenant_inactive" || errorData.error?.code === "subscription_expired") {
+                throw new Error(`TENANT_INACTIVE:${errorData.error.message}`);
+              }
             }
             return null;
           }
@@ -93,42 +130,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.first_name = (user as any).first_name;
         token.last_name = (user as any).last_name;
         token.permissions = (user as any).permissions;
-        token.accessTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+        token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
       }
 
-      // Refresh token if expired
+      // Refresh token if expired — mutex prevents concurrent refresh storms
       if (token.accessTokenExpiry && Date.now() > (token.accessTokenExpiry as number)) {
-        try {
-          const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
-          const tenantHostname = (token.tenant as string) || null;
-          
-          const response = await fetch(
-            `${internalApiUrl}/api/v1/auth/refresh/`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(tenantHostname
-                  ? {
-                      Host: tenantHostname,
-                      "X-Forwarded-Host": tenantHostname,
-                    }
-                  : {}),
-              },
-              body: JSON.stringify({ refresh: token.refreshToken }),
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            token.accessToken = data.access;
-            token.accessTokenExpiry = Date.now() + 60 * 60 * 1000;
-          } else {
-            token.error = "RefreshAccessTokenError";
-          }
-        } catch {
-          token.error = "RefreshAccessTokenError";
+        if (!refreshPromise) {
+          refreshPromise = refreshAccessToken(token).finally(() => {
+            refreshPromise = null;
+          });
         }
+        token = await refreshPromise;
       }
 
       return token;

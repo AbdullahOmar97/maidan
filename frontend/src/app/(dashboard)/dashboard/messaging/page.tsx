@@ -1,9 +1,13 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { MessageSquare, Send, Mail, MessageCircle, FileText, Plus } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AxiosError } from "axios";
+import { MessageSquare, Plus, Send, FileText, MessageCircle, Mail } from "lucide-react";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function MessagingPage() {
   const { data: campaigns, isLoading: campaignsLoading } = useQuery<{ results: any[] }>({
@@ -17,20 +21,20 @@ export default function MessagingPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-primary" />
-            الرسائل والإشعارات
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">إرسال حملات واتساب وبريد إلكتروني للطلاب</p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg gradient-brand text-white font-medium shadow-lg hover:opacity-90 transition-all text-sm">
-          <Plus className="w-4 h-4" />
-          حملة جديدة
-        </button>
-      </div>
+    <div className="space-y-8 pb-12">
+      <PageHeader
+        title="الرسائل والإشعارات"
+        description="إرسال حملات واتساب وبريد إلكتروني للطلاب، إدارة القوالب الجاهزة، ومتابعة سجل الإرسال."
+        icon={MessageSquare}
+      >
+        <Link
+          href="/dashboard/messaging/new"
+          className="flex items-center justify-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all group overflow-hidden relative"
+        >
+          <Plus className="w-4 h-4 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
+          <span className="relative z-10">حملة جديدة</span>
+        </Link>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Campaigns */}
@@ -64,13 +68,7 @@ export default function MessagingPage() {
                           {campaign.channel === 'whatsapp' ? <MessageCircle className="w-4 h-4 text-emerald-500" /> : <Mail className="w-4 h-4 text-blue-500" />}
                           <span>{campaign.target_audience}</span>
                        </div>
-                       <span className={cn(
-                          "px-2.5 py-1 rounded-full text-xs font-medium border",
-                          campaign.status === "completed" ? "badge-active" : 
-                          campaign.status === "in_progress" ? "badge-trial" : "badge-inactive"
-                       )}>
-                         {campaign.status === "completed" ? "مكتملة" : campaign.status === "in_progress" ? "جاري الإرسال" : "مسودة"}
-                       </span>
+                       <StatusBadge status={campaign.status} />
                     </div>
                  </div>
                ))}

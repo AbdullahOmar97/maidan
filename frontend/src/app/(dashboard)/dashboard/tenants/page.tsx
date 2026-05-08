@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -21,9 +21,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 function TenantCard({ tenant }: { tenant: any }) {
-  const primaryDomain = tenant.domains?.find((d: any) => d.is_primary)?.domain || `${tenant.slug}.${window.location.hostname}`;
+  const [mounted, setMounted] = useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const hostname = mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "localhost");
+  const primaryDomain = tenant.domains?.find((d: any) => d.is_primary)?.domain || `${tenant.slug}.${hostname}`;
+
   
   return (
     <div className="glass-card group p-6 hover:border-primary/40 transition-all duration-500 relative overflow-hidden">
@@ -93,6 +101,7 @@ function TenantCard({ tenant }: { tenant: any }) {
   );
 }
 
+
 export default function TenantsPage() {
   const [search, setSearch] = useState("");
 
@@ -108,28 +117,21 @@ export default function TenantsPage() {
   );
 
   return (
-    <div className="space-y-10 pb-20 page-enter">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-4">
-            <div className="w-14 h-14 rounded-[1.5rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-3">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
-            الأكاديميات المسجلة
-          </h1>
-          <p className="text-muted-foreground text-sm font-bold mt-3 max-w-xl leading-relaxed">
-            إدارة جميع الأكاديميات (Tenants) على المنصة، متابعة الحالات، وإضافة أكاديميات جديدة يدوياً.
-          </p>
-        </div>
+    <PermissionGuard role="platform_admin">
+    <div className="space-y-10 pb-20">
+      <PageHeader
+        title="الأكاديميات المسجلة"
+        description="إدارة جميع الأكاديميات (Tenants) على المنصة، متابعة الحالات، وإضافة أكاديميات جديدة يدوياً."
+        icon={Shield}
+      >
         <Link
           href="/dashboard/tenants/create"
-          className="flex items-center justify-center gap-3 px-8 py-4 rounded-[2rem] gradient-brand text-white text-sm font-black shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all"
+          className="flex items-center justify-center gap-3 px-8 py-4 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all"
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-5 h-5" />
           إضافة أكاديمية جديدة
         </Link>
-      </div>
+      </PageHeader>
 
       {/* Filters */}
       <div className="relative group max-w-2xl">
@@ -165,5 +167,6 @@ export default function TenantsPage() {
         </div>
       )}
     </div>
+    </PermissionGuard>
   );
 }

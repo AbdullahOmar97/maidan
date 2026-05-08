@@ -39,6 +39,37 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        # 1. Check tenant status before allowing any login attempt on this subdomain
+        tenant = getattr(request, "tenant", None)
+        
+        # If we are in public schema, try to resolve tenant from Host header (for dev/localhost subdomains)
+        if not tenant or tenant.schema_name == "public":
+            host = request.headers.get("X-Forwarded-Host", request.get_host()).split(":")[0]
+            # Check if it's a subdomain (e.g., awdah.localhost)
+            if "." in host:
+                subdomain = host.split(".")[0]
+                # Try to find tenant by slug/schema_name
+                tenant = Tenant.objects.filter(slug__iexact=subdomain).first()
+
+        if tenant and tenant.schema_name != "public":
+            if not tenant.is_active or tenant.status != Tenant.SubscriptionStatus.ACTIVE:
+                message = "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة."
+                if tenant.status == Tenant.SubscriptionStatus.PENDING:
+                    message = "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً."
+                elif tenant.status == Tenant.SubscriptionStatus.EXPIRED:
+                    message = "لقد انتهى اشتراكك. يرجى التجديد للمتابعة."
+                
+                return Response(
+                    {
+                        "error": {
+                            "code": "tenant_inactive",
+                            "message": message,
+                            "status": tenant.status
+                        }
+                    }, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         serializer = LoginSerializer(data=request.data, context={"request": request})
         try:
             serializer.is_valid(raise_exception=True)
@@ -87,18 +118,19 @@ class TenantDiscoveryView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
-    def _resolve_tenant_for_user(self, user):
+    def _resolve_tenant_for_user(self, user, include_inactive=False):
         """
         Resolve the most likely tenant for a public-schema user record.
-        Staff membership is stored per tenant schema, so we probe active tenants.
+        Staff membership is stored per tenant schema, so we probe tenants.
         """
-        active_tenants = (
-            Tenant.objects.filter(is_active=True)
-            .exclude(schema_name="public")
+        candidates = (
+            Tenant.objects.exclude(schema_name="public")
             .order_by("id")
         )
+        if not include_inactive:
+            candidates = candidates.filter(is_active=True)
 
-        for tenant in active_tenants:
+        for tenant in candidates:
             try:
                 with schema_context(tenant.schema_name):
                     from apps.staff.models import StaffMember
@@ -115,7 +147,7 @@ class TenantDiscoveryView(APIView):
 
         # Fallback: tenant owner email often matches tenant contact email.
         return (
-            active_tenants.filter(email__iexact=user.email).order_by("id").first()
+            candidates.filter(email__iexact=user.email).order_by("id").first()
         )
 
     def _build_login_host(self, request, domain_value: str) -> str:
@@ -166,8 +198,21 @@ class TenantDiscoveryView(APIView):
         if not user:
             return Response(generic_response, status=status.HTTP_200_OK)
 
-        tenant = self._resolve_tenant_for_user(user)
+        tenant = self._resolve_tenant_for_user(user, include_inactive=True)
         if not tenant:
+            return Response(generic_response, status=status.HTTP_200_OK)
+
+        if tenant.status == Tenant.SubscriptionStatus.PENDING:
+            return Response(
+                {
+                    "found": False,
+                    "code": "pending_approval",
+                    "message": "Account is pending approval.",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if not tenant.is_active:
             return Response(generic_response, status=status.HTTP_200_OK)
 
         domain = Domain.objects.filter(tenant=tenant).order_by("-is_primary", "id").first()
@@ -413,7 +458,24 @@ class StaffViewSet(viewsets.ModelViewSet):
             qs = qs.filter(role=role)
         return qs.order_by("first_name")
 
+    def _can_assign_branch(self, user):
+        """Returns True if the user can assign/change a staff member's branch."""
+        from shared.permissions import RoleChoices
+        if not user or not user.is_authenticated:
+            return False
+        if user.role in [RoleChoices.PLATFORM_ADMIN, RoleChoices.TENANT_OWNER]:
+            return True
+        user_permissions = getattr(user, "permissions", {}) or {}
+        return user_permissions.get("can_manage_locations", False) is True
+
     def perform_create(self, serializer):
+        data = self.request.data
+        # Strip branch assignment if caller lacks permission
+        if "primary_location_id" in data and not self._can_assign_branch(self.request.user):
+            serializer.save(primary_location_id=None)
+            from apps.staff.models import StaffMember
+            StaffMember.objects.get_or_create(user=serializer.instance)
+            return
         user = serializer.save()
         from apps.staff.models import StaffMember
         StaffMember.objects.get_or_create(user=user)
@@ -434,6 +496,10 @@ class StaffViewSet(viewsets.ModelViewSet):
             new_role = self.request.data.get("role")
             if new_role in [RoleChoices.MANAGER, RoleChoices.TENANT_OWNER, RoleChoices.PLATFORM_ADMIN]:
                  raise PermissionDenied("لا يمكنك تعيين أدوار إدارية عليا.")
+
+        # Guard: only owner / can_manage_locations can change branch assignment
+        if "primary_location_id" in self.request.data and not self._can_assign_branch(current_user):
+            raise PermissionDenied("ليس لديك صلاحية تغيير الفرع المخصص للموظف.")
 
         # Permission editing logic
         new_permissions = self.request.data.get("permissions")

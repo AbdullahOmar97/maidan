@@ -22,12 +22,11 @@ class MembershipPlan(models.Model):
         ONE_TIME = "one_time", "One-Time"
 
     name = models.CharField(max_length=200)
-    name_ar = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
 
     billing_cycle = models.CharField(max_length=20, choices=BillingCycle.choices, default=BillingCycle.MONTHLY)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="SAR")
+    currency = models.CharField(max_length=3, default="JOD")
     setup_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.0)  # VAT 15% Saudi
 
@@ -60,6 +59,7 @@ class Membership(models.Model):
         CANCELLED = "cancelled", "Cancelled"
         PAUSED = "paused", "Paused"
         PENDING = "pending", "Pending Payment"
+        PENDING_APPROVAL = "pending_approval", "Pending Approval"
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="memberships")
     plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name="subscriptions")
@@ -74,8 +74,12 @@ class Membership(models.Model):
     paused_at = models.DateTimeField(null=True, blank=True)
     pause_reason = models.TextField(blank=True)
 
+    # Approval tracking
+    approved_by_id = models.UUIDField(null=True, blank=True)  # FK to User who approved
+    approved_at = models.DateTimeField(null=True, blank=True)
+
     notes = models.TextField(blank=True)
-    created_by_id = models.BigIntegerField(null=True, blank=True)
+    created_by_id = models.UUIDField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -119,7 +123,7 @@ class Invoice(models.Model):
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField(max_length=3, default="SAR")
+    currency = models.CharField(max_length=3, default="JOD")
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     due_date = models.DateField()
@@ -133,7 +137,8 @@ class Invoice(models.Model):
     last_retry_at = models.DateTimeField(null=True, blank=True)
     next_retry_at = models.DateTimeField(null=True, blank=True)
 
-    created_by_id = models.BigIntegerField(null=True, blank=True)
+    created_by_id = models.UUIDField(null=True, blank=True)  # Staff who created the invoice
+    paid_by_id = models.UUIDField(null=True, blank=True)      # Staff who confirmed payment receipt
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -165,3 +170,59 @@ class Invoice(models.Model):
     @property
     def amount_due(self):
         return self.total_amount - self.amount_paid
+
+
+# ---------------------------------------------------------------------------
+# Signals
+# ---------------------------------------------------------------------------
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone as tz
+
+
+@receiver(post_save, sender="billing.Membership")
+def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
+    """
+    Automatically generate a pending Invoice whenever a new Membership is
+    created.  This ensures every subscription has a corresponding financial
+    record without requiring manual invoice entry.
+
+    Skipped when:
+    - The membership was not just created (update path).
+    - The membership is in PENDING_APPROVAL status (invoice created after approval).
+    - An invoice already exists for this membership (safety guard).
+    """
+    if not created:
+        return
+
+    if instance.status == Membership.Status.PENDING_APPROVAL:
+        return
+
+    # Guard: skip if an invoice already exists (e.g. fixtures / data migration)
+    if instance.invoices.exists():
+        return
+
+    plan = instance.plan
+    subtotal = plan.price + plan.setup_fee
+    tax_amount = subtotal * (plan.tax_rate / 100)
+    total_amount = subtotal + tax_amount
+
+    # due_date = today for one-time, or start_date for recurring
+    due_date = instance.start_date or tz.now().date()
+
+    Invoice.objects.create(
+        student=instance.student,
+        membership=instance,
+        subtotal=subtotal,
+        discount_amount=0,
+        tax_rate=plan.tax_rate,
+        tax_amount=tax_amount,
+        total_amount=total_amount,
+        amount_paid=0,
+        currency=plan.currency,
+        status=Invoice.Status.PENDING,
+        due_date=due_date,
+        is_recurring=(plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME),
+        created_by_id=instance.created_by_id,
+    )

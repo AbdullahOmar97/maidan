@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { BarChart3, TrendingUp, Users, CreditCard, Award, CalendarCheck } from "lucide-react";
@@ -8,6 +8,9 @@ import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
+
 
 export default function ReportingPage() {
   const { data: kpis } = useQuery({
@@ -31,34 +34,41 @@ export default function ReportingPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-primary" />
-          التقارير والتحليلات
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">رؤى شاملة عن أداء النادي</p>
-      </div>
+    <PermissionGuard permission="can_view_reports">
+    <div className="space-y-8 pb-12">
+      <PageHeader
+        title="التقارير والتحليلات"
+        description="رؤى شاملة عن أداء النادي، معدلات الاحتفاظ بالطلاب، نمو الإيرادات السنوية، وتوزيع الأحزمة."
+        icon={BarChart3}
+      />
 
       {/* Retention Metrics */}
       {retention && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="glass-card p-5">
-            <p className="text-2xl font-bold text-emerald-400">{retention.retention_rate}%</p>
-            <p className="text-sm text-muted-foreground mt-1">معدل الاحتفاظ</p>
-          </div>
-          <div className="glass-card p-5">
-            <p className="text-2xl font-bold text-blue-400">{retention.trial_conversion_rate}%</p>
-            <p className="text-sm text-muted-foreground mt-1">تحويل التجارب</p>
-          </div>
-          <div className="glass-card p-5">
-            <p className="text-2xl font-bold text-red-400">{retention.churned_last_30d}</p>
-            <p className="text-sm text-muted-foreground mt-1">مغادرون (30 يوم)</p>
-          </div>
-          <div className="glass-card p-5">
-            <p className="text-2xl font-bold text-amber-400">{retention.memberships_expiring_30d}</p>
-            <p className="text-sm text-muted-foreground mt-1">اشتراكات تنتهي قريباً</p>
-          </div>
+          <StatsCard
+            label="معدل الاحتفاظ"
+            value={`${retention.retention_rate}%`}
+            icon={TrendingUp}
+            className="shadow-emerald-500/10"
+          />
+          <StatsCard
+            label="تحويل التجارب"
+            value={`${retention.trial_conversion_rate}%`}
+            icon={Users}
+            className="shadow-blue-500/10"
+          />
+          <StatsCard
+            label="مغادرون (30 يوم)"
+            value={retention.churned_last_30d.toString()}
+            icon={CreditCard}
+            className="shadow-red-500/10"
+          />
+          <StatsCard
+            label="اشتراكات تنتهي قريباً"
+            value={retention.memberships_expiring_30d.toString()}
+            icon={CalendarCheck}
+            className="shadow-amber-500/10"
+          />
         </div>
       )}
 
@@ -114,5 +124,6 @@ export default function ReportingPage() {
         </div>
       )}
     </div>
+    </PermissionGuard>
   );
 }

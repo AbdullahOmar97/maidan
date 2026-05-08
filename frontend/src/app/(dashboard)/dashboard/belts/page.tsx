@@ -1,13 +1,16 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Award, Medal, TrendingUp, CheckCircle } from "lucide-react";
 import type { BeltRank, PaginatedResponse } from "@/types";
 import { useState } from "react";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
+
 
 export default function BeltsPage() {
+  // ... (state and queries)
   const [promotionDialog, setPromotionDialog] = useState<{
     isOpen: boolean;
     studentId?: number;
@@ -31,16 +34,13 @@ export default function BeltsPage() {
   const eligibility = eligibilityData?.results || [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Award className="w-6 h-6 text-primary" />
-            الأحزمة والترقيات
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">إدارة نظام الأحزمة وترقيات الطلاب</p>
-        </div>
-      </div>
+    <PermissionGuard permission="can_manage_belts">
+    <div className="space-y-10 pb-12">
+      <PageHeader
+        title="الأحزمة والترقيات"
+        description="إدارة نظام الأحزمة والترقيات، متابعة استحقاق الطلاب للحصول على الرتب الجديدة، وتوثيق سجلات الإنجازات الرياضية."
+        icon={Award}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Ranks */}
@@ -164,5 +164,6 @@ export default function BeltsPage() {
         />
       )}
     </div>
+    </PermissionGuard>
   );
 }

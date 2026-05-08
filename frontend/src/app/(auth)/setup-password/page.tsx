@@ -6,6 +6,7 @@ import { Loader2, Shield, Eye, EyeOff, Sparkles, CheckCircle2, Phone, Mail, Lock
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
+import { ErrorAlert } from "@/components/ErrorAlert";
 
 function SetupPasswordContent() {
   const router = useRouter();
@@ -18,12 +19,16 @@ function SetupPasswordContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [errorTitle, setErrorTitle] = useState<string>("فشل العملية");
 
   const onSetupPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setErrorTitle("فشل العملية");
     
     if (password !== passwordConfirm) {
-      toast.error("كلمات المرور غير متطابقة");
+      setError("كلمات المرور غير متطابقة");
       return;
     }
 
@@ -41,7 +46,6 @@ function SetupPasswordContent() {
         router.push(`/login?email=${encodeURIComponent(email)}`);
       }, 3000);
     } catch (err: any) {
-      console.error("Setup password error:", err);
       const data = err.response?.data;
       let errorMsg = "حدث خطأ أثناء ضبط كلمة المرور";
 
@@ -49,21 +53,25 @@ function SetupPasswordContent() {
         if (typeof data === 'string') {
           errorMsg = data;
         } else if (typeof data === 'object') {
-          const values = Object.values(data);
-          if (values.length > 0) {
-            const first = values[0];
-            if (Array.isArray(first)) {
-              errorMsg = first[0];
-            } else if (typeof first === 'string') {
-              errorMsg = first;
-            }
-          }
-          if (errorMsg === "حدث خطأ أثناء ضبط كلمة المرور" && data.detail) {
+          // Handle DRF style errors: {"detail": "..."} or {"field": ["error"]}
+          if (data.detail && typeof data.detail === 'string') {
             errorMsg = data.detail;
+          } else if (data.message && typeof data.message === 'string') {
+            errorMsg = data.message;
+          } else {
+            const values = Object.values(data);
+            if (values.length > 0) {
+              const first = values[0];
+              if (Array.isArray(first)) {
+                errorMsg = first[0];
+              } else if (typeof first === 'string') {
+                errorMsg = first;
+              }
+            }
           }
         }
       }
-      toast.error(typeof errorMsg === 'string' ? errorMsg : "حدث خطأ غير معروف");
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,6 +193,14 @@ function SetupPasswordContent() {
               </div>
             </div>
           </div>
+
+          {/* Error Message */}
+          <ErrorAlert 
+            error={error} 
+            title={errorTitle}
+            variant="compact" 
+            className="mb-4"
+          />
 
           {/* Submit Button */}
           <button

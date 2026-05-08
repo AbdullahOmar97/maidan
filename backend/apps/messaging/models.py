@@ -157,7 +157,7 @@ class NotificationLog(models.Model):
     delivered_at = models.DateTimeField(null=True, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
 
-    triggered_by_id = models.BigIntegerField(null=True, blank=True)
+    triggered_by_id = models.UUIDField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -201,7 +201,7 @@ class BroadcastCampaign(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
-    created_by_id = models.BigIntegerField()
+    created_by_id = models.UUIDField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

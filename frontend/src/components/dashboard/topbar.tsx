@@ -2,23 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, LogOut, Moon, Sun, Search, Shield, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { Session } from "next-auth";
+import { UserRole } from "@/types";
 import { cn } from "@/lib/utils";
-
-const ROLE_LABELS: Record<string, string> = {
-  platform_admin: "مدير النظام",
-  tenant_owner: "مالك النادي",
-  manager: "مدير",
-  branch_manager: "مدير فرع",
-  front_desk: "استقبال",
-  instructor: "مدرب",
-  finance: "مالية",
-  parent: "ولي أمر",
-  student: "طالب",
-  read_only: "مراقب",
-};
+import { ROLE_LABELS } from "@/lib/constants";
 
 interface TopBarProps {
   user: Session["user"];
@@ -27,7 +17,28 @@ interface TopBarProps {
 export function TopBar({ user }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const role = (user as any)?.role as string;
+  const queryClient = useQueryClient();
+  const role = (user as any)?.role as UserRole;
+
+  const handleLogout = async () => {
+    // 1. Clear storage
+    if (typeof window !== "undefined") {
+      const themePref = localStorage.getItem("theme");
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Preserve theme if it existed
+      if (themePref) {
+        localStorage.setItem("theme", themePref);
+      }
+    }
+
+    // 2. Clear Query Cache
+    queryClient.clear();
+
+    // 3. Sign out
+    await signOut({ callbackUrl: "/login" });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -103,7 +114,7 @@ export function TopBar({ user }: TopBarProps) {
           {/* Logout Button */}
           <button
             id="logout-btn"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleLogout}
             className="w-11 h-11 rounded-2xl bg-red-500/5 border border-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 shadow-lg hover:shadow-red-500/20 transition-all active:scale-90 group/logout"
             title="تسجيل الخروج"
           >

@@ -1,17 +1,41 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn } from "@/lib/utils";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import {
   CreditCard, AlertTriangle, CheckCircle, Clock,
-  TrendingUp, Search, Filter, Plus, Download, ChevronRight, Sparkles, Receipt
+  TrendingUp, Search, Plus, Download, ChevronRight, Sparkles, Receipt, Loader2,
 } from "lucide-react";
 import type { Invoice, PaginatedResponse } from "@/types";
 import Link from "next/link";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { toast } from "sonner";
+import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
+import { useBillingPermissions } from "@/lib/hooks/use-permission";
 
-function InvoiceRow({ invoice }: { invoice: Invoice }) {
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** Invoice statuses that are eligible for manual payment confirmation. */
+const PAYABLE_STATUSES = new Set<Invoice["status"]>(["pending", "overdue", "partially_paid", "draft"]);
+
+// ---------------------------------------------------------------------------
+// InvoiceRow
+// ---------------------------------------------------------------------------
+interface InvoiceRowProps {
+  invoice: Invoice;
+  canMarkPaid: boolean;
+  onMarkPaid: (invoice: Invoice) => void;
+  isMarkingPaid: boolean;
+}
+
+function InvoiceRow({ invoice, canMarkPaid, onMarkPaid, isMarkingPaid }: InvoiceRowProps) {
+  const showMarkPaid = canMarkPaid && PAYABLE_STATUSES.has(invoice.status);
+
   return (
     <tr className="group hover:bg-white/[0.02] transition-colors border-b border-white/5 last:border-0">
       <td className="py-5 px-6">
@@ -26,9 +50,7 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
         <p className="font-bold text-sm text-white">{invoice.student_name}</p>
       </td>
       <td className="py-5 px-6">
-        <span className={cn("px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border", getStatusBadgeClass(invoice.status))}>
-          {getStatusLabel(invoice.status)}
-        </span>
+        <StatusBadge status={invoice.status} />
       </td>
       <td className="py-5 px-6 text-sm font-bold text-muted-foreground" dir="ltr">
         {formatDate(invoice.due_date)}
@@ -44,20 +66,48 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
         )}
       </td>
       <td className="py-5 px-6 text-left">
-        <Link
-          href={`/dashboard/billing/invoices/${invoice.id}`}
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-90"
-        >
-          <ChevronRight className="w-4 h-4 rtl-flip" />
-        </Link>
+        <div className="flex items-center gap-2 justify-end">
+          {showMarkPaid && (
+            <button
+              onClick={() => onMarkPaid(invoice)}
+              disabled={isMarkingPaid}
+              title="تأكيد استلام المبلغ يدوياً"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+                "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400",
+                "hover:bg-emerald-500 hover:text-white hover:border-emerald-500",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+            >
+              {isMarkingPaid
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <CheckCircle className="w-3 h-3" />}
+              تم السداد
+            </button>
+          )}
+          <Link
+            href={`/dashboard/billing/invoices/${invoice.id}`}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-90"
+          >
+            <ChevronRight className="w-4 h-4 rtl-flip" />
+          </Link>
+        </div>
       </td>
     </tr>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 export default function BillingPage() {
-  const [status, setStatus] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [markingId, setMarkingId] = useState<number | null>(null);
+  const [modalInvoice, setModalInvoice] = useState<Invoice | null>(null);
+  const queryClient = useQueryClient();
+  const { canMarkInvoicePaid, canManageBilling, canCreateInvoice } = useBillingPermissions();
+  const canMarkPaid = canMarkInvoicePaid;
 
   const { data: summary } = useQuery({
     queryKey: ["billing", "summary"],
@@ -65,124 +115,78 @@ export default function BillingPage() {
   });
 
   const { data: invoices, isLoading } = useQuery<PaginatedResponse<Invoice>>({
-    queryKey: ["billing", "invoices", { status, search }],
+    queryKey: ["billing", "invoices", { status: statusFilter, search }],
     queryFn: () =>
-      api.billing.invoices.list({ status: status || undefined, search: search || undefined }).then((r) => r.data),
+      api.billing.invoices
+        .list({ status: statusFilter || undefined, search: search || undefined })
+        .then((r) => r.data),
   });
 
-  const summaryCards = [
-    {
-      label: "مدفوع هذا الشهر",
-      value: summary?.paid_this_month ?? 0,
-      icon: CheckCircle,
-      color: "emerald" as const,
+  const markPaidMutation = useMutation({
+    mutationFn: ({ invoice, paymentMethod, note }: { invoice: Invoice; paymentMethod: PaymentMethodKey; note: string }) =>
+      api.billing.invoices.markPaid(invoice.id, { payment_method: paymentMethod, note }),
+    onMutate: ({ invoice }: { invoice: Invoice; paymentMethod: PaymentMethodKey; note: string }) => setMarkingId(invoice.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      toast.success("تم تأكيد السداد بنجاح ✓");
+      setModalInvoice(null);
     },
-    {
-      label: "إجمالي معلق",
-      value: summary?.total_pending ?? 0,
-      icon: Clock,
-      color: "amber" as const,
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || "فشل تأكيد السداد");
     },
-    {
-      label: "متأخر",
-      value: summary?.total_overdue ?? 0,
-      icon: AlertTriangle,
-      color: "red" as const,
-      badge: summary?.overdue_count,
-    },
-    {
-      label: "إجمالي مدفوع",
-      value: summary?.total_paid ?? 0,
-      icon: TrendingUp,
-      color: "primary" as const,
-    },
-  ];
+    onSettled: () => setMarkingId(null),
+  });
 
-  const colorStyles = {
-    emerald: {
-      text: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
-      glow: "shadow-emerald-500/20"
-    },
-    amber: {
-      text: "text-amber-400",
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
-      glow: "shadow-amber-500/20"
-    },
-    red: {
-      text: "text-red-400",
-      bg: "bg-red-500/10",
-      border: "border-red-500/20",
-      glow: "shadow-red-500/20"
-    },
-    primary: {
-      text: "text-primary",
-      bg: "bg-primary/10",
-      border: "border-primary/20",
-      glow: "shadow-primary/20"
-    },
+  /** Opens the MarkAsPaidModal for the given invoice. */
+  const handleMarkPaid = (invoice: Invoice) => setModalInvoice(invoice);
+
+  /** Called when the modal is confirmed with a chosen payment method. */
+  const handleModalConfirm = (paymentMethod: PaymentMethodKey, note: string) => {
+    if (!modalInvoice) return;
+    markPaidMutation.mutate({ invoice: modalInvoice, paymentMethod, note });
   };
 
   return (
+    <PermissionGuard permission="can_view_billing">
     <div className="space-y-10 pb-12">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <h1 className="text-3xl font-black text-white tracking-tight">الفواتير والمدفوعات</h1>
-          </div>
-          <p className="text-muted-foreground text-sm font-bold flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            إدارة الشؤون المالية وتتبع الإيرادات بدقة
-          </p>
-        </div>
-
+      <PageHeader
+        title="الفواتير والمدفوعات"
+        description="إدارة الشؤون المالية، تتبع الإيرادات بدقة، وإصدار الفواتير للطلاب والمنتسبين."
+        icon={CreditCard}
+      >
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95">
+          {canManageBilling && (
+            <Link
+              href="/dashboard/billing/plans"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/[0.08] transition-all active:scale-95"
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              إدارة الباقات
+            </Link>
+          )}
+          <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/[0.08] transition-all active:scale-95">
             <Download className="w-4 h-4" />
-            تصدير التقارير
+            تصدير
           </button>
-          <Link
-            href="/dashboard/billing/new"
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            فاتورة جديدة
-          </Link>
+          {canCreateInvoice && (
+            <Link
+              href="/dashboard/billing/new"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              فاتورة جديدة
+            </Link>
+          )}
         </div>
-      </div>
+      </PageHeader>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryCards.map((card) => {
-          const style = colorStyles[card.color];
-          return (
-            <div key={card.label} className="glass-card p-6 relative overflow-hidden group">
-              <div className={cn("absolute top-0 right-0 w-24 h-24 blur-3xl -mr-12 -mt-12 transition-colors opacity-30", style.bg)} />
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className={cn("w-12 h-12 rounded-2xl border flex items-center justify-center transition-all group-hover:scale-110", style.bg, style.border, style.text, style.glow)}>
-                  <card.icon className="w-6 h-6" />
-                </div>
-                {card.badge && (
-                  <span className="px-3 py-1 rounded-xl bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/20">
-                    {card.badge} فواتير
-                  </span>
-                )}
-              </div>
-              <div className="relative z-10">
-                <p className="text-3xl font-black text-white tracking-tighter" dir="ltr">
-                  {formatCurrency(card.value)}
-                </p>
-                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mt-2">{card.label}</p>
-              </div>
-            </div>
-          );
-        })}
+        <StatsCard label="مدفوع هذا الشهر" value={summary?.paid_this_month ?? 0} icon={CheckCircle} color="emerald" isCurrency />
+        <StatsCard label="إجمالي معلق" value={summary?.total_pending ?? 0} icon={Clock} color="amber" isCurrency />
+        <StatsCard label="متأخر" value={summary?.total_overdue ?? 0} icon={AlertTriangle} color="red" badge={summary?.overdue_count} isCurrency />
+        <StatsCard label="إجمالي مدفوع" value={summary?.total_paid ?? 0} icon={TrendingUp} color="primary" isCurrency />
       </div>
 
       {/* Main Content Area */}
@@ -200,8 +204,8 @@ export default function BillingPage() {
             />
           </div>
           <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="px-6 py-3 rounded-xl bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-sm font-black text-white transition-all min-w-[180px] appearance-none cursor-pointer"
           >
             <option value="" className="bg-slate-900">جميع الحالات</option>
@@ -212,7 +216,7 @@ export default function BillingPage() {
           </select>
         </div>
 
-        {/* Table Container */}
+        {/* Table */}
         <div className="glass-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
@@ -251,26 +255,42 @@ export default function BillingPage() {
                   </tr>
                 ) : (
                   invoices?.results.map((invoice) => (
-                    <InvoiceRow key={invoice.id} invoice={invoice} />
+                    <InvoiceRow
+                      key={invoice.id}
+                      invoice={invoice}
+                      canMarkPaid={canMarkPaid}
+                      onMarkPaid={handleMarkPaid}
+                      isMarkingPaid={markingId === invoice.id}
+                    />
                   ))
                 )}
               </tbody>
             </table>
           </div>
           {invoices && invoices.total_pages > 1 && (
-             <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                  عرض {invoices.results.length} من أصل {invoices.count} سجل
-                </p>
-                <div className="flex items-center gap-2">
-                   <button className="px-4 py-2 rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">السابق</button>
-                   <button className="px-4 py-2 rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">التالي</button>
-                </div>
-             </div>
+            <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                عرض {invoices.results.length} من أصل {invoices.count} سجل
+              </p>
+              <div className="flex items-center gap-2">
+                <button className="px-4 py-2 rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">السابق</button>
+                <button className="px-4 py-2 rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">التالي</button>
+              </div>
+            </div>
           )}
         </div>
       </div>
     </div>
+
+      {/* Mark-as-Paid Modal */}
+      {modalInvoice && (
+        <MarkAsPaidModal
+          invoiceNumber={modalInvoice.invoice_number}
+          isPending={markPaidMutation.isPending}
+          onConfirm={handleModalConfirm}
+          onClose={() => setModalInvoice(null)}
+        />
+      )}
+    </PermissionGuard>
   );
 }
-

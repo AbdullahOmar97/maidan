@@ -1,10 +1,12 @@
 "use client";
-
+import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { CalendarCheck, Users, Clock, CheckCircle, Plus, MapPin, Sparkles, Monitor } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarCheck, Users, Clock, MapPin, Monitor } from "lucide-react";
 import type { ClassSession } from "@/types";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+
 
 export default function AttendancePage() {
   const { data: sessions, isLoading } = useQuery<ClassSession[]>({
@@ -15,29 +17,20 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-10 pb-12">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-              <CalendarCheck className="w-5 h-5" />
-            </div>
-            <h1 className="text-3xl font-black text-white tracking-tight">الحضور اليومي</h1>
-          </div>
-          <p className="text-muted-foreground text-sm font-bold flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            تتبع حضور الطلاب في حصص اليوم وإدارة الكشك الذكي
-          </p>
-        </div>
+      <PageHeader
+        title="الحضور اليومي"
+        description="تتبع حضور الطلاب في حصص اليوم، إدارة الجلسات التدريبية، والوصول السريع لكشك الحضور الذكي."
+        icon={CalendarCheck}
+      >
         <a
           href="/kiosk"
           target="_blank"
-          className="flex items-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+          className="flex items-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95"
         >
           <Monitor className="w-4 h-4" />
-          فتح كشك الحضور
+          فتح الكشك
         </a>
-      </div>
+      </PageHeader>
 
       {/* Sessions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -73,37 +66,23 @@ export default function AttendancePage() {
                     {session.location_name}
                   </div>
                 </div>
-                <span className={cn(
-                  "px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border shadow-lg",
-                  session.status === "in_progress" 
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10" 
-                    : session.status === "scheduled" 
-                      ? "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-blue-500/10" 
-                      : "bg-white/5 text-muted-foreground border-white/10"
-                )}>
-                  {session.status === "in_progress" ? "جارية الآن" : session.status === "scheduled" ? "مجدولة" : "منتهية"}
-                </span>
+                <StatusBadge 
+                  status={session.status} 
+                  className="shadow-lg"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4 relative z-10">
-                <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group-hover:bg-white/[0.05] transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-black text-white">{session.attendance_count}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">حاضر</p>
-                  </div>
-                </div>
-                <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group-hover:bg-white/[0.05] transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-black text-white">{session.date.split(" ")[0]}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">الوقت</p>
-                  </div>
-                </div>
+                <StatsCard
+                  label="حاضر"
+                  value={session.attendance_count.toString()}
+                  icon={Users}
+                />
+                <StatsCard
+                  label="الوقت"
+                  value={session.date.split(" ")[0]}
+                  icon={Clock}
+                />
               </div>
 
               <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center relative z-10">
@@ -119,8 +98,8 @@ export default function AttendancePage() {
                     </div>
                   )}
                 </div>
-                <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
-                  عرض الحضور بالتفصيل
+                <button className="px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">
+                  تفاصيل الحضور
                 </button>
               </div>
             </div>
@@ -130,4 +109,3 @@ export default function AttendancePage() {
     </div>
   );
 }
-

@@ -6,14 +6,15 @@ import { api } from "@/lib/api/client";
 import { ArrowRight, UserCog, Loader2, AlertCircle, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Location, Student } from "@/types";
 
 export default function EditStudentPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useParams();
   const studentId = Number(id);
 
-  const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState("");
@@ -60,16 +61,15 @@ export default function EditStudentPage() {
     fetchData();
   }, [studentId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      await api.students.update(studentId, formData);
+  const updateMutation = useMutation({
+    mutationFn: (data: typeof formData) => api.students.update(studentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["students", studentId] });
       toast.success("تم تحديث بيانات الطالب بنجاح");
       router.push(`/dashboard/students/${studentId}`);
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       console.error("Update student error:", err);
       let message = "حدث خطأ أثناء تحديث بيانات الطالب.";
       if (err.response?.data) {
@@ -82,9 +82,13 @@ export default function EditStudentPage() {
       }
       setError(message);
       toast.error("فشل التحديث");
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    updateMutation.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -242,10 +246,10 @@ export default function EditStudentPage() {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={updateMutation.isPending}
             className="px-6 py-2.5 rounded-lg gradient-brand text-white font-medium hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            {updateMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             حفظ التعديلات
           </button>
         </div>

@@ -9,12 +9,13 @@ import {
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft
 } from "lucide-react";
-import { formatDate, getStatusBadgeClass, getStatusLabel, cn } from "@/lib/utils";
+import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
-import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord } from "@/types";
+import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord, Invoice } from "@/types";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
 import ManualAttendanceDialog from "@/components/dashboard/ManualAttendanceDialog";
+import MembershipDialog from "@/components/dashboard/MembershipDialog";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -22,6 +23,7 @@ export default function StudentDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
+  const [isMembershipDialogOpen, setIsMembershipDialogOpen] = useState(false);
 
   const studentId = Number(id);
 
@@ -47,6 +49,19 @@ export default function StudentDetailPage() {
     queryFn: () => api.students.attendanceHistory(studentId).then((res: { data: AttendanceHistoryRecord[] }) => res.data),
     enabled: !!student,
   });
+
+  const { data: invoices } = useQuery<Invoice[]>({
+    queryKey: ["student-invoices", id],
+    queryFn: () => api.billing.invoices.list({ student_id: studentId }).then((res: any) => res.data.results || res.data),
+    enabled: !!student,
+  });
+
+  const outstandingBalance = invoices?.reduce((sum: number, inv: Invoice) => sum + (inv.amount_due || 0), 0) ?? 0;
+  const overdueCount = invoices?.filter((inv: Invoice) => isInvoiceOverdue(inv.status, inv.due_date)).length ?? 0;
+  const lastPaymentInvoice = invoices
+    ?.filter((inv: Invoice) => inv.status === "paid" && inv.paid_at)
+    .sort((a: Invoice, b: Invoice) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime())[0];
+
 
   if (isLoading) {
     return (
@@ -322,9 +337,16 @@ export default function StudentDetailPage() {
                       </div>
                     </div>
                     <div className="space-y-6">
-                      <OverviewRow label="الرصيد المستحق" value="0.00 ر.س" valueClass="text-emerald-400" />
-                      <OverviewRow label="فواتير متأخرة" value="0" />
-                      <OverviewRow label="آخر عملية دفع" value="15 إبريل 2024" />
+                      <OverviewRow 
+                        label="الرصيد المستحق" 
+                        value={`${outstandingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ر.س`} 
+                        valueClass={outstandingBalance > 0 ? "text-red-400" : "text-emerald-400"} 
+                      />
+                      <OverviewRow label="فواتير متأخرة" value={overdueCount.toString()} />
+                      <OverviewRow 
+                        label="آخر عملية دفع" 
+                        value={lastPaymentInvoice ? formatDate(lastPaymentInvoice.paid_at!) : "—"} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -389,8 +411,11 @@ export default function StudentDetailPage() {
                         <MembershipInfo label="تاريخ الانتهاء" value={formatDate(student.active_membership.end_date)} />
                       </div>
                       <div className="space-y-6">
-                        <MembershipInfo label="طريقة الدفع" value="بطاقة ائتمانية (**** 1234)" />
-                        <button className="w-full py-4 rounded-2xl gradient-brand text-white text-sm font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
+
+                        <button 
+                          onClick={() => setIsMembershipDialogOpen(true)}
+                          className="w-full py-4 rounded-2xl gradient-brand text-white text-sm font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform"
+                        >
                           تجديد أو تغيير الاشتراك
                         </button>
                       </div>
@@ -403,7 +428,10 @@ export default function StudentDetailPage() {
                     </div>
                     <h4 className="text-xl font-black text-white">لا توجد عضوية نشطة</h4>
                     <p className="text-sm font-medium text-muted-foreground mt-2 mb-8">هذا الطالب غير مسجل في أي باقة حالياً.</p>
-                    <button className="px-10 py-4 rounded-2xl gradient-brand text-white font-black text-sm shadow-xl shadow-primary/30 hover:scale-[1.05] transition-transform">
+                    <button 
+                      onClick={() => setIsMembershipDialogOpen(true)}
+                      className="px-10 py-4 rounded-2xl gradient-brand text-white font-black text-sm shadow-xl shadow-primary/30 hover:scale-[1.05] transition-transform"
+                    >
                       إضافة باقة اشتراك
                     </button>
                   </div>
@@ -416,6 +444,7 @@ export default function StudentDetailPage() {
                       <thead className="bg-white/[0.03]">
                         <tr>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">رقم الفاتورة</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">الباقة</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">التاريخ</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">المبلغ</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">الحالة</th>
@@ -423,21 +452,37 @@ export default function StudentDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {[1, 2].map((i) => (
-                          <tr key={i} className="group/row hover:bg-white/[0.02] transition-colors">
-                            <td className="px-6 py-5 font-bold text-white text-sm">#INV-2024-00{i}</td>
-                            <td className="px-6 py-5 text-muted-foreground text-sm font-medium">15 إبريل 2024</td>
-                            <td className="px-6 py-5 font-black text-white text-sm">450.00 ر.س</td>
-                            <td className="px-6 py-5">
-                              <span className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">مدفوعة</span>
-                            </td>
-                            <td className="px-6 py-5">
-                              <button className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
-                                <Download className="w-4 h-4" />
-                              </button>
+                        {invoices && invoices.length > 0 ? (
+                          invoices.map((inv: Invoice) => (
+                            <tr key={inv.id} className="group/row hover:bg-white/[0.02] transition-colors">
+                              <td className="px-6 py-5 font-bold text-white text-sm">#{inv.invoice_number}</td>
+                              <td className="px-6 py-5 text-white text-sm font-bold">
+                                {inv.plan_name || "—"}
+                              </td>
+                              <td className="px-6 py-5 text-muted-foreground text-sm font-medium">{formatDate(inv.created_at)}</td>
+                              <td className="px-6 py-5 font-black text-white text-sm">{inv.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>
+                              <td className="px-6 py-5">
+                                <span className={cn(
+                                  "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border",
+                                  getStatusBadgeClass(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)
+                                )}>
+                                  {getStatusLabel(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)}
+                                </span>
+                              </td>
+                              <td className="px-6 py-5">
+                                <button className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-10 text-center text-sm font-bold text-muted-foreground">
+                              لا توجد فواتير مسجلة لهذا الطالب
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -655,6 +700,15 @@ export default function StudentDetailPage() {
         <ManualAttendanceDialog
           isOpen={isManualAttendanceOpen}
           onClose={() => setIsManualAttendanceOpen(false)}
+          studentId={studentId}
+          studentName={student.full_name}
+        />
+      )}
+
+      {isMembershipDialogOpen && (
+        <MembershipDialog
+          isOpen={isMembershipDialogOpen}
+          onClose={() => setIsMembershipDialogOpen(false)}
           studentId={studentId}
           studentName={student.full_name}
         />

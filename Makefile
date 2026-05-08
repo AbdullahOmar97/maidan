@@ -7,6 +7,16 @@
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+# ---------------------------------------------------------------------------
+# Development Tools
+# ---------------------------------------------------------------------------
+
+db-admin: ## Start pgAdmin (Database Admin UI)
+	docker compose --profile tools up -d pgadmin
+
+db-admin-down: ## Stop pgAdmin
+	docker compose stop pgadmin
+
 # --- Dev Environment ---
 up: ## Start all services (dev)
 	docker compose up -d
@@ -17,6 +27,12 @@ down: ## Stop all services
 build: ## Build all Docker images
 	docker compose build
 
+restart: ## Restart all services
+	docker compose restart
+
+ps: ## Show running services
+	docker compose ps
+
 logs: ## Tail logs from all services
 	docker compose logs -f
 
@@ -25,6 +41,27 @@ logs-backend: ## Tail backend logs only
 
 logs-frontend: ## Tail frontend logs only
 	docker compose logs -f frontend
+
+clean: ## Stop containers and remove volumes
+	docker compose down -v --remove-orphans
+
+frontend-down: ## Stop frontend
+	docker compose stop frontend
+
+backend-down: ## Stop backend
+	docker compose stop backend
+
+redis-down: ## Stop redis
+	docker compose stop redis
+
+db-down: ## Stop postgresql
+	docker compose stop db
+
+minio-down: ## Stop minio
+	docker compose stop minio
+
+deep-clean: ## Remove ALL docker resources
+	docker system prune -af --volumes
 
 # --- Shell Access ---
 shell-backend: ## Django shell

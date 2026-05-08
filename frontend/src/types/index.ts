@@ -137,6 +137,50 @@ export interface MembershipSummary {
   status: string;
 }
 
+export interface MembershipPlan {
+  id: number;
+  name: string;
+  description: string;
+  billing_cycle: "weekly" | "monthly" | "quarterly" | "semi_annual" | "annual" | "one_time";
+  price: number;
+  currency: string;
+  setup_fee: number;
+  tax_rate: number;
+  max_classes_per_week: number | null;
+  is_unlimited: boolean;
+  is_active: boolean;
+  is_public: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export type MembershipStatus =
+  | "active"
+  | "expired"
+  | "cancelled"
+  | "paused"
+  | "pending"
+  | "pending_approval";
+
+export interface Membership {
+  id: number;
+  student_id: number;
+  student_name: string;
+  plan_id: number;
+  plan_name: string;
+  price: number;
+  currency: string;
+  start_date: string;
+  end_date: string | null;
+  status: MembershipStatus;
+  auto_renew: boolean;
+  notes: string;
+  approved_by_id: string | null;
+  approved_at: string | null;
+  created_by_id: string | null;
+  created_at: string;
+}
+
 export type InvoiceStatus = "draft" | "pending" | "paid" | "overdue" | "void" | "refunded" | "partially_paid";
 
 export interface Invoice {
@@ -157,6 +201,12 @@ export interface Invoice {
   due_date: string;
   paid_at: string | null;
   notes: string;
+  plan_name: string | null;
+  is_recurring: boolean;
+  created_by_id: string | null;
+  created_by_name: string | null;
+  paid_by_id: string | null;
+  paid_by_name: string | null;
   created_at: string;
 }
 
@@ -228,6 +278,39 @@ export interface ApiError {
     message: string;
     detail: unknown;
   };
+}
+
+export interface StaffPermissions {
+  can_manage_students?: boolean;
+  can_view_billing?: boolean;
+  can_manage_billing?: boolean;
+  can_create_invoice?: boolean;
+  can_mark_invoice_paid?: boolean;
+  can_renew_subscription?: boolean;
+  can_change_subscription?: boolean;
+  can_approve_subscription?: boolean;
+  can_void_invoice?: boolean;
+  can_apply_discount?: boolean;
+  can_manage_schedules?: boolean;
+  can_manage_locations?: boolean;
+  can_view_reports?: boolean;
+  can_manage_staff?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  phone: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  avatar_url: string | null;
+  branch_name: string | null;
+  primary_location_id: string | null;
+  permissions: StaffPermissions;
 }
 
 export interface NotificationLog {
