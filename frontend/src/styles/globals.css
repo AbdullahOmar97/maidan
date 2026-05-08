@@ -254,3 +254,100 @@
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
 }
 
+/* ============================================================
+   Layout tokens
+   ============================================================ */
+:root {
+  --sidebar-width: 16rem;
+  --topbar-height: 5rem;
+}
+
+/* ============================================================
+   Touch targets — WCAG 2.5.5 minimum 44×44px
+   ============================================================ */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* ============================================================
+   Safe-area padding for modern mobile devices (notch / home bar)
+   ============================================================ */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* ============================================================
+   Mobile drawer
+   ============================================================ */
+@layer components {
+  .drawer-overlay {
+    @apply fixed inset-0 z-40 bg-black/60 backdrop-blur-sm;
+    animation: fade-overlay 0.25s ease forwards;
+  }
+
+  .drawer-panel {
+    @apply fixed inset-y-0 right-0 z-50 flex flex-col
+           w-[min(20rem,90vw)] h-full
+           bg-card border-l border-white/[0.05]
+           shadow-2xl shadow-black/40
+           overflow-hidden;
+    animation: slide-in-from-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .drawer-panel.closing {
+    animation: slide-out-to-right 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes fade-overlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-out-to-right {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+/* ============================================================
+   Reduced motion — respect user preference
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-enter {
+    animation: none;
+  }
+
+  .shimmer::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Responsive table utilities
+   ============================================================ */
+@layer utilities {
+  /* Hide the desktop table on mobile; show mobile cards */
+  .table-desktop { @apply hidden md:block; }
+  .table-mobile  { @apply block md:hidden; }
+}

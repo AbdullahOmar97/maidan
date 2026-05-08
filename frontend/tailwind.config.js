@@ -13,6 +13,13 @@ module.exports = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      screens: {
+        xs: "480px",
+      },
+      spacing: {
+        sidebar: "240px",
+        topbar: "64px",
+      },
       colors: {
         // MAIDAN Brand Colors
         maidan: {
