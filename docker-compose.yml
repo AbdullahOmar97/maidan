@@ -5,14 +5,13 @@ version: "3.9"
 # =============================================================================
 
 x-backend-env: &backend-env
-  DJANGO_SETTINGS_MODULE: config.settings.development
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
   DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
-  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
-  POSTGRES_DB: ${POSTGRES_DB}
-  POSTGRES_USER: ${POSTGRES_USER}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  # POSTGRES_HOST: db
-  POSTGRES_HOST: ${POSTGRES_HOST}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-maidan_user}:${POSTGRES_PASSWORD:-maidan_dev_password}@db:5432/${POSTGRES_DB:-maidan}
+  POSTGRES_DB: ${POSTGRES_DB:-maidan}
+  POSTGRES_USER: ${POSTGRES_USER:-maidan_user}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maidan_dev_password}
+  POSTGRES_HOST: db
   POSTGRES_PORT: "5432"
   REDIS_URL: redis://redis:6379/0
   CELERY_BROKER_URL: redis://redis:6379/1
@@ -21,27 +20,27 @@ x-backend-env: &backend-env
   MEDIA_URL: http://localhost:8000/media/
 
 services:
-  # # ---------------------------------------------------------------------------
-  # # PostgreSQL Database
-  # # ---------------------------------------------------------------------------
-  # db:
-  #   image: postgres:16-alpine
-  #   container_name: maidan_db
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_DB: ${POSTGRES_DB:-maidan}
-  #     POSTGRES_USER: ${POSTGRES_USER:-maidan_user}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maidan_dev_password}
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #     - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
-  #   ports:
-  #     - "5432:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maidan_user} -d ${POSTGRES_DB:-maidan}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: maidan_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-maidan}
+      POSTGRES_USER: ${POSTGRES_USER:-maidan_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maidan_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maidan_user} -d ${POSTGRES_DB:-maidan}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ---------------------------------------------------------------------------
   # Redis (Cache + Celery Broker)
@@ -80,8 +79,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      # db:
-      #   condition: service_healthy
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
     command: >
@@ -106,8 +105,8 @@ services:
       - ./backend:/app
       - media_files:/app/media
     depends_on:
-      # db:
-      #   condition: service_healthy
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
     command: celery -A config worker --loglevel=info --concurrency=4 -Q default,billing,messaging,reports
@@ -127,8 +126,8 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      # db:
-      #   condition: service_healthy
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
     command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
@@ -158,8 +157,7 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    # command: pnpm dev
-    command: sh -c "pnpm build && pnpm start"
+    command: pnpm dev
 
   # ---------------------------------------------------------------------------
   # Nginx Reverse Proxy
@@ -196,7 +194,7 @@ services:
     command: server /data --console-address ":9001"
 
 volumes:
-  # postgres_data:
+  postgres_data:
   redis_data:
   media_files:
   static_files:
