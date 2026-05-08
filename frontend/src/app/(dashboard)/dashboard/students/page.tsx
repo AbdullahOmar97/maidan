@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -202,18 +203,15 @@ export default function StudentsPage() {
 
         {/* Status Filter */}
         <div className="relative min-w-[240px]">
-          <select
+          <Select
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             className="w-full px-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black appearance-none cursor-pointer shadow-inner"
           >
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
-          </select>
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-            <Filter className="w-5 h-5" />
-          </div>
+          </Select>
         </div>
       </div>
 

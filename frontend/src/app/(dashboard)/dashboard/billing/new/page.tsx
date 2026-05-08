@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -319,19 +320,18 @@ export default function NewInvoicePage() {
                   </InputWrapper>
 
                   <InputWrapper label="العملة" icon={DollarSign}>
-                    <select
+                    <Select
                       name="currency"
                       id="currency"
                       value={formData.currency}
                       onChange={handleChange}
-                      className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer min-h-[44px]"
                       aria-label="عملة الفاتورة"
                     >
-                      <option value="JOD" className="bg-slate-900">JOD - دينار أردني</option>
-                      <option value="SAR" className="bg-slate-900">SAR - ريال سعودي</option>
-                      <option value="USD" className="bg-slate-900">USD - دولار أمريكي</option>
-                      <option value="AED" className="bg-slate-900">AED - درهم إماراتي</option>
-                    </select>
+                      <option value="JOD">JOD - دينار أردني</option>
+                      <option value="SAR">SAR - ريال سعودي</option>
+                      <option value="USD">USD - دولار أمريكي</option>
+                      <option value="AED">AED - درهم إماراتي</option>
+                    </Select>
                   </InputWrapper>
 
                   <InputWrapper label="قيمة الخصم (اختياري)" icon={DollarSign}>

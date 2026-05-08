@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -234,9 +235,8 @@ export default function SchedulingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">نوع الحصة *</label>
-                    <select 
+                    <Select 
                       required
-                      className="w-full p-2.5 rounded-lg border bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                       value={formData.class_type_id}
                       onChange={(e) => setFormData({ ...formData, class_type_id: e.target.value })}
                     >
@@ -244,13 +244,12 @@ export default function SchedulingPage() {
                       {classTypes?.map((ct: any) => (
                         <option key={ct.id} value={ct.id}>{ct.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">الفرع *</label>
-                    <select 
+                    <Select 
                       required
-                      className="w-full p-2.5 rounded-lg border bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                       value={formData.location_id}
                       onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
                     >
@@ -258,14 +257,13 @@ export default function SchedulingPage() {
                       {locations?.map((loc: any) => (
                         <option key={loc.id} value={loc.id}>{loc.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">المدرب</label>
-                  <select 
-                    className="w-full p-2.5 rounded-lg border bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  <Select
                     value={formData.instructor_id}
                     onChange={(e) => setFormData({ ...formData, instructor_id: e.target.value })}
                   >
@@ -273,21 +271,20 @@ export default function SchedulingPage() {
                     {staff?.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.full_name || s.user?.first_name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">اليوم *</label>
-                  <select 
+                  <Select 
                     required
-                    className="w-full p-2.5 rounded-lg border bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={formData.day_of_week}
                     onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
                   >
                     {DAYS_OF_WEEK.map(day => (
                       <option key={day.value} value={day.value}>{day.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

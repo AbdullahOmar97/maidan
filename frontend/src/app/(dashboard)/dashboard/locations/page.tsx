@@ -1,6 +1,8 @@
 "use client";
+import { Select } from "@/components/ui/select";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { FormField, Input, Textarea, ErrorBanner } from "@/components/ui/form-field";
 import { PageHeader } from "@/components/dashboard/page-header";
-import React, { FormEvent, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -9,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { AxiosError } from "axios";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import React, { FormEvent, useMemo, useState } from "react";
 
 type Location = {
   id: number;
@@ -289,118 +292,92 @@ export default function LocationsPage() {
       )}
 
       {/* Create/Edit Modal */}
-      {(isCreateOpen || editingLocation) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl glass-card p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-border/50 flex items-center justify-between bg-secondary/20">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                {isCreateOpen ? <Plus className="w-5 h-5 text-primary" /> : <Edit className="w-5 h-5 text-primary" />}
-                {isCreateOpen ? "إضافة فرع جديد" : "تعديل بيانات الفرع"}
-              </h2>
-              <button
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setEditingLocation(null);
-                  setFormError("");
-                }}
-                className="p-2 rounded-full hover:bg-secondary transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Modal
+        open={isCreateOpen || !!editingLocation}
+        onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); }}
+        size="lg"
+      >
+        <ModalHeader
+          icon={isCreateOpen ? <Plus className="w-5 h-5" /> : <Edit className="w-5 h-5" />}
+          title={isCreateOpen ? "إضافة فرع جديد" : "تعديل بيانات الفرع"}
+          onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); }}
+        />
 
-            <form onSubmit={isCreateOpen ? handleCreateSubmit : handleUpdateSubmit} className="p-6 space-y-6">
-              {formError && (
-                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex gap-3 animate-in slide-in-from-top-2">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <span className="font-medium">{formError}</span>
-                </div>
-              )}
+        <form onSubmit={isCreateOpen ? handleCreateSubmit : handleUpdateSubmit} className="flex flex-col flex-1 min-h-0">
+          <ModalBody className="space-y-4">
+            <ErrorBanner message={formError} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">اسم الفرع (EN)</label>
-                  <input
-                    required
-                    placeholder="Branch Name (English)"
-                    value={isCreateOpen ? createForm.name : editingLocation?.name ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, name: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, name: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">اسم الفرع (عربي)</label>
-                  <input
-                    placeholder="اسم الفرع"
-                    value={isCreateOpen ? createForm.name_ar : editingLocation?.name_ar ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, name_ar: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, name_ar: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                    dir="rtl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">المدينة</label>
-                  <input
-                    required
-                    placeholder="المدينة"
-                    value={isCreateOpen ? createForm.city : editingLocation?.city ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, city: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, city: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">السعة الاستيعابية</label>
-                  <input
-                    required
-                    type="number"
-                    placeholder="السعة"
-                    value={isCreateOpen ? createForm.capacity : editingLocation?.capacity ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, capacity: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, capacity: Number(e.target.value) });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">رقم الهاتف</label>
-                  <input
-                    placeholder="05xxxxxxx"
-                    value={isCreateOpen ? createForm.phone : editingLocation?.phone ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, phone: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, phone: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">البريد الإلكتروني</label>
-                  <input
-                    type="email"
-                    placeholder="branch@example.com"
-                    value={isCreateOpen ? createForm.email : editingLocation?.email ?? ""}
-                    onChange={(e) => {
-                      if (isCreateOpen) setCreateForm(prev => ({ ...prev, email: e.target.value }));
-                      else if (editingLocation) setEditingLocation({ ...editingLocation, email: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">الدولة</label>
-                  <select
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="اسم الفرع (EN)" required>
+                <Input
+                  required
+                  placeholder="Branch Name (English)"
+                  value={isCreateOpen ? createForm.name : editingLocation?.name ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, name: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, name: e.target.value });
+                  }}
+                />
+              </FormField>
+              <FormField label="اسم الفرع (عربي)">
+                <Input
+                  placeholder="اسم الفرع"
+                  value={isCreateOpen ? createForm.name_ar : editingLocation?.name_ar ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, name_ar: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, name_ar: e.target.value });
+                  }}
+                  dir="rtl"
+                />
+              </FormField>
+              <FormField label="المدينة" required>
+                <Input
+                  required
+                  placeholder="المدينة"
+                  value={isCreateOpen ? createForm.city : editingLocation?.city ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, city: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, city: e.target.value });
+                  }}
+                />
+              </FormField>
+              <FormField label="السعة الاستيعابية" required>
+                <Input
+                  required
+                  type="number"
+                  placeholder="السعة"
+                  value={isCreateOpen ? createForm.capacity : editingLocation?.capacity ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, capacity: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, capacity: Number(e.target.value) });
+                  }}
+                />
+              </FormField>
+              <FormField label="رقم الهاتف">
+                <Input
+                  placeholder="05xxxxxxx"
+                  value={isCreateOpen ? createForm.phone : editingLocation?.phone ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, phone: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, phone: e.target.value });
+                  }}
+                  dir="ltr"
+                />
+              </FormField>
+              <FormField label="البريد الإلكتروني">
+                <Input
+                  type="email"
+                  placeholder="branch@example.com"
+                  value={isCreateOpen ? createForm.email : editingLocation?.email ?? ""}
+                  onChange={(e) => {
+                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, email: e.target.value }));
+                    else if (editingLocation) setEditingLocation({ ...editingLocation, email: e.target.value });
+                  }}
+                  dir="ltr"
+                />
+              </FormField>
+              <FormField label="الدولة">
+                  <Select
                     value={isCreateOpen ? createForm.country : editingLocation?.country || "SA"}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, country: e.target.value }));
@@ -416,11 +393,10 @@ export default function LocationsPage() {
                     <option value="OM">عمان</option>
                     <option value="JO">الأردن</option>
                     <option value="EG">مصر</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">المنطقة الزمنية</label>
-                  <select
+                  </Select>
+              </FormField>
+              <FormField label="المنطقة الزمنية">
+                  <Select
                     value={isCreateOpen ? createForm.timezone : editingLocation?.timezone || "Asia/Riyadh"}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, timezone: e.target.value }));
@@ -434,11 +410,10 @@ export default function LocationsPage() {
                     <option value="Asia/Qatar">Asia/Qatar (GMT+3)</option>
                     <option value="Asia/Amman">Asia/Amman (GMT+3)</option>
                     <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground px-1">المدير المسئول</label>
-                  <select
+                  </Select>
+              </FormField>
+              <FormField label="المدير المسئول">
+                  <Select
                     value={isCreateOpen ? createForm.manager_id : editingLocation?.manager_id ?? ""}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, manager_id: e.target.value }));
@@ -450,9 +425,9 @@ export default function LocationsPage() {
                     {staff.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>
                     ))}
-                  </select>
-                </div>
-                <div className="flex items-end pb-2">
+                  </Select>
+              </FormField>
+              <div className="flex items-end pb-2">
                   <label className="flex items-center gap-3 cursor-pointer group select-none">
                     <input
                       type="checkbox"
@@ -485,55 +460,47 @@ export default function LocationsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground px-1">العنوان بالتفصيل</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="مثال: حي الياسمين، طريق الملك عبدالعزيز..."
-                  value={isCreateOpen ? createForm.address : editingLocation?.address ?? ""}
-                  onChange={(e) => {
-                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, address: e.target.value }));
-                    else if (editingLocation) setEditingLocation({ ...editingLocation, address: e.target.value });
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all resize-none"
-                />
-              </div>
+            <FormField label="العنوان بالتفصيل" required>
+              <Textarea
+                required
+                rows={3}
+                placeholder="مثال: حي الياسمين، طريق الملك عبدالعزيز..."
+                value={isCreateOpen ? createForm.address : editingLocation?.address ?? ""}
+                onChange={(e) => {
+                  if (isCreateOpen) setCreateForm(prev => ({ ...prev, address: e.target.value }));
+                  else if (editingLocation) setEditingLocation({ ...editingLocation, address: e.target.value });
+                }}
+              />
+            </FormField>
+          </ModalBody>
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-border/50">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    setEditingLocation(null);
-                    setFormError("");
-                  }}
-                  className="px-6 py-2.5 rounded-xl border border-border hover:bg-secondary/50 transition-all font-medium"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={createLocationMutation.isPending || updateLocationMutation.isPending}
-                  className="px-8 py-2.5 rounded-xl gradient-brand text-white font-bold hover:opacity-90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-60"
-                >
-                  {(createLocationMutation.isPending || updateLocationMutation.isPending) ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      جاري الحفظ...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      حفظ البيانات
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          <ModalFooter>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreateOpen(false);
+                setEditingLocation(null);
+                setFormError("");
+              }}
+              className="px-5 py-2.5 rounded-xl border border-border hover:bg-secondary/60 transition-colors text-sm font-medium"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={createLocationMutation.isPending || updateLocationMutation.isPending}
+              className="px-6 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60"
+            >
+              {(createLocationMutation.isPending || updateLocationMutation.isPending) ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {createLocationMutation.isPending || updateLocationMutation.isPending ? "جاري الحفظ..." : "حفظ البيانات"}
+            </button>
+          </ModalFooter>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {deletingLocation && (

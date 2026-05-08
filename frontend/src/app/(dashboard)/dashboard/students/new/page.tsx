@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -234,45 +235,42 @@ export default function NewStudentPage() {
 
               <div className="space-y-6">
                 <InputWrapper label="الفرع / النادي" icon={MapPin}>
-                  <select
+                  <Select
                     required
                     name="location_id"
                     value={formData.location_id}
                     onChange={handleChange}
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
                   >
-                    <option value="" disabled className="bg-slate-900">اختر الفرع...</option>
+                    <option value="" disabled>اختر الفرع...</option>
                     {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id} className="bg-slate-900">
+                      <option key={loc.id} value={loc.id}>
                         {loc.name_ar || loc.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </InputWrapper>
 
                 <InputWrapper label="الجنس" icon={User}>
-                  <select
+                  <Select
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
                   >
-                    <option value="male" className="bg-slate-900">ذكر</option>
-                    <option value="female" className="bg-slate-900">أنثى</option>
-                  </select>
+                    <option value="male">ذكر</option>
+                    <option value="female">أنثى</option>
+                  </Select>
                 </InputWrapper>
 
                 <InputWrapper label="الحالة الأولية" icon={CheckCircle2}>
-                  <select
+                  <Select
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-black appearance-none cursor-pointer"
                   >
-                    <option value="active" className="bg-slate-900">نشط (مشترك)</option>
-                    <option value="trial" className="bg-slate-900">تجريبي (فترة تجربة)</option>
-                    <option value="lead" className="bg-slate-900">عميل محتمل</option>
-                  </select>
+                    <option value="active">نشط (مشترك)</option>
+                    <option value="trial">تجريبي (فترة تجربة)</option>
+                    <option value="lead">عميل محتمل</option>
+                  </Select>
                 </InputWrapper>
               </div>
             </div>

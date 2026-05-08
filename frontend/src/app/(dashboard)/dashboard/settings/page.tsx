@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
 import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle } from "lucide-react";
@@ -350,8 +351,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">العملة الافتراضية</label>
-                    <select
-                      className="w-full p-2.5 rounded-lg border bg-background/50 focus:border-primary/50 outline-none transition-all text-sm"
+                    <Select
                       value={academy.default_currency}
                       onChange={(e) => setAcademy({ ...academy, default_currency: e.target.value })}
                     >
@@ -364,12 +364,11 @@ export default function SettingsPage() {
                       <option value="QAR">ريال قطري (QAR)</option>
                       <option value="EGP">جنيه مصري (EGP)</option>
                       <option value="USD">دولار أمريكي (USD)</option>
-                    </select>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">المنطقة الزمنية</label>
-                    <select
-                      className="w-full p-2.5 rounded-lg border bg-background/50 focus:border-primary/50 outline-none transition-all text-sm"
+                    <Select
                       value={academy.timezone}
                       onChange={(e) => setAcademy({ ...academy, timezone: e.target.value })}
                     >
@@ -379,7 +378,7 @@ export default function SettingsPage() {
                       <option value="Asia/Kuwait">Asia/Kuwait (GMT+3)</option>
                       <option value="Asia/Qatar">Asia/Qatar (GMT+3)</option>
                       <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -521,8 +520,7 @@ export default function SettingsPage() {
                     
                     <div className="space-y-2 pt-2">
                       <label className="text-sm font-bold">اختر الموظف الجديد للملكية</label>
-                      <select 
-                        className="w-full max-w-md p-2.5 rounded-lg border bg-background focus:border-primary/50 outline-none"
+                      <Select
                         value={selectedNewOwner}
                         onChange={(e) => setSelectedNewOwner(e.target.value)}
                       >
@@ -530,7 +528,7 @@ export default function SettingsPage() {
                         {staff.map(s => (
                           <option key={s.id} value={s.id}>{s.full_name} ({ROLE_LABELS[s.role as keyof typeof ROLE_LABELS] || s.role})</option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     <button 

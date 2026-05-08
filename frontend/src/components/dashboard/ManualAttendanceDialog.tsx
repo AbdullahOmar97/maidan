@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { X, Calendar, Loader2, CheckCircle, Clock, Info } from "lucide-react";
+import { Calendar, Loader2, CheckCircle, Clock, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { FormField, Input } from "@/components/ui/form-field";
 
 interface ManualAttendanceDialogProps {
   isOpen: boolean;
@@ -33,9 +35,14 @@ export default function ManualAttendanceDialog({
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedSession, setSelectedSession] = useState<SessionInfo | null>(null);
 
-  const { data: sessionsData, isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
+  const {
+    data: sessionsData,
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+  } = useQuery({
     queryKey: ["student-potential-sessions", studentId, selectedDate],
-    queryFn: () => api.students.potentialSessions(studentId, selectedDate).then((res) => res.data),
+    queryFn: () =>
+      api.students.potentialSessions(studentId, selectedDate).then((res) => res.data),
     enabled: isOpen,
   });
 
@@ -54,146 +61,120 @@ export default function ManualAttendanceDialog({
       onClose();
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error || "فشل تسجيل الحضور");
+      toast.error(err.response?.data?.error ?? "فشل تسجيل الحضور");
     },
   });
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSession) return;
-
     const payload = selectedSession.is_schedule
       ? { schedule_id: selectedSession.id, date: selectedDate }
       : { session_id: selectedSession.id };
-
     checkinMutation.mutate(payload);
   };
 
-  const existingSessions = sessionsData?.existing || [];
-  const schedules = (sessionsData?.schedules || []).map((s: any) => ({ ...s, is_schedule: true }));
+  const existingSessions: SessionInfo[] = sessionsData?.existing ?? [];
+  const schedules: SessionInfo[] = (sessionsData?.schedules ?? []).map(
+    (s: any) => ({ ...s, is_schedule: true })
+  );
   const allAvailable = [...existingSessions, ...schedules];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-background border border-border w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="p-6 border-b border-border flex items-center justify-between gradient-brand-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">تسجيل حضور يدوي</h2>
-              <p className="text-xs text-muted-foreground">{studentName}</p>
-            </div>
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal open={isOpen} onClose={onClose} size="sm">
+      <ModalHeader
+        icon={<Calendar className="w-5 h-5" />}
+        title="تسجيل حضور يدوي"
+        subtitle={studentName}
+        onClose={onClose}
+      />
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Date Picker */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              تاريخ الحصة
-            </label>
-            <input
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <ModalBody className="space-y-4">
+          <FormField label="تاريخ الحصة" required>
+            <Input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all"
               required
             />
-          </div>
+          </FormField>
 
-          {/* Session Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              اختر الحصة
-            </label>
-            
+          <FormField label="اختر الحصة" required>
             {sessionsLoading ? (
-              <div className="h-32 flex items-center justify-center border border-dashed rounded-xl">
-                <Loader2 className="w-6 h-6 animate-spin text-primary/50" />
+              <div className="h-28 flex items-center justify-center border border-dashed border-border rounded-xl">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : allAvailable.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
-                {allAvailable.map((session) => (
-                  <button
-                    key={`${session.is_schedule ? 'sched' : 'sess'}-${session.id}`}
-                    type="button"
-                    onClick={() => setSelectedSession(session)}
-                    className={cn(
-                      "flex items-center justify-between p-3 rounded-xl border transition-all text-right",
-                      selectedSession?.id === session.id && selectedSession?.is_schedule === session.is_schedule
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border hover:bg-secondary/50"
-                    )}
-                  >
-                    <div>
-                      <p className="text-sm font-bold">{session.class_name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {session.start_time} - {session.end_time}
-                      </p>
-                    </div>
-                    {session.is_schedule ? (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">
-                        جدول
+              <div className="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
+                {allAvailable.map((session) => {
+                  const key = `${session.is_schedule ? "sched" : "sess"}-${session.id}`;
+                  const isSelected =
+                    selectedSession?.id === session.id &&
+                    selectedSession?.is_schedule === session.is_schedule;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedSession(session)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-right",
+                        isSelected
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border/60 hover:bg-secondary/50"
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{session.class_name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {session.start_time} – {session.end_time}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-md border",
+                          session.is_schedule
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        )}
+                      >
+                        {session.is_schedule ? "جدول" : "حصة"}
                       </span>
-                    ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-medium">
-                        حصة منشأة
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-8 text-center border border-dashed rounded-xl bg-secondary/20">
-                <Info className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              <div className="flex flex-col items-center justify-center gap-2 py-8 border border-dashed border-border rounded-xl bg-secondary/10">
+                <Info className="w-7 h-7 opacity-20" />
                 <p className="text-xs text-muted-foreground">لا توجد حصص مجدولة لهذا التاريخ</p>
               </div>
             )}
-          </div>
+          </FormField>
+        </ModalBody>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-11 rounded-xl bg-secondary hover:bg-secondary/80 transition-all font-medium"
-            >
-              إلغاء
-            </button>
-            <button
-              type="submit"
-              disabled={checkinMutation.isPending || !selectedSession}
-              className="flex-[2] h-11 rounded-xl gradient-brand text-white font-medium shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
-            >
-              {checkinMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  جاري التسجيل...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  تسجيل الحضور
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalFooter>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl border border-border hover:bg-secondary/60 transition-colors text-sm font-medium"
+          >
+            إلغاء
+          </button>
+          <button
+            type="submit"
+            disabled={checkinMutation.isPending || !selectedSession}
+            className="px-6 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 disabled:scale-100 flex items-center gap-2"
+          >
+            {checkinMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            تسجيل الحضور
+          </button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }

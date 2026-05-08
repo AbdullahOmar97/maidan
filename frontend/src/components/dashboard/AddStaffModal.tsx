@@ -1,8 +1,12 @@
 "use client";
+
 import React from "react";
-import { UserPlus, X, Save, Loader2, Shield, MapPin } from "lucide-react";
+import { UserPlus, Save, Loader2, Shield, MapPin } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/constants";
 import { Location } from "@/types";
+import { Select } from "@/components/ui/select";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { FormField, Input, InfoBanner } from "@/components/ui/form-field";
 
 const STAFF_ROLES: { id: string; label: string }[] = [
   { id: "manager",        label: ROLE_LABELS.manager },
@@ -49,119 +53,115 @@ export function AddStaffModal({
   onChange,
   onSubmit,
 }: AddStaffModalProps) {
-  const handleField = <K extends keyof NewStaffFormData>(key: K, value: NewStaffFormData[K]) =>
+  const set = <K extends keyof NewStaffFormData>(key: K, value: NewStaffFormData[K]) =>
     onChange({ ...form, [key]: value });
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSubmit();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl glass-card p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-border/50 flex items-center justify-between bg-secondary/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <UserPlus className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-bold">إضافة موظف جديد</h2>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="md">
+      <ModalHeader
+        icon={<UserPlus className="w-5 h-5" />}
+        title="إضافة موظف جديد"
+        subtitle="سيتم إرسال دعوة إلى بريده الإلكتروني"
+        onClose={onClose}
+      />
 
-        <form
-          onSubmit={(e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); onSubmit(); }}
-          className="p-6 space-y-4"
-        >
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <ModalBody className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground mr-1">الاسم الأول</label>
-              <input
-                required type="text" value={form.first_name} placeholder="أحمد"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleField("first_name", e.target.value)}
-                className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            <FormField label="الاسم الأول" required>
+              <Input
+                required
+                placeholder="أحمد"
+                value={form.first_name}
+                onChange={(e) => set("first_name", e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground mr-1">الاسم الأخير</label>
-              <input
-                required type="text" value={form.last_name} placeholder="محمد"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleField("last_name", e.target.value)}
-                className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            </FormField>
+            <FormField label="الاسم الأخير" required>
+              <Input
+                required
+                placeholder="محمد"
+                value={form.last_name}
+                onChange={(e) => set("last_name", e.target.value)}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground mr-1">البريد الإلكتروني</label>
-              <input
-                required type="email" dir="ltr" value={form.email} placeholder="example@maidan.app"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleField("email", e.target.value)}
-                className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-left"
+            <FormField label="البريد الإلكتروني" required>
+              <Input
+                required
+                type="email"
+                dir="ltr"
+                placeholder="name@example.com"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground mr-1">رقم الهاتف</label>
-              <input
-                required type="tel" dir="ltr" value={form.phone} placeholder="05xxxxxxx"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleField("phone", e.target.value)}
-                className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-left"
+            </FormField>
+            <FormField label="رقم الهاتف" required>
+              <Input
+                required
+                type="tel"
+                dir="ltr"
+                placeholder="05xxxxxxx"
+                value={form.phone}
+                onChange={(e) => set("phone", e.target.value)}
               />
-            </div>
+            </FormField>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-muted-foreground mr-1">الدور الوظيفي</label>
-            <select
+          <FormField label="الدور الوظيفي" required>
+            <Select
               value={form.role}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleField("role", e.target.value)}
-              className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              onChange={(e) => set("role", e.target.value)}
             >
               {STAFF_ROLES.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormField>
 
           {canAssignBranch && locations.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground mr-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                الفرع
-              </label>
-              <select
+            <FormField label="الفرع">
+              <Select
                 value={form.primary_location_id}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleField("primary_location_id", e.target.value)}
-                className="w-full bg-secondary/30 border-border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                onChange={(e) => set("primary_location_id", e.target.value)}
               >
                 <option value="">بدون فرع محدد</option>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>{loc.name_ar || loc.name}</option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormField>
           )}
 
-          <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3 mt-4">
-            <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              سيتم إضافة الموظف بدون كلمة مرور. عند تسجيل الدخول الأول، سيُطلب منه ضبط كلمة المرور وتأكيد هويته.
-            </p>
-          </div>
+          <InfoBanner icon={<Shield className="w-4 h-4" />}>
+            سيتم إضافة الموظف بدون كلمة مرور. عند تسجيل الدخول الأول، سيُطلب منه ضبط كلمة المرور وتأكيد هويته.
+          </InfoBanner>
+        </ModalBody>
 
-          <div className="flex justify-end gap-3 mt-6">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl border border-border hover:bg-secondary transition-all font-medium">
-              إلغاء
-            </button>
-            <button
-              disabled={isPending}
-              className="px-8 py-2.5 rounded-xl gradient-brand text-white font-bold hover:opacity-90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-60"
-            >
-              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              إضافة الموظف
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalFooter>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl border border-border hover:bg-secondary/60 transition-colors text-sm font-medium"
+          >
+            إلغاء
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-6 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60"
+          >
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            إضافة الموظف
+          </button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }

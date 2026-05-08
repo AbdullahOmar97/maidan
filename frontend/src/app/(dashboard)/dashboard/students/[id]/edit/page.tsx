@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/select";
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -167,12 +168,11 @@ export default function EditStudentPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">الفرع / الموقع</label>
-            <select
+            <Select
               required
               name="location_id"
               value={formData.location_id}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none transition-all"
             >
               <option value="" disabled>اختر الفرع...</option>
               {locations.map((loc) => (
@@ -180,7 +180,7 @@ export default function EditStudentPage() {
                   {loc.name_ar || loc.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -210,29 +210,27 @@ export default function EditStudentPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">الجنس</label>
-            <select
+            <Select
               name="gender"
               value={formData.gender}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none transition-all"
             >
               <option value="male">ذكر</option>
               <option value="female">أنثى</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">الحالة</label>
-            <select
+            <Select
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none transition-all"
             >
               <option value="active">نشط</option>
               <option value="trial">تجريبي</option>
               <option value="lead">عميل محتمل</option>
-            </select>
+            </Select>
           </div>
         </div>
 

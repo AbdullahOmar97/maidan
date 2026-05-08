@@ -5,6 +5,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
+import { Select } from "@/components/ui/select";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -309,18 +310,18 @@ export default function BillingPage() {
           </div>
           <div className="relative">
             <Filter className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-            <select
+            <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto pr-11 pl-4 py-3 rounded-xl bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-sm font-black text-white transition-all sm:min-w-[180px] appearance-none cursor-pointer"
+              className="sm:min-w-[180px] pr-11"
               aria-label="تصفية حسب الحالة"
             >
-              <option value=""        className="bg-slate-900">جميع الحالات</option>
-              <option value="pending"  className="bg-slate-900">معلق</option>
-              <option value="paid"     className="bg-slate-900">مدفوع</option>
-              <option value="overdue"  className="bg-slate-900">متأخر</option>
-              <option value="void"     className="bg-slate-900">ملغي</option>
-            </select>
+              <option value="">جميع الحالات</option>
+              <option value="pending">معلق</option>
+              <option value="paid">مدفوع</option>
+              <option value="overdue">متأخر</option>
+              <option value="void">ملغي</option>
+            </Select>
           </div>
         </div>
 

@@ -158,6 +158,12 @@
 
   /* RTL helpers */
   [dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+  /* ── Native <select> option backdrop ─────────────────────────── */
+  select option {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+  }
 }
 
 /* Light theme compatibility for legacy dark-first utility classes */
