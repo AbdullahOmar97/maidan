@@ -42,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
             from apps.students.models import Location
             loc = Location.objects.filter(id=obj.primary_location_id).first()
             if loc:
-                return loc.name_ar or loc.name
+                return loc.name
         except Exception:
             pass
         return None

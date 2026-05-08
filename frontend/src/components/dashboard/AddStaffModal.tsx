@@ -133,7 +133,7 @@ export function AddStaffModal({
               >
                 <option value="">بدون فرع محدد</option>
                 {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.name_ar || loc.name}</option>
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
               </Select>
             </FormField>

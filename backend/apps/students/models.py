@@ -15,7 +15,6 @@ class Location(models.Model):
     """Physical dojo location / branch."""
 
     name = models.CharField(max_length=200)
-    name_ar = models.CharField(max_length=200, blank=True)
     address = models.TextField()
     city = models.CharField(max_length=100)
     country = models.CharField(max_length=2, default="SA")

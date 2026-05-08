@@ -16,7 +16,6 @@ import React, { FormEvent, useMemo, useState } from "react";
 type Location = {
   id: number;
   name: string;
-  name_ar: string;
   address: string;
   city: string;
   country: string;
@@ -34,7 +33,6 @@ type LocationsResponse = {
 
 const initialFormState = {
   name: "",
-  name_ar: "",
   address: "",
   city: "",
   country: "SA",
@@ -218,7 +216,7 @@ export default function LocationsPage() {
                   <div className="p-6 flex-1 flex flex-col">
                      <div className="flex items-start justify-between mb-4">
                         <div>
-                           <h2 className="text-xl font-bold group-hover:text-primary transition-colors">{location.name_ar || location.name}</h2>
+                           <h2 className="text-xl font-bold group-hover:text-primary transition-colors">{location.name}</h2>
                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                               <MapPin className="w-3.5 h-3.5" />
                               {location.city}, {location.country}
@@ -308,24 +306,14 @@ export default function LocationsPage() {
             <ErrorBanner message={formError} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="اسم الفرع (EN)" required>
+              <FormField label="اسم الفرع" required>
                 <Input
                   required
-                  placeholder="Branch Name (English)"
+                  placeholder="اسم الفرع"
                   value={isCreateOpen ? createForm.name : editingLocation?.name ?? ""}
                   onChange={(e) => {
                     if (isCreateOpen) setCreateForm(prev => ({ ...prev, name: e.target.value }));
                     else if (editingLocation) setEditingLocation({ ...editingLocation, name: e.target.value });
-                  }}
-                />
-              </FormField>
-              <FormField label="اسم الفرع (عربي)">
-                <Input
-                  placeholder="اسم الفرع"
-                  value={isCreateOpen ? createForm.name_ar : editingLocation?.name_ar ?? ""}
-                  onChange={(e) => {
-                    if (isCreateOpen) setCreateForm(prev => ({ ...prev, name_ar: e.target.value }));
-                    else if (editingLocation) setEditingLocation({ ...editingLocation, name_ar: e.target.value });
                   }}
                   dir="rtl"
                 />
@@ -512,7 +500,7 @@ export default function LocationsPage() {
               </div>
               <h2 className="text-xl font-bold">حذف الفرع؟</h2>
               <p className="text-muted-foreground mt-2">
-                هل أنت متأكد من حذف فرع <span className="text-foreground font-bold font-mono">"{deletingLocation.name_ar || deletingLocation.name}"</span>؟
+                هل أنت متأكد من حذف فرع <span className="text-foreground font-bold font-mono">"{deletingLocation.name}"</span>؟
                 <br />
                 هذا الإجراء قد يؤثر على بيانات الطلاب المسجلين في هذا الفرع.
               </p>
