@@ -124,8 +124,9 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 # URLs & WSGI
 # ---------------------------------------------------------------------------
-ROOT_URLCONF = "config.urls_tenant"
+ROOT_URLCONF = "config.urls"
 PUBLIC_SCHEMA_URLCONF = "config.urls"
+TENANT_URLCONF = "config.urls_tenant"
 
 WSGI_APPLICATION = "config.wsgi.application"
 
