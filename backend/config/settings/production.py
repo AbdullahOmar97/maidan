@@ -13,6 +13,7 @@ DEBUG = False
 
 # Strict security headers
 SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = 63072000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -25,7 +26,8 @@ X_FRAME_OPTIONS = "DENY"
 # CORS — specific origins only
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.maidan\.app$",
+    r"^https://maidanjo\.duckdns\.org$",
+    r"^https://.*\.maidanjo\.duckdns\.org$",
 ]
 
 # Static files via WhiteNoise
