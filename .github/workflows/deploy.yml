@@ -1,11 +1,9 @@
 name: Deploy MAIDAN to EC2 Production
 
-# متى يعمل هذا البايبلاين؟ عند عمل Push أو دمج (Merge) على فرع main
 on:
   push:
     branches: [ "main" ]
 
-# هذه الصلاحيات ضرورية للسماح لـ GitHub بطلب مفتاح OIDC المؤقت
 permissions:
   id-token: write
   contents: read
