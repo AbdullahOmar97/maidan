@@ -129,7 +129,7 @@ migrate-prod: ## Run Django migrations (production)
 	docker compose -f docker-compose.prod.yml exec backend python manage.py migrate_schemas
 
 collectstatic-prod: ## Collect static files (production)
-	docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+	docker compose -f docker-compose.prod.yml exec -u root backend python manage.py collectstatic --noinput
 
 # --- Database ---
 db-backup: ## Backup PostgreSQL
