@@ -9,9 +9,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from django.db import connection
+
 urlpatterns = [
     # Admin (Diagnostic)
     path("admin/", admin.site.urls),
+
+    # Diagnostic
+    path("ping/", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
 
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
