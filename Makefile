@@ -124,6 +124,13 @@ down-prod: ## Stop production services
 build-prod: ## Build production images
 	docker compose -f docker-compose.prod.yml build
 
+migrate-prod: ## Run Django migrations (production)
+	docker compose -f docker-compose.prod.yml exec backend python manage.py migrate_schemas --shared
+	docker compose -f docker-compose.prod.yml exec backend python manage.py migrate_schemas
+
+collectstatic-prod: ## Collect static files (production)
+	docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+
 # --- Database ---
 db-backup: ## Backup PostgreSQL
 	docker compose exec db pg_dump -U maidan_user maidan > backups/maidan_$(shell date +%Y%m%d_%H%M%S).sql

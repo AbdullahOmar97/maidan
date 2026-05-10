@@ -105,11 +105,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py migrate_schemas --shared &&
-             python manage.py migrate_schemas &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class gevent --timeout 120 --access-logfile - --error-logfile -"
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class gevent --timeout 120 --access-logfile - --error-logfile -
     deploy:
       replicas: 1
       resources:
