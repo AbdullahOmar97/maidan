@@ -18,6 +18,7 @@ urlpatterns = [
 
     # Diagnostic
     path("ping/", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
+    path("ping", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
 
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
