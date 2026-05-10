@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api/client";
-import { UsersRound, Phone, ShieldCheck, UserPlus, Shield, Lock, Pencil, MapPin } from "lucide-react";
+import { UsersRound, Phone, ShieldCheck, UserPlus, Shield, Lock, Pencil, MapPin, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/constants";
 import { UserRole, StaffMember, StaffPermissions, Location, PaginatedResponse } from "@/types";
@@ -13,6 +13,7 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { StaffPermissionsModal } from "@/components/dashboard/StaffPermissionsModal";
 import { EditStaffModal } from "@/components/dashboard/EditStaffModal";
 import { AddStaffModal, NewStaffFormData, INITIAL_STAFF_FORM } from "@/components/dashboard/AddStaffModal";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,15 +141,15 @@ export default function StaffPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
+            <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                 <tr>
-                  <th className="px-4 py-3 rounded-r-lg font-medium">الاسم</th>
-                  <th className="px-4 py-3 font-medium">الدور</th>
-                  <th className="px-4 py-3 font-medium">الفرع</th>
-                  <th className="px-4 py-3 font-medium">التواصل</th>
-                  <th className="px-4 py-3 font-medium">الحالة</th>
-                  <th className="px-4 py-3 rounded-l-lg font-medium">الإجراءات</th>
+                  <th className="px-4 py-3 rounded-s-lg font-medium text-start">الاسم</th>
+                  <th className="px-4 py-3 font-medium text-start">الدور</th>
+                  <th className="px-4 py-3 font-medium text-start">الفرع</th>
+                  <th className="px-4 py-3 font-medium text-start">التواصل</th>
+                  <th className="px-4 py-3 font-medium text-start">الحالة</th>
+                  <th className="px-4 py-3 rounded-e-lg font-medium text-end">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,8 +157,8 @@ export default function StaffPage() {
                   [...Array(4)].map((_, i) => (
                     <tr key={i} className="border-b border-border/50 last:border-0">
                       {[32, 20, 24, 40, 16, 8].map((w, j) => (
-                        <td key={j} className="px-4 py-4">
-                          <div className={`shimmer h-5 w-${w} rounded`} />
+                        <td key={j} className={cn("px-4 py-4", j === 5 ? "text-end" : "text-start")}>
+                          <div className={cn("shimmer h-5 rounded", `w-${w}`, j === 5 && "ms-auto")} />
                         </td>
                       ))}
                     </tr>
@@ -234,7 +235,7 @@ interface StaffRowProps {
 function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
   return (
     <tr className="border-b border-border/50 last:border-0 hover:bg-secondary/20 transition-colors">
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 text-start">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-bold text-muted-foreground shrink-0 border border-border">
             {member.avatar_url
@@ -250,12 +251,12 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
           </div>
         </div>
       </td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 text-start">
         <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary/10 border-primary/20 text-primary">
           {ROLE_LABELS[member.role] ?? member.role}
         </span>
       </td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 text-start">
         {member.branch_names && member.branch_names.length > 0 ? (
           <div className="flex flex-wrap gap-1 max-w-[200px]">
             {member.branch_names.map((name, idx) => (
@@ -269,7 +270,7 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
           <span className="text-xs text-muted-foreground/50">—</span>
         )}
       </td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 text-start">
         {member.phone && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Phone className="w-3.5 h-3.5" />
@@ -277,10 +278,10 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
           </div>
         )}
       </td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 text-start">
         <StatusBadge status={member.is_active ? "active" : "inactive"} />
       </td>
-      <td className="px-4 py-4 text-left">
+      <td className="px-4 py-4 text-end">
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onEdit}

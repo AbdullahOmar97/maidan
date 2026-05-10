@@ -11,7 +11,7 @@ interface InputWrapperProps {
 
 export const InputWrapper = ({ label, icon: Icon, children, className }: InputWrapperProps) => (
   <div className={cn("space-y-2 group", className)}>
-    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2 group-focus-within:text-primary transition-colors">
+    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1 flex items-center gap-2 group-focus-within:text-primary transition-colors">
       {Icon && <Icon className="w-3 h-3" />}
       {label}
     </label>

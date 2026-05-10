@@ -196,8 +196,9 @@ class Student(models.Model):
         super().save(*args, **kwargs)
 
     def _generate_student_number(self):
-        import random
-        self.student_number = f"STU-{random.randint(10000, 99999)}"
+        import secrets
+
+        self.student_number = f"STU-{secrets.token_hex(4).upper()}"
 
 
 class StudentNote(models.Model):

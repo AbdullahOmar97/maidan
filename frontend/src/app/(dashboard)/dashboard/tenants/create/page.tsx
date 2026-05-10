@@ -187,7 +187,7 @@ export default function CreateTenantPage() {
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Primary Domain</label>
               <div className="relative">
-                <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Globe className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   name="domain_input"
@@ -195,7 +195,7 @@ export default function CreateTenantPage() {
                   value={formData.domain_input}
                   onChange={handleChange}
                   placeholder={`elite.${mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "localhost")}`}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pr-12 pl-5 text-white focus:outline-none focus:border-primary/50 transition-all font-mono"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pe-12 ps-5 text-white focus:outline-none focus:border-primary/50 transition-all font-mono"
                 />
 
 

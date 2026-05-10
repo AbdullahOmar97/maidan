@@ -204,7 +204,7 @@ export default function NewInvoicePage() {
                   showResults ? "z-40 ring-2 ring-primary/20 shadow-primary/10" : "z-20"
                 )}
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 pointer-events-none" aria-hidden="true" />
+                <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
 
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10" aria-hidden="true">
@@ -222,7 +222,7 @@ export default function NewInvoicePage() {
                         value={studentSearch}
                         onChange={(e) => setStudentSearch(e.target.value)}
                         placeholder="ابحث بالاسم أو رقم الطالب..."
-                        className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right min-h-[44px]"
+                        className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end min-h-[44px]"
                         dir="rtl"
                         aria-label="البحث عن الطالب"
                         autoComplete="off"
@@ -248,12 +248,12 @@ export default function NewInvoicePage() {
                               role="option"
                               aria-selected={false}
                               onClick={() => selectStudent(student)}
-                              className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors text-right touch-target"
+                              className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors text-end touch-target"
                             >
                               <div className="w-10 h-10 rounded-lg gradient-brand flex items-center justify-center text-white font-black text-xs shrink-0" aria-hidden="true">
                                 {student.first_name?.[0] || "U"}
                               </div>
-                              <div className="flex-1 min-w-0 text-right">
+                              <div className="flex-1 min-w-0 text-end">
                                 <p className="text-sm font-bold text-white truncate">{student.full_name}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{student.student_number}</p>
                               </div>
@@ -281,7 +281,7 @@ export default function NewInvoicePage() {
                     <button
                       type="button"
                       onClick={() => setSelectedStudent(null)}
-                      className="touch-target p-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors shrink-0 ml-2"
+                      className="touch-target p-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors shrink-0 ms-2"
                       aria-label={`إزالة الطالب ${selectedStudent.full_name}`}
                     >
                       <X className="w-5 h-5" aria-hidden="true" />
@@ -292,7 +292,7 @@ export default function NewInvoicePage() {
 
               {/* Invoice Details */}
               <div className="glass-card p-5 md:p-8 space-y-5 md:space-y-8 relative overflow-hidden z-10">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" aria-hidden="true" />
+                <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
 
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10" aria-hidden="true">
@@ -371,7 +371,7 @@ export default function NewInvoicePage() {
                     onChange={handleChange}
                     rows={3}
                     placeholder="ستظهر هذه الملاحظات في الفاتورة..."
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right resize-none"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end resize-none"
                     dir="rtl"
                     aria-label="ملاحظات الفاتورة"
                   />
@@ -383,7 +383,7 @@ export default function NewInvoicePage() {
             <div className="space-y-4 md:space-y-8">
               {/* Summary card */}
               <div className="glass-card p-5 md:p-8 space-y-5 md:space-y-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" aria-hidden="true" />
+                <div className="absolute top-0 end-0 w-32 h-32 bg-emerald-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
 
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10" aria-hidden="true">

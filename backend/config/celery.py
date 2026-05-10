@@ -43,7 +43,6 @@ app.conf.beat_schedule = {
 app.conf.task_routes = {
     "apps.billing.*": {"queue": "billing"},
     "apps.messaging.*": {"queue": "messaging"},
-    "apps.reporting.*": {"queue": "reports"},
     "apps.*": {"queue": "default"},
 }
 

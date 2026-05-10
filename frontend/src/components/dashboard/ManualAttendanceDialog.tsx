@@ -118,7 +118,7 @@ export default function ManualAttendanceDialog({
                       type="button"
                       onClick={() => setSelectedSession(session)}
                       className={cn(
-                        "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-right",
+                        "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-end",
                         isSelected
                           ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                           : "border-border/60 hover:bg-secondary/50"

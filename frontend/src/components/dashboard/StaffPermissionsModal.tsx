@@ -122,14 +122,14 @@ export function StaffPermissionsModal({
                       type="button"
                       onClick={() => onToggle(flag.id)}
                       className={cn(
-                        "w-full flex items-start gap-3.5 px-4 py-3.5 rounded-xl border text-right transition-all duration-150 group relative overflow-hidden",
+                        "w-full flex items-start gap-3.5 px-4 py-3.5 rounded-xl border text-end transition-all duration-150 group relative overflow-hidden",
                         isActive
                           ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
                           : "bg-secondary/10 border-border/40 hover:border-primary/20 hover:bg-secondary/20"
                       )}
                     >
                       {/* Active accent stripe */}
-                      {isActive && <div className="absolute top-0 right-0 w-1 h-full bg-primary rounded-r-xl" />}
+                      {isActive && <div className="absolute top-0 end-0 w-1 h-full bg-primary rounded-e-xl" />}
 
                       {/* Checkbox */}
                       <div

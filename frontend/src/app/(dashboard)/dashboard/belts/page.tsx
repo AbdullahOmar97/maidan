@@ -119,13 +119,13 @@ export default function BeltsPage() {
                   <div className="flex items-center gap-4 sm:justify-end">
                     <div className="text-sm">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-muted-foreground w-12 text-right">حصص:</span>
+                        <span className="text-muted-foreground w-12 text-end">حصص:</span>
                         <span className={`font-medium ${item.has_enough_sessions ? 'text-emerald-400' : 'text-amber-400'}`}>
                           {item.sessions_attended} / {item.required_sessions}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-12 text-right">أشهر:</span>
+                        <span className="text-muted-foreground w-12 text-end">أشهر:</span>
                         <span className={`font-medium ${item.has_enough_time ? 'text-emerald-400' : 'text-amber-400'}`}>
                           {item.months_in_rank} / {item.required_months}
                         </span>

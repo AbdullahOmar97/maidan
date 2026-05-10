@@ -71,7 +71,7 @@ export default function StatusPage() {
           {current.description}
         </p>
 
-        <div className="glass-card p-8 border-white/5 bg-white/[0.02] space-y-6 text-right">
+        <div className="glass-card p-8 border-white/5 bg-white/[0.02] space-y-6 text-end">
           <h3 className="text-lg font-black text-white flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-primary" />
             تحتاج للمساعدة؟

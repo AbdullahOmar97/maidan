@@ -26,16 +26,16 @@ services:
     container_name: maidan_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-maidan}
-      POSTGRES_USER: ${POSTGRES_USER:-maidan_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maidan_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maidan_user} -d ${POSTGRES_DB:-maidan}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -139,7 +139,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A config worker --loglevel=info --concurrency=4 -Q default,billing,messaging,reports
+    command: celery -A config worker --loglevel=info --concurrency=4 -Q default,billing,messaging
 
   # ---------------------------------------------------------------------------
   # Celery Beat (Scheduler)

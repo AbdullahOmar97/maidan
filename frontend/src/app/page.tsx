@@ -41,8 +41,8 @@ export default function HomePage() {
       <TenantRedirect />
       {/* Dynamic Background Elements */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="gradient-brand-soft absolute -right-24 top-10 h-[500px] w-[500px] rounded-full blur-[120px] opacity-50" />
-        <div className="gradient-brand-soft absolute -bottom-24 -left-24 h-[600px] w-[600px] rounded-full blur-[120px] opacity-30" />
+        <div className="gradient-brand-soft absolute -end-24 top-10 h-[500px] w-[500px] rounded-full blur-[120px] opacity-50" />
+        <div className="gradient-brand-soft absolute -bottom-24 -start-24 h-[600px] w-[600px] rounded-full blur-[120px] opacity-30" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
@@ -111,7 +111,7 @@ export default function HomePage() {
 
           <div className="relative page-enter" style={{ animationDelay: "0.2s" }}>
             <div className="glass-card p-8 sm:p-10 relative z-10 overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] -mr-16 -mt-16 group-hover:bg-primary/20 transition-colors duration-700" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-primary/10 blur-[50px] -me-16 -mt-16 group-hover:bg-primary/20 transition-colors duration-700" />
               
               <h2 className="text-2xl font-black tracking-tight mb-8">كل ما يحتاجه فريقك</h2>
 
@@ -154,7 +154,7 @@ export default function HomePage() {
             </div>
             
             {/* Decorative element behind the card */}
-            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-primary/10 blur-[80px] rounded-full" />
+            <div className="absolute -bottom-10 -end-10 w-64 h-64 bg-primary/10 blur-[80px] rounded-full" />
           </div>
         </div>
       </section>

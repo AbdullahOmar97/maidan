@@ -29,6 +29,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [tenantData, setTenantData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -43,18 +45,26 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    // Fetch plans
-    api.platform.plans.list()
+    setMounted(true);
+    setPlansLoading(true);
+    setPlansError(null);
+    api.platform.plans
+      .list()
       .then((res: any) => {
         const plansList = res.data.results || res.data;
-        setPlans(plansList);
-        if (plansList.length > 0) {
-          setSelectedPlan(plansList[0].id);
+        const list = Array.isArray(plansList) ? plansList : [];
+        setPlans(list);
+        if (list.length > 0) {
+          setSelectedPlan(list[0].id);
         }
       })
-      .catch((err: any) => console.error("Failed to fetch plans", err));
-    
-    setMounted(true);
+      .catch((err: any) => {
+        console.error("Failed to fetch plans", err);
+        setPlansError(
+          "تعذر تحميل الباقات. تأكد أن خادم API يعمل وأن المتصفح يصل إلى نفس المنفذ أو nginx (مثل ‎http://localhost‎ بدلاً من المنفذ ‎3000‎ فقط)، أو زِد المهلة عبر ‎NEXT_PUBLIC_API_TIMEOUT_MS‎."
+        );
+      })
+      .finally(() => setPlansLoading(false));
   }, []);
 
 
@@ -154,7 +164,7 @@ export default function RegisterPage() {
             حسابك الآن <strong>قيد المراجعة</strong> من قبل فريق الإدارة.
           </p>
           
-          <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-right space-y-4">
+          <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-end space-y-4">
             <h3 className="text-xl font-black text-white flex items-center gap-3">
               <Shield className="w-6 h-6 text-amber-500" />
               ماذا سيحدث الآن؟
@@ -296,7 +306,7 @@ export default function RegisterPage() {
                       placeholder="elite-academy"
                       className="flex-1 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-lg"
                     />
-                    <div className="text-sm font-black text-muted-foreground ml-2">
+                    <div className="text-sm font-black text-muted-foreground ms-2">
                       .{mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "maidan.app")}
                     </div>
                   </div>
@@ -325,7 +335,7 @@ export default function RegisterPage() {
                   )}
                 >
                   {selectedPlan === plan.id && (
-                    <div className="absolute -left-2 -top-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+                    <div className="absolute -start-2 -top-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
                       <Check className="w-4 h-4 stroke-[3]" />
                     </div>
                   )}
@@ -334,9 +344,9 @@ export default function RegisterPage() {
                       <h3 className="font-black text-white text-xl">{plan.name}</h3>
                       <p className="text-sm text-muted-foreground mt-1 font-bold">{plan.description || "باقة مرنة تلبي احتياجاتك"}</p>
                     </div>
-                    <div className="text-left">
+                    <div className="text-start">
                       <span className="text-2xl font-black text-white">{plan.price_monthly}</span>
-                      <span className="text-xs text-muted-foreground mr-1 font-black uppercase">{plan.currency} / شهرياً</span>
+                      <span className="text-xs text-muted-foreground me-1 font-black uppercase">{plan.currency} / شهرياً</span>
                     </div>
                   </div>
                   
@@ -380,9 +390,20 @@ export default function RegisterPage() {
                 </div>
               ))}
               
-              {plans.length === 0 && (
+              {plansLoading && (
                 <div className="py-12 text-center text-muted-foreground font-bold italic">
                   جاري تحميل الباقات...
+                </div>
+              )}
+              {!plansLoading && plansError && (
+                <div className="py-8 rounded-2xl border border-destructive/30 bg-destructive/5 px-6 text-center">
+                  <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
+                  <p className="text-sm font-bold text-destructive/90 leading-relaxed">{plansError}</p>
+                </div>
+              )}
+              {!plansLoading && !plansError && plans.length === 0 && (
+                <div className="py-12 text-center text-muted-foreground font-bold">
+                  لا توجد باقات مفعّلة حالياً. تواصل مع الدعم أو أنشئ خطط المنصة من لوحة الإدارة.
                 </div>
               )}
             </div>

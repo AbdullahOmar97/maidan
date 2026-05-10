@@ -5,8 +5,8 @@ import { isTenantHost } from "@/lib/auth/host";
 
 const ACCESS_TOKEN_TTL_MS = 55 * 60 * 1000; // 55 min (refresh before 1-hour expiry)
 
-/** Singleton promise — prevents concurrent refresh races */
-let refreshPromise: Promise<JWT> | null = null;
+/** Per-refresh-token promises — prevents refresh storms without cross-user token mixing */
+const refreshPromises = new Map<string, Promise<JWT>>();
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
@@ -133,14 +133,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
       }
 
-      // Refresh token if expired — mutex prevents concurrent refresh storms
+      // Refresh token if expired — one in-flight refresh per refresh token (not process-global)
       if (token.accessTokenExpiry && Date.now() > (token.accessTokenExpiry as number)) {
-        if (!refreshPromise) {
-          refreshPromise = refreshAccessToken(token).finally(() => {
-            refreshPromise = null;
-          });
+        const rt = token.refreshToken as string | undefined;
+        if (!rt) {
+          return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
         }
-        token = await refreshPromise;
+        let p = refreshPromises.get(rt);
+        if (!p) {
+          p = refreshAccessToken(token).finally(() => {
+            refreshPromises.delete(rt);
+          });
+          refreshPromises.set(rt, p);
+        }
+        token = await p;
       }
 
       return token;

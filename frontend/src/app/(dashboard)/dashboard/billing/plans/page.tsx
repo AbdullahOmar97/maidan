@@ -109,7 +109,7 @@ export default function PlansPage() {
           plans.map((plan: MembershipPlan) => (
             <div key={plan.id} className="glass-card group relative overflow-hidden flex flex-col">
               {/* Status Badge */}
-              <div className="absolute top-6 left-6 flex items-center gap-2">
+              <div className="absolute top-6 start-6 flex items-center gap-2">
                 {plan.is_active ? (
                   <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
                     <CheckCircle2 className="w-3 h-3" />
@@ -129,10 +129,10 @@ export default function PlansPage() {
               </div>
 
               {/* Decorative Icon */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors pointer-events-none" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 group-hover:bg-primary/10 transition-colors pointer-events-none" />
               
               <div className="p-8 pt-16 flex-1 space-y-6">
-                <div className="space-y-1 text-right">
+                <div className="space-y-1 text-start">
                   <h3 className="text-xl font-black text-white tracking-tight">{plan.name}</h3>
                 </div>
 
@@ -141,13 +141,13 @@ export default function PlansPage() {
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">دورة الدفع</span>
                     <span className="text-xs font-black text-white">{plan.billing_cycle === 'monthly' ? 'شهري' : plan.billing_cycle}</span>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">السعر</span>
                     <span className="text-lg font-black text-primary" dir="ltr">{formatCurrency(plan.price, plan.currency)}</span>
                   </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground font-medium leading-relaxed text-right line-clamp-3 min-h-[4.5rem]">
+                <p className="text-sm text-muted-foreground font-medium leading-relaxed text-start line-clamp-3 min-h-[4.5rem]">
                   {plan.description || "لا يوجد وصف لهذه الباقة."}
                 </p>
               </div>

@@ -221,8 +221,7 @@ class PayTabsProvider(PaymentProvider):
             )
 
     def verify_webhook(self, payload: dict, signature: str) -> bool:
-        """Verify PayTabs IPN webhook signature."""
-        # PayTabs sends a SHA-512 HMAC signature
+        """Legacy SHA-512 check over profile_id + tran_ref + cart_amount (not used for IPN)."""
         message = f"{self.profile_id}{payload.get('tran_ref', '')}{payload.get('cart_amount', '')}"
         expected = hmac.new(
             self.server_key.encode(),
@@ -230,3 +229,21 @@ class PayTabsProvider(PaymentProvider):
             hashlib.sha512,
         ).hexdigest()
         return hmac.compare_digest(expected, signature)
+
+    def verify_ipn_signature(self, raw_body: bytes, signature: str) -> bool:
+        """
+        PayTabs IPN: Signature header = HMAC-SHA256(raw request body, server key).
+        See https://support.paytabs.com/en/support/solutions/articles/60000710069
+        """
+        if not signature or not raw_body:
+            return False
+        expected = hmac.new(
+            self.server_key.encode(),
+            raw_body,
+            hashlib.sha256,
+        ).hexdigest()
+        sig = signature.strip()
+        try:
+            return hmac.compare_digest(expected.lower(), sig.lower())
+        except TypeError:
+            return False

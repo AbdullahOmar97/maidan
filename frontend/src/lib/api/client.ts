@@ -1,6 +1,13 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /** Skip NextAuth getSession — use for AllowAny API routes (register, public catalog). */
+    skipAuth?: boolean;
+  }
+}
+
 let API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 if (typeof window !== "undefined") {
@@ -16,22 +23,28 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Axios instance
 // ---------------------------------------------------------------------------
+const parsedTimeout = parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? "", 10);
+const requestTimeoutMs =
+  Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30000;
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api/v1`,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 30000,
+  timeout: requestTimeoutMs,
 });
 
-// Attach JWT token from NextAuth session
+// Attach JWT token from NextAuth session (skip on public routes — avoids slow/stuck session fetch blocking AllowAny calls)
 apiClient.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session) {
-    const token = (session as Record<string, unknown>).accessToken as string;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  if (!config.skipAuth) {
+    const session = await getSession();
+    if (session) {
+      const token = (session as Record<string, unknown>).accessToken as string;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
   }
   return config;
@@ -80,7 +93,8 @@ export const api = {
     me: () => apiClient.get("/auth/me/"),
     updateProfile: (data: unknown) => apiClient.patch("/auth/me/", data),
     logout: (refresh: string) => apiClient.post("/auth/logout/", { refresh }),
-    passwordSetup: (data: any) => apiClient.post("/auth/password/setup/", data),
+    passwordSetup: (data: any) =>
+      apiClient.post("/auth/password/setup/", data, { skipAuth: true }),
   },
   
   // Tenants (Academy Settings)
@@ -244,10 +258,11 @@ export const api = {
       create: (data: unknown) => apiClient.post("/platform/tenants/", data),
       update: (id: number, data: unknown) => apiClient.patch(`/platform/tenants/${id}/`, data),
       delete: (id: number) => apiClient.delete(`/platform/tenants/${id}/`),
-      register: (data: unknown) => apiClient.post("/platform/tenants/register/", data),
+      register: (data: unknown) =>
+        apiClient.post("/platform/tenants/register/", data, { skipAuth: true }),
     },
     plans: {
-      list: () => apiClient.get("/platform/plans/"),
+      list: () => apiClient.get("/platform/plans/", { skipAuth: true }),
     },
   },
 };

@@ -35,7 +35,7 @@ function TenantCard({ tenant }: { tenant: any }) {
   
   return (
     <div className="glass-card group p-6 hover:border-primary/40 transition-all duration-500 relative overflow-hidden">
-      <div className="absolute -right-12 -top-12 w-40 h-40 bg-primary/5 blur-[60px] rounded-full group-hover:bg-primary/10 transition-colors pointer-events-none" />
+      <div className="absolute -end-12 -top-12 w-40 h-40 bg-primary/5 blur-[60px] rounded-full group-hover:bg-primary/10 transition-colors pointer-events-none" />
       
       <div className="flex items-start justify-between mb-6 relative z-10">
         <div className="flex items-center gap-4">
@@ -135,13 +135,13 @@ export default function TenantsPage() {
 
       {/* Filters */}
       <div className="relative group max-w-2xl">
-        <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-all" />
+        <Search className="absolute end-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-all" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="ابحث باسم الأكاديمية، الرابط، أو البريد الإلكتروني..."
-          className="w-full pr-14 pl-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold shadow-inner"
+          className="w-full pe-14 ps-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold shadow-inner"
         />
       </div>
 

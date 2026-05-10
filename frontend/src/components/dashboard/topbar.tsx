@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,11 +20,17 @@ interface TopBarProps {
 }
 
 export function TopBar({ user, onMenuToggle }: TopBarProps) {
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted]     = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const queryClient               = useQueryClient();
-  const role                      = (user as any)?.role as UserRole;
+  const queryClient = useQueryClient();
+  const role = (user as any)?.role as UserRole;
+
+  // Avoid “missing navbar” after client-side navigation: mobile search overlay was left open.
+  useEffect(() => {
+    setSearchOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
@@ -67,11 +74,11 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
         {/* ── Search: full bar on sm+, icon on xs ── */}
         {searchOpen ? (
-          /* Expanded search overlay on mobile */
-          <div className="absolute inset-x-0 top-0 h-[5rem] flex items-center gap-3 px-4 bg-card/95 backdrop-blur-3xl z-30 sm:static sm:bg-transparent sm:backdrop-blur-none sm:z-auto">
+          /* Expanded search on mobile — inset-e leaves room for profile/actions so bar doesn’t feel “gone” */
+          <div className="absolute start-0 end-[7rem] top-0 z-30 flex h-[5rem] items-center gap-3 bg-card/95 px-4 backdrop-blur-3xl max-sm:end-[5.5rem] sm:static sm:z-auto sm:flex-1 sm:bg-transparent sm:backdrop-blur-none sm:px-0">
             <div className="relative flex-1 group">
               <Search
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all"
+                className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all"
                 aria-hidden="true"
               />
               <input
@@ -79,7 +86,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
                 type="search"
                 autoFocus
                 placeholder="ابحث عن طلاب، فواتير، أو حصص..."
-                className="w-full pl-6 pr-11 py-2.5 text-sm rounded-2xl bg-white/[0.05] border border-white/[0.08] focus:bg-white/[0.08] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
+                className="w-full ps-6 pe-11 py-2.5 text-sm rounded-2xl bg-white/[0.05] border border-white/[0.08] focus:bg-white/[0.08] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
                 aria-label="البحث العام"
               />
             </div>
@@ -106,14 +113,14 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
             <div className="hidden sm:flex items-center flex-1 max-w-xl">
               <div className="relative flex-1 group">
                 <Search
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110"
+                  className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110"
                   aria-hidden="true"
                 />
                 <input
                   id="global-search-desktop"
                   type="search"
                   placeholder="ابحث عن طلاب، فواتير، أو حصص..."
-                  className="w-full pl-6 pr-11 py-2.5 text-sm rounded-2xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
+                  className="w-full ps-6 pe-11 py-2.5 text-sm rounded-2xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
                   aria-label="البحث العام"
                 />
               </div>
@@ -123,7 +130,12 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
       </div>
 
       {/* ── Right Controls ── */}
-      <div className={cn("flex items-center gap-2 sm:gap-4 shrink-0", searchOpen && "sm:flex hidden")}>
+      <div
+        className={cn(
+          "relative z-40 flex items-center gap-2 sm:gap-4 shrink-0",
+          searchOpen && "max-sm:bg-card/95 max-sm:backdrop-blur-3xl max-sm:rounded-xl max-sm:px-1",
+        )}
+      >
         {/* Actions group */}
         <div className="flex items-center gap-1 sm:gap-2 px-1 sm:px-2 py-1.5 rounded-2xl bg-white/[0.02] border border-white/5">
           {/* Theme Toggle */}
@@ -134,7 +146,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
             aria-label={mounted ? (theme === "dark" ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن") : "تبديل وضع العرض"}
           >
             {mounted && theme === "dark"
-              ? <Sun  className="w-4 h-4" aria-hidden="true" />
+              ? <Sun className="w-4 h-4" aria-hidden="true" />
               : <Moon className="w-4 h-4" aria-hidden="true" />}
           </button>
 
@@ -146,7 +158,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
           >
             <Bell className="w-4 h-4" aria-hidden="true" />
             <span
-              className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary glow-primary border-2 border-[#0f172a]"
+              className="absolute top-2 end-2 w-2 h-2 rounded-full bg-primary glow-primary border-2 border-[#0f172a]"
               aria-label="لديك إشعارات جديدة"
             />
           </button>
@@ -160,7 +172,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
           {/* User card — condensed on mobile (avatar only) */}
           <div className="flex items-center gap-3 px-2 sm:px-3 py-1.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group cursor-default">
             {/* Name + role (hidden on xs) */}
-            <div className="hidden sm:flex text-right flex-col items-end">
+            <div className="hidden sm:flex text-start flex-col items-start">
               <p className="text-sm font-black text-white tracking-tight leading-none mb-1 group-hover:text-primary transition-colors whitespace-nowrap">
                 {(user as any)?.first_name && (user as any)?.last_name
                   ? `${(user as any).first_name} ${(user as any).last_name}`
@@ -190,7 +202,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
             className="touch-target w-11 h-11 rounded-2xl bg-red-500/5 border border-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 shadow-lg hover:shadow-red-500/20 transition-all active:scale-90 group/logout"
             aria-label="تسجيل الخروج"
           >
-            <LogOut className="w-5 h-5 group-hover/logout:-translate-x-0.5 transition-transform" aria-hidden="true" />
+            <LogOut className="w-5 h-5 rtl:-scale-x-100 group-hover/logout:translate-x-0.5 rtl:group-hover/logout:-translate-x-0.5 transition-transform" aria-hidden="true" />
           </button>
         </div>
       </div>

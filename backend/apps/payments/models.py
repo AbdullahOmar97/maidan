@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Optional
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 
 from apps.billing.models import Invoice
 from apps.students.models import Student
@@ -92,18 +92,36 @@ class Payment(models.Model):
         return f"Payment {self.provider_transaction_id} — {self.amount} {self.currency} ({self.status})"
 
     def mark_successful(self, transaction_id: str, receipt_url: str = ""):
+        """Idempotent: repeated calls for an already-successful payment do not double-credit the invoice."""
         from django.utils import timezone
-        self.status = self.Status.SUCCESS
-        self.provider_transaction_id = transaction_id
-        self.paid_at = timezone.now()
-        self.receipt_url = receipt_url
-        self.save(update_fields=["status", "provider_transaction_id", "paid_at", "receipt_url"])
 
-        # Update invoice
-        self.invoice.amount_paid += self.amount
-        if self.invoice.amount_paid >= self.invoice.total_amount:
-            self.invoice.status = Invoice.Status.PAID
-            self.invoice.paid_at = timezone.now()
-        else:
-            self.invoice.status = Invoice.Status.PARTIALLY_PAID
-        self.invoice.save(update_fields=["amount_paid", "status", "paid_at"])
+        with transaction.atomic():
+            payment = (
+                Payment.objects.select_for_update()
+                .select_related("invoice")
+                .get(pk=self.pk)
+            )
+            if payment.status == self.Status.SUCCESS:
+                return
+
+            invoice = Invoice.objects.select_for_update().get(pk=payment.invoice_id)
+            if invoice.status in (Invoice.Status.VOID, Invoice.Status.REFUNDED):
+                return
+
+            now = timezone.now()
+            payment.status = self.Status.SUCCESS
+            payment.provider_transaction_id = transaction_id
+            payment.paid_at = now
+            payment.receipt_url = receipt_url
+            payment.save(
+                update_fields=["status", "provider_transaction_id", "paid_at", "receipt_url", "updated_at"]
+            )
+
+            new_paid = invoice.amount_paid + payment.amount
+            invoice.amount_paid = new_paid
+            if new_paid >= invoice.total_amount:
+                invoice.status = Invoice.Status.PAID
+                invoice.paid_at = now
+            else:
+                invoice.status = Invoice.Status.PARTIALLY_PAID
+            invoice.save(update_fields=["amount_paid", "status", "paid_at", "updated_at"])

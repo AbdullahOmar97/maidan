@@ -111,7 +111,7 @@ export function MobileCardList<T extends Record<string, any>>({
         {/* Desktop skeleton */}
         <div className={cn("table-desktop glass-card overflow-hidden", className)}>
           <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
+            <table className="w-full text-end border-collapse">
               <thead>
                 <tr className="bg-white/[0.03] border-b border-white/5">
                   {columns.map((col) => (
@@ -138,7 +138,7 @@ export function MobileCardList<T extends Record<string, any>>({
                     ))}
                     {renderActions && (
                       <td className="py-6 px-6">
-                        <div className="h-4 bg-white/5 rounded-lg w-16 ml-auto" />
+                        <div className="h-4 bg-white/5 rounded-lg w-16 ms-auto" />
                       </td>
                     )}
                   </tr>
@@ -177,7 +177,7 @@ export function MobileCardList<T extends Record<string, any>>({
       {/* ── Desktop Table ── */}
       <div className={cn("table-desktop glass-card overflow-hidden", className)}>
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse">
+          <table className="w-full text-end border-collapse">
             <thead>
               <tr className="bg-white/[0.03] border-b border-white/5">
                 {columns.map((col) => (
@@ -209,7 +209,7 @@ export function MobileCardList<T extends Record<string, any>>({
                     </td>
                   ))}
                   {renderActions && (
-                    <td className="py-5 px-6 text-left">
+                    <td className="py-5 px-6 text-start">
                       <div className="flex items-center gap-2 justify-end">
                         {renderActions(row)}
                       </div>

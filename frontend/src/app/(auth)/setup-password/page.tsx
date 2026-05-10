@@ -111,9 +111,9 @@ function SetupPasswordContent() {
         <form onSubmit={onSetupPassword} className="space-y-6">
           {/* Email (Readonly) */}
           <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">البريد الإلكتروني</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">البريد الإلكتروني</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground">
+              <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                 <Mail className="w-4 h-4" />
               </div>
               <input
@@ -121,7 +121,7 @@ function SetupPasswordContent() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                 placeholder="name@example.com"
                 dir="ltr"
               />
@@ -130,9 +130,9 @@ function SetupPasswordContent() {
 
           {/* Phone Verification */}
           <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">رقم الهاتف للتحقق</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">رقم الهاتف للتحقق</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground">
+              <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                 <Phone className="w-4 h-4" />
               </div>
               <input
@@ -140,20 +140,20 @@ function SetupPasswordContent() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full pl-12 pr-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                 placeholder="05xxxxxxxx"
                 dir="ltr"
               />
             </div>
-            <p className="text-[10px] text-muted-foreground/60 mr-1 mt-1 italic">أدخل رقم الهاتف الذي قام المدير بتسجيله لك</p>
+            <p className="text-[10px] text-muted-foreground/60 me-1 mt-1 italic">أدخل رقم الهاتف الذي قام المدير بتسجيله لك</p>
           </div>
 
           {/* New Password */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">كلمة المرور الجديدة</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">كلمة المرور الجديدة</label>
               <div className="relative group/pass">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground">
+                <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -161,14 +161,14 @@ function SetupPasswordContent() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                  className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
                   dir="ltr"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-4 flex items-center text-muted-foreground hover:text-white transition-colors"
+                  className="absolute inset-y-0 start-4 flex items-center text-muted-foreground hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -176,9 +176,9 @@ function SetupPasswordContent() {
             </div>
 
             <div className="space-y-2.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">تأكيد كلمة المرور</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">تأكيد كلمة المرور</label>
               <div className="relative group/pass">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground">
+                <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -186,7 +186,7 @@ function SetupPasswordContent() {
                   type={showPassword ? "text" : "password"}
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                  className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
                   dir="ltr"
                 />
@@ -232,8 +232,8 @@ export default function SetupPasswordPage() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden selection:bg-primary/30">
       {/* Decorative Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
+        <div className="absolute top-[-10%] end-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
       </div>
 
       <div className="relative w-full max-w-2xl px-6 py-12">

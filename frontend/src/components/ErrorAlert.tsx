@@ -28,7 +28,7 @@ export function ErrorAlert({
       
       <div className={cn("relative overflow-hidden border border-red-500/40 bg-red-950/60 backdrop-blur-3xl shadow-xl shadow-black/40", roundedClass)}>
         {/* Side Glow Bar */}
-        <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-b from-red-400 via-red-600 to-red-400" />
+        <div className="absolute inset-y-0 end-0 w-1 bg-gradient-to-b from-red-400 via-red-600 to-red-400" />
 
         {variant === "compact" ? (
           <div className="relative p-3 flex items-center gap-3">

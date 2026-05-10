@@ -158,9 +158,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden selection:bg-primary/30">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />
+        <div className="absolute top-[-10%] end-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
+        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />
         
         {/* Animated Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
@@ -174,7 +174,7 @@ export default function LoginPage() {
              <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
                 <Shield className="w-10 h-10 text-white" />
              </div>
-             <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
+             <div className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
                 <Sparkles className="w-4 h-4 text-primary" />
              </div>
           </div>
@@ -200,7 +200,7 @@ export default function LoginPage() {
             <form onSubmit={isTenantLogin ? onTenantLogin : onDiscoverTenant} className="space-y-6">
               {/* Email Input */}
               <div className="space-y-2.5">
-                <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">
                   البريد الإلكتروني
                 </label>
                 <div className="relative">
@@ -220,7 +220,7 @@ export default function LoginPage() {
               {/* Password Input */}
               {isTenantLogin && (
                 <div className="space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-500">
-                  <div className="flex items-center justify-between ml-1">
+                  <div className="flex items-center justify-between ms-1">
                     <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       كلمة المرور
                     </label>
@@ -235,14 +235,14 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pr-12"
+                      className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
                       placeholder="••••••••"
                       dir="ltr"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-4 flex items-center text-muted-foreground hover:text-white transition-colors"
+                      className="absolute inset-y-0 start-4 flex items-center text-muted-foreground hover:text-white transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -308,7 +308,7 @@ export default function LoginPage() {
           </div>
 
           {/* Decorative Corner */}
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
+          <div className="absolute -bottom-10 -start-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
         </div>
 
         {/* Footer */}

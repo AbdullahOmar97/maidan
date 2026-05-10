@@ -1,11 +1,15 @@
 """MAIDAN — Payments App Views + Webhook Handlers"""
+import json
 import logging
+
+from django.db import transaction
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from shared.permissions import CanManageBilling
 from .models import Payment
+from .providers.paytabs import PayTabsProvider
 
 logger = logging.getLogger("maidan.payments")
 
@@ -30,22 +34,36 @@ class PayTabsWebhookView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        data = request.data
+        raw_body = request.body or b""
+        signature = request.headers.get("Signature") or request.META.get("HTTP_SIGNATURE", "")
+        provider = PayTabsProvider()
+        if not provider.verify_ipn_signature(raw_body, signature):
+            logger.warning("PayTabs webhook: invalid or missing Signature header")
+            return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = json.loads(raw_body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return Response({"error": "Invalid JSON"}, status=status.HTTP_400_BAD_REQUEST)
+
         tran_ref = data.get("tran_ref", "")
-        tran_type = data.get("tran_type", "")
-        payment_result = data.get("payment_result", {})
-        response_status = payment_result.get("response_status", "")
+        payment_result = data.get("payment_result") or {}
+        response_status = payment_result.get("response_status") or data.get("response_status", "")
 
         logger.info(f"PayTabs webhook: {tran_ref} status={response_status}")
 
         try:
-            payment = Payment.objects.get(provider_transaction_id=tran_ref)
-            if response_status == "A":
-                payment.mark_successful(tran_ref)
-            else:
-                payment.status = Payment.Status.FAILED
-                payment.provider_response = data
-                payment.save(update_fields=["status", "provider_response"])
+            with transaction.atomic():
+                payment = Payment.objects.select_for_update().get(provider_transaction_id=tran_ref)
+                if response_status == "A":
+                    payment.mark_successful(tran_ref)
+                else:
+                    if payment.status == Payment.Status.SUCCESS:
+                        pass
+                    else:
+                        payment.status = Payment.Status.FAILED
+                        payment.provider_response = data
+                        payment.save(update_fields=["status", "provider_response", "updated_at"])
         except Payment.DoesNotExist:
             logger.warning(f"PayTabs webhook: payment not found for {tran_ref}")
 
@@ -74,17 +92,20 @@ class StripeWebhookView(APIView):
         if event_type == "payment_intent.succeeded":
             intent_id = event["data"]["object"]["id"]
             try:
-                payment = Payment.objects.get(provider_transaction_id=intent_id)
-                payment.mark_successful(intent_id)
+                with transaction.atomic():
+                    payment = Payment.objects.select_for_update().get(provider_transaction_id=intent_id)
+                    payment.mark_successful(intent_id)
             except Payment.DoesNotExist:
                 logger.warning(f"Stripe webhook: payment not found for {intent_id}")
 
         elif event_type == "payment_intent.payment_failed":
             intent_id = event["data"]["object"]["id"]
             try:
-                payment = Payment.objects.get(provider_transaction_id=intent_id)
-                payment.status = Payment.Status.FAILED
-                payment.save(update_fields=["status"])
+                with transaction.atomic():
+                    payment = Payment.objects.select_for_update().get(provider_transaction_id=intent_id)
+                    if payment.status != Payment.Status.SUCCESS:
+                        payment.status = Payment.Status.FAILED
+                        payment.save(update_fields=["status", "updated_at"])
             except Payment.DoesNotExist:
                 pass
 

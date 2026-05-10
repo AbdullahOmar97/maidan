@@ -162,10 +162,29 @@ class Invoice(models.Model):
         super().save(*args, **kwargs)
 
     def _generate_invoice_number(self):
+        from django.db import connection, transaction
         from django.utils import timezone
+
         year = timezone.now().year
-        count = Invoice.objects.filter(created_at__year=year).count() + 1
-        self.invoice_number = f"INV-{year}-{count:05d}"
+        prefix = f"INV-{year}-"
+        lock_token = f"maidan:invoice_seq:{year}"
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock_token])
+            last = (
+                Invoice.objects.filter(invoice_number__startswith=prefix)
+                .order_by("-invoice_number")
+                .values_list("invoice_number", flat=True)
+                .first()
+            )
+            if last:
+                try:
+                    seq = int(last.rsplit("-", 1)[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            else:
+                seq = 1
+            self.invoice_number = f"{prefix}{seq:05d}"
 
     @property
     def amount_due(self):

@@ -55,8 +55,8 @@ export default function StatusPage() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden selection:bg-primary/30">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={cn("absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse opacity-20", currentStatus.bg.replace('/10', '/30'))} />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s] opacity-20" />
+        <div className={cn("absolute top-[-10%] end-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse opacity-20", currentStatus.bg.replace('/10', '/30'))} />
+        <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s] opacity-20" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
@@ -82,7 +82,7 @@ export default function StatusPage() {
             <div className="flex justify-center">
               <div className={cn("relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl border transition-transform duration-500 hover:scale-105", currentStatus.bg, currentStatus.border)}>
                 <Icon className={cn("w-12 h-12", currentStatus.accent)} />
-                <div className={cn("absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce", currentStatus.accent)}>
+                <div className={cn("absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce", currentStatus.accent)}>
                    <ShieldAlert className="w-4 h-4" />
                 </div>
               </div>

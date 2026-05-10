@@ -16,27 +16,38 @@ export default function SettingsPage() {
   const perms = useSettingsPermissions();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [staff, setStaff] = useState<any[]>([]);
   const [selectedNewOwner, setSelectedNewOwner] = useState("");
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
-  const [transferring, setTransferring] = useState(false);
-
-  const [profile, setProfile] = useState({
+  
+  const [saveStatus, setSaveStatus] = useState<Record<string, "idle" | "saving" | "success" | "error">>({
+    profile: "idle",
+    academy: "idle",
+    branding: "idle",
+  });
+  
+  const [initialProfile, setInitialProfile] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
   });
+  const [profile, setProfile] = useState({ ...initialProfile });
 
-  const [academy, setAcademy] = useState({
+  const [initialAcademy, setInitialAcademy] = useState({
     name: "",
     business_name: "",
     default_currency: "JOD",
     timezone: "Asia/Amman",
   });
+  const [academy, setAcademy] = useState({ ...initialAcademy });
 
+  const [initialBranding, setInitialBranding] = useState({
+    logoUrl: "",
+    faviconUrl: "",
+  });
   const [branding, setBranding] = useState({
     logo: null as File | null,
     favicon: null as File | null,
@@ -57,30 +68,40 @@ export default function SettingsPage() {
 
         if (userResult.status === "fulfilled") {
           const userData = userResult.value.data;
-          setProfile({
+          const data = {
             first_name: userData.first_name || "",
             last_name: userData.last_name || "",
             email: userData.email || "",
             phone: userData.phone || "",
-          });
+          };
+          setProfile(data);
+          setInitialProfile(data);
           setUserRole(userData.role || "");
         } else {
           throw userResult.reason;
         }
 
         if (tenantResult.status === "fulfilled") {
-          setAcademy({
-            name: tenantResult.value.data.name || "",
-            business_name: tenantResult.value.data.business_name || "",
-            default_currency: tenantResult.value.data.default_currency || "JOD",
-            timezone: tenantResult.value.data.timezone || "Asia/Amman",
-          });
+          const tenantData = tenantResult.value.data;
+          const academyData = {
+            name: tenantData.name || "",
+            business_name: tenantData.business_name || "",
+            default_currency: tenantData.default_currency || "JOD",
+            timezone: tenantData.timezone || "Asia/Amman",
+          };
+          setAcademy(academyData);
+          setInitialAcademy(academyData);
+          
+          const brandingData = {
+            logoUrl: tenantData.logo || "",
+            faviconUrl: tenantData.favicon || "",
+          };
           setBranding({
             logo: null,
             favicon: null,
-            logoUrl: tenantResult.value.data.logo || "",
-            faviconUrl: tenantResult.value.data.favicon || "",
+            ...brandingData,
           });
+          setInitialBranding(brandingData);
         } else {
           console.error("Error fetching academy settings:", tenantResult.reason);
           toast.error("تعذر تحميل إعدادات الأكاديمية حالياً.");
@@ -106,15 +127,9 @@ export default function SettingsPage() {
     }
   }, [activeTab, userRole]);
 
-  useEffect(() => {
-    if (activeTab === "security" && userRole === "tenant_owner") {
-      api.staff.list().then(res => {
-        // Only show staff that are NOT the current owner
-        const others = res.data.results.filter((s: any) => s.role !== "tenant_owner");
-        setStaff(others);
-      });
-    }
-  }, [activeTab, userRole]);
+  const profileHasChanges = JSON.stringify(profile) !== JSON.stringify(initialProfile);
+  const academyHasChanges = JSON.stringify(academy) !== JSON.stringify(initialAcademy);
+  const brandingHasChanges = !!branding.logo || !!branding.favicon;
 
   const handleProfileSave = async () => {
     if (profileNamesInvalid) {
@@ -123,17 +138,19 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSaveStatus(prev => ({ ...prev, profile: "saving" }));
       await api.auth.updateProfile({
         first_name: profile.first_name,
         last_name: profile.last_name,
         phone: profile.phone,
       });
+      setInitialProfile({ ...profile });
+      setSaveStatus(prev => ({ ...prev, profile: "success" }));
       toast.success("تم تحديث الملف الشخصي بنجاح");
+      setTimeout(() => setSaveStatus(prev => ({ ...prev, profile: "idle" })), 3000);
     } catch (error) {
+      setSaveStatus(prev => ({ ...prev, profile: "error" }));
       toast.error("فشل تحديث الملف الشخصي");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -144,18 +161,20 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSaveStatus(prev => ({ ...prev, academy: "saving" }));
       await api.tenants.updateMe({
         name: academy.name,
         business_name: academy.business_name,
         default_currency: academy.default_currency,
         timezone: academy.timezone,
       });
+      setInitialAcademy({ ...academy });
+      setSaveStatus(prev => ({ ...prev, academy: "success" }));
       toast.success("تم تحديث إعدادات الأكاديمية بنجاح");
+      setTimeout(() => setSaveStatus(prev => ({ ...prev, academy: "idle" })), 3000);
     } catch (error) {
+      setSaveStatus(prev => ({ ...prev, academy: "error" }));
       toast.error("فشل تحديث إعدادات الأكاديمية");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -166,7 +185,7 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSaveStatus(prev => ({ ...prev, branding: "saving" }));
       const formData = new FormData();
       if (branding.logo instanceof File) {
         formData.append("logo", branding.logo);
@@ -177,22 +196,26 @@ export default function SettingsPage() {
 
       const response = await api.tenants.updateMe(formData);
       
-      // Update the local state with new URLs after successful save
       if (response.data) {
+        const newData = {
+          logoUrl: response.data.logo || branding.logoUrl,
+          faviconUrl: response.data.favicon || branding.faviconUrl,
+        };
         setBranding({
           logo: null,
           favicon: null,
-          logoUrl: response.data.logo || branding.logoUrl,
-          faviconUrl: response.data.favicon || branding.faviconUrl,
+          ...newData,
         });
+        setInitialBranding(newData);
       }
       
       await refreshTenant();
+      setSaveStatus(prev => ({ ...prev, branding: "success" }));
       toast.success("تم تحديث الهوية البصرية بنجاح");
+      setTimeout(() => setSaveStatus(prev => ({ ...prev, branding: "idle" })), 3000);
     } catch (error) {
+      setSaveStatus(prev => ({ ...prev, branding: "error" }));
       toast.error("فشل تحديث الهوية البصرية");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -247,7 +270,7 @@ export default function SettingsPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-right",
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-end",
                 activeTab === tab.id
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
@@ -310,11 +333,21 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={handleProfileSave}
-                disabled={saving || profileNamesInvalid}
-                className="px-6 py-2.5 rounded-lg gradient-brand text-white text-sm font-medium shadow-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                disabled={saveStatus.profile === "saving" || profileNamesInvalid || !profileHasChanges}
+                className={cn(
+                  "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50",
+                  saveStatus.profile === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
+                )}
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                حفظ التغييرات
+                {saveStatus.profile === "saving" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : saveStatus.profile === "success" ? (
+                  <Shield className="w-4 h-4" /> // Using Shield as a checkmark-like icon or just use Save
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saveStatus.profile === "saving" ? "جاري الحفظ..." : 
+                 saveStatus.profile === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
               </button>
               {profileNamesInvalid && (
                 <p className="text-sm text-destructive">
@@ -386,11 +419,21 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={handleAcademySave}
-                disabled={saving || !canEditAcademy}
-                className="px-6 py-2.5 rounded-lg gradient-brand text-white text-sm font-medium shadow-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                disabled={saveStatus.academy === "saving" || !canEditAcademy || !academyHasChanges}
+                className={cn(
+                  "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50",
+                  saveStatus.academy === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
+                )}
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                حفظ التغييرات
+                {saveStatus.academy === "saving" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : saveStatus.academy === "success" ? (
+                  <Shield className="w-4 h-4" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saveStatus.academy === "saving" ? "جاري الحفظ..." : 
+                 saveStatus.academy === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
               </button>
               {!canEditAcademy && (
                 <p className="text-sm text-muted-foreground">
@@ -483,11 +526,21 @@ export default function SettingsPage() {
                   </div>
                 <button
                   onClick={handleBrandingSave}
-                  disabled={saving}
-                  className="px-6 py-2.5 rounded-lg gradient-brand text-white text-sm font-medium shadow-lg hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50 mt-6"
+                  disabled={saveStatus.branding === "saving" || !brandingHasChanges}
+                  className={cn(
+                    "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 mt-6",
+                    saveStatus.branding === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
+                  )}
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  حفظ الهوية البصرية
+                  {saveStatus.branding === "saving" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : saveStatus.branding === "success" ? (
+                    <Shield className="w-4 h-4" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saveStatus.branding === "saving" ? "جاري الحفظ..." : 
+                   saveStatus.branding === "success" ? "تم الحفظ بنجاح" : "حفظ الهوية البصرية"}
                 </button>
               </div>
             )}

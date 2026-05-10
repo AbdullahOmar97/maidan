@@ -127,7 +127,7 @@ export function StatsCard({
       {/* Decorative blob */}
       <div
         className={cn(
-          "absolute -right-8 -top-8 w-24 h-24 blur-[50px] opacity-20 group-hover:opacity-40 transition-opacity",
+          "absolute -end-8 -top-8 w-24 h-24 blur-[50px] opacity-20 group-hover:opacity-40 transition-opacity",
           style.blobBg
         )}
         aria-hidden="true"

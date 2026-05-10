@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { 
@@ -11,20 +11,26 @@ import {
 } from "lucide-react";
 import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue } from "@/lib/utils";
 import Link from "next/link";
-import { useState } from "react";
-import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord, Invoice } from "@/types";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord, Invoice, Location } from "@/types";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
 import ManualAttendanceDialog from "@/components/dashboard/ManualAttendanceDialog";
 import MembershipDialog from "@/components/dashboard/MembershipDialog";
+import { EditStudentModal } from "@/components/dashboard/EditStudentModal";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [isManualAttendanceOpen, setIsManualAttendanceOpen] = useState(false);
   const [isMembershipDialogOpen, setIsMembershipDialogOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState<Student | null>(null);
+  const [editError, setEditError] = useState("");
 
   const studentId = Number(id);
 
@@ -32,6 +38,49 @@ export default function StudentDetailPage() {
     queryKey: ["student", id],
     queryFn: () => api.students.get(studentId).then((res: { data: Student }) => res.data),
   });
+
+  const { data: locations = [] } = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: () => api.locations.list().then((res: any) => res.data.results || res.data),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<Student>) => api.students.update(studentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student", id] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      toast.success("تم تحديث بيانات الطالب بنجاح");
+      setIsEditModalOpen(false);
+    },
+    onError: (err: any) => {
+      console.error("Update student error:", err);
+      let message = "حدث خطأ أثناء تحديث بيانات الطالب.";
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (typeof data === "object") {
+          message = Object.entries(data)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+            .join("\n");
+        }
+      }
+      setEditError(message);
+    },
+  });
+
+  const handleEditClick = () => {
+    if (student) {
+      setEditData({ ...student });
+      setEditError("");
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editData) {
+      const { full_name, age, student_number, ...dataToUpdate } = editData as any;
+      updateMutation.mutate(dataToUpdate);
+    }
+  };
 
   const { data: notes } = useQuery<StudentNote[]>({
     queryKey: ["student-notes", id],
@@ -110,7 +159,7 @@ export default function StudentDetailPage() {
           className="group flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-white transition-colors"
         >
           <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-            <ArrowRight className="w-4 h-4 rtl-flip" />
+            <ArrowRight className="w-4 h-4" />
           </div>
           العودة
         </button>
@@ -123,20 +172,20 @@ export default function StudentDetailPage() {
           >
             <MessageSquare className="w-4 h-4" />
           </Link>
-          <Link 
-            href={`/dashboard/students/${id}/edit`}
+          <button 
+            onClick={handleEditClick}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-all active:scale-95"
           >
             <Edit className="w-4 h-4" />
             تعديل الملف
-          </Link>
+          </button>
         </div>
       </div>
 
       {/* Profile Header Card */}
       <div className="glass-card p-8 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 blur-[100px] -mr-48 -mt-48 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 blur-[80px] -ml-32 -mb-32 pointer-events-none" />
+        <div className="absolute top-0 end-0 w-96 h-96 bg-primary/10 blur-[100px] -me-48 -mt-48 pointer-events-none" />
+        <div className="absolute bottom-0 start-0 w-64 h-64 bg-blue-500/5 blur-[80px] -ms-32 -mb-32 pointer-events-none" />
 
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           <div className="relative group/avatar">
@@ -154,7 +203,7 @@ export default function StudentDetailPage() {
               )}
             </div>
             <div className={cn(
-              "absolute -bottom-2 -right-2 w-8 h-8 rounded-2xl border-4 border-[#0f172a] shadow-xl z-20 flex items-center justify-center",
+              "absolute -bottom-2 -end-2 w-8 h-8 rounded-2xl border-4 border-[#0f172a] shadow-xl z-20 flex items-center justify-center",
               student.status === "active" ? "bg-emerald-500 shadow-emerald-500/30" :
               student.status === "trial" ? "bg-blue-500 shadow-blue-500/30" :
               student.status === "lead" ? "bg-amber-500 shadow-amber-500/30" : "bg-gray-500"
@@ -214,7 +263,7 @@ export default function StudentDetailPage() {
           </div>
 
           <div className="glass-card p-6 space-y-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
+            <div className="absolute top-0 end-0 w-24 h-24 bg-primary/5 blur-2xl -me-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">المستوى الحالي</h3>
             {student.current_belt ? (
               <div className="flex items-center gap-5">
@@ -294,7 +343,7 @@ export default function StudentDetailPage() {
                   <Icon className={cn("w-4 h-4", isActive ? "scale-110" : "opacity-50")} />
                   <span className="hidden sm:inline">{tab.label}</span>
                   {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1 bg-white/40 rounded-full" />
+                    <div className="absolute -bottom-1 start-1/2 -translate-x-1/2 w-4 h-1 bg-white/40 rounded-full" />
                   )}
                 </button>
               );
@@ -354,7 +403,7 @@ export default function StudentDetailPage() {
                 </div>
 
                 <div className="glass-card p-8 group relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                  <div className="absolute top-0 end-0 w-64 h-64 bg-primary/5 blur-3xl -me-32 -mt-32 pointer-events-none" />
                   <div className="flex items-center justify-between mb-8">
                     <h4 className="text-lg font-black text-white flex items-center gap-3">
                       <History className="w-5 h-5 text-primary" />
@@ -396,7 +445,7 @@ export default function StudentDetailPage() {
                 {student.active_membership ? (
                   <div className="glass-card overflow-hidden group">
                     <div className="gradient-brand p-8 text-white relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                      <div className="absolute top-0 end-0 w-64 h-64 bg-white/10 blur-3xl -me-32 -mt-32 pointer-events-none" />
                       <div className="flex justify-between items-start relative z-10">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-3">اشتراك نشط</p>
@@ -442,28 +491,28 @@ export default function StudentDetailPage() {
                 <div className="space-y-4">
                   <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70 px-2">سجل الفواتير</h4>
                   <div className="glass-card overflow-hidden">
-                    <table className="w-full text-right">
+                    <table className="w-full">
                       <thead className="bg-white/[0.03]">
                         <tr>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">رقم الفاتورة</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">الباقة</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">التاريخ</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">المبلغ</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">الحالة</th>
-                          <th className="px-6 py-4"></th>
+                          <th className="px-6 py-4 rounded-s-lg text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">رقم الفاتورة</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الباقة</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">التاريخ</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">المبلغ</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الحالة</th>
+                          <th className="px-6 py-4 rounded-e-lg text-end"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
                         {invoices && invoices.length > 0 ? (
                           invoices.map((inv: Invoice) => (
                             <tr key={inv.id} className="group/row hover:bg-white/[0.02] transition-colors">
-                              <td className="px-6 py-5 font-bold text-white text-sm">#{inv.invoice_number}</td>
-                              <td className="px-6 py-5 text-white text-sm font-bold">
+                              <td className="px-6 py-5 font-bold text-white text-sm text-start">#{inv.invoice_number}</td>
+                              <td className="px-6 py-5 text-white text-sm font-bold text-start">
                                 {inv.plan_name || "—"}
                               </td>
-                              <td className="px-6 py-5 text-muted-foreground text-sm font-medium">{formatDate(inv.created_at)}</td>
-                              <td className="px-6 py-5 font-black text-white text-sm">{inv.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>
-                              <td className="px-6 py-5">
+                              <td className="px-6 py-5 text-muted-foreground text-sm font-medium text-start">{formatDate(inv.created_at)}</td>
+                              <td className="px-6 py-5 font-black text-white text-sm text-start">{inv.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>
+                              <td className="px-6 py-5 text-start">
                                 <span className={cn(
                                   "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border",
                                   getStatusBadgeClass(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)
@@ -471,7 +520,7 @@ export default function StudentDetailPage() {
                                   {getStatusLabel(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)}
                                 </span>
                               </td>
-                              <td className="px-6 py-5">
+                              <td className="px-6 py-5 text-end">
                                 <button className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
                                   <Download className="w-4 h-4" />
                                 </button>
@@ -520,7 +569,7 @@ export default function StudentDetailPage() {
                               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{formatDate(record.checked_in_at)}</p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-end">
                             <div className="flex items-center gap-2 mb-1 justify-end">
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">حاضر</span>
@@ -556,7 +605,7 @@ export default function StudentDetailPage() {
                 </div>
 
                 <div className="relative pt-4">
-                  <div className="absolute top-0 bottom-0 right-[31px] w-1 bg-gradient-to-b from-primary/40 via-primary/5 to-transparent rounded-full" />
+                  <div className="absolute top-0 bottom-0 end-[31px] w-1 bg-gradient-to-b from-primary/40 via-primary/5 to-transparent rounded-full" />
                   <div className="space-y-12 relative">
                     {student.belt_history && student.belt_history.length > 0 ? (
                       student.belt_history.map((history, idx) => (
@@ -713,6 +762,18 @@ export default function StudentDetailPage() {
           onClose={() => setIsMembershipDialogOpen(false)}
           studentId={studentId}
           studentName={student.full_name}
+        />
+      )}
+
+      {isEditModalOpen && editData && (
+        <EditStudentModal
+          student={editData}
+          locations={locations}
+          isPending={updateMutation.isPending}
+          error={editError}
+          onClose={() => setIsEditModalOpen(false)}
+          onChange={(updated) => setEditData((prev: Student | null) => prev ? { ...prev, ...updated } : null)}
+          onSave={handleSaveEdit}
         />
       )}
     </div>

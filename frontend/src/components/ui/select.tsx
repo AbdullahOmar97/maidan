@@ -24,7 +24,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             // Layout
             "w-full appearance-none cursor-pointer",
             // Spacing
-            "px-4 py-2.5 pr-10",
+            "px-4 py-2.5 pe-10",
             // Typography
             "text-sm font-medium",
             // Background & border

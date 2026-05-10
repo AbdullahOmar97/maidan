@@ -2,7 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { api } from "@/lib/api/client";
 import { getStatusBadgeClass, getStatusLabel, cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ import Link from "next/link";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { AddStudentModal } from "@/components/dashboard/AddStudentModal";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS = [
   { value: "", label: "جميع الحالات" },
@@ -32,7 +34,7 @@ function StudentCard({ student }: { student: Student }) {
     >
       {/* Dynamic Hover Glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-      <div className="absolute -right-12 -top-12 w-40 h-40 bg-primary/10 blur-[60px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+      <div className="absolute -end-12 -top-12 w-40 h-40 bg-primary/10 blur-[60px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
       
       {/* Avatar */}
       <div className="relative shrink-0 z-10">
@@ -52,7 +54,7 @@ function StudentCard({ student }: { student: Student }) {
         {/* Status indicator */}
         <div
           className={cn(
-            "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
+            "absolute -bottom-1 -end-1 w-6 h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
             student.status === "active" ? "bg-emerald-500 shadow-emerald-500/50" :
             student.status === "trial" ? "bg-blue-500 shadow-blue-500/50" :
             student.status === "lead" ? "bg-amber-500 shadow-amber-500/50" : "bg-gray-500"
@@ -146,6 +148,9 @@ export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const debouncedSearch = useDebounce(search, 400);
 
@@ -170,13 +175,13 @@ export default function StudentsPage() {
         description="إدارة قاعدة بيانات الطلاب المركزية، تتبع مستويات الأحزمة، ومراقبة حالة الاشتراكات النشطة لجميع الفروع."
         icon={Users}
       >
-        <Link
-          href="/dashboard/students/new"
+        <button
+          onClick={() => setIsAddModalOpen(true)}
           className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4" />
           إضافة طالب
-        </Link>
+        </button>
       </PageHeader>
 
       {/* Stats Grid */}
@@ -191,13 +196,13 @@ export default function StudentsPage() {
       <div className="flex flex-col lg:flex-row gap-5 p-2">
         {/* Search */}
         <div className="relative flex-1 group">
-          <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary group-focus-within:scale-110 transition-all" />
+          <Search className="absolute end-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary group-focus-within:scale-110 transition-all" />
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="ابحث بالاسم، رقم الطالب، أو رقم الهاتف..."
-            className="w-full pr-14 pl-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:bg-white/[0.07] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold placeholder:text-muted-foreground/40 shadow-inner"
+            className="w-full pe-14 ps-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:bg-white/[0.07] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold placeholder:text-muted-foreground/40 shadow-inner"
           />
         </div>
 
@@ -287,6 +292,14 @@ export default function StudentsPage() {
         </div>
       )}
     </div>
+    <AddStudentModal
+      isOpen={isAddModalOpen}
+      onClose={() => setIsAddModalOpen(false)}
+      onSuccess={() => {
+        queryClient.invalidateQueries({ queryKey: ["students"] });
+        toast.success("تم إضافة الطالب بنجاح");
+      }}
+    />
     </PermissionGuard>
   );
 }

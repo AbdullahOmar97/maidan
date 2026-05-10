@@ -78,7 +78,7 @@ function MetricRow({
           <span className="text-[10px] font-medium text-muted-foreground/60">{description}</span>
         )}
       </div>
-      <span className="text-lg font-black tracking-tight shrink-0 mr-4">{value}</span>
+      <span className="text-lg font-black tracking-tight shrink-0 me-4">{value}</span>
     </div>
   );
 }
@@ -280,7 +280,7 @@ export default function DashboardPage() {
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+              <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">إجمالي</p>
                 <p className="text-2xl font-black text-white mt-1">
                   {beltData.reduce((acc: number, curr: any) => acc + curr.count, 0)}
@@ -355,7 +355,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="glass-card p-5 md:p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[80px] -mr-32 -mt-32 pointer-events-none" aria-hidden="true" />
+        <div className="absolute top-0 end-0 w-64 h-64 bg-primary/5 blur-[80px] -me-32 -mt-32 pointer-events-none" aria-hidden="true" />
         <h2 className="text-lg md:text-xl font-black tracking-tight mb-5 md:mb-6 relative z-10">إجراءات سريعة</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 relative z-10">
           {quickActions.map((action) => (

@@ -188,7 +188,7 @@ export default function KioskPage() {
                <button
                  key={loc.id}
                  onClick={() => handleSelectLocation(loc)}
-                 className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group text-right flex items-center justify-between"
+                 className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group text-end flex items-center justify-between"
                >
                  <div>
                    <p className="font-bold text-lg">{loc.name}</p>
@@ -232,13 +232,13 @@ export default function KioskPage() {
           </p>
 
           <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="الاسم أو رقم الهاتف..."
-              className="w-full pr-12 pl-4 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all text-center"
+              className="w-full pe-12 ps-4 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all text-center"
               autoFocus
               autoComplete="off"
             />
@@ -263,7 +263,7 @@ export default function KioskPage() {
                   id={`checkin-student-${student.id}`}
                   onClick={() => checkinMutation.mutate(student.id)}
                   disabled={checkinMutation.isPending}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-primary/10 border border-border hover:border-primary/30 transition-all group text-right"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-primary/10 border border-border hover:border-primary/30 transition-all group text-end"
                 >
                   <div className="w-12 h-12 rounded-xl gradient-brand-soft border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shrink-0">
                     {student.first_name?.[0]?.toUpperCase()}

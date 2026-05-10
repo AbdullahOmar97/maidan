@@ -75,7 +75,7 @@ interface InvoiceRowProps {
 function InvoiceRow({ invoice, canMarkPaid, onMarkPaid, isMarkingPaid }: InvoiceRowProps) {
   return (
     <tr className="group hover:bg-white/[0.02] transition-colors border-b border-white/5 last:border-0">
-      <td className="py-4 px-5">
+      <td className="py-4 px-5 text-start">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform" aria-hidden="true">
             <Receipt className="w-4 h-4" />
@@ -83,16 +83,16 @@ function InvoiceRow({ invoice, canMarkPaid, onMarkPaid, isMarkingPaid }: Invoice
           <p className="font-black text-sm text-white tracking-tight">{invoice.invoice_number}</p>
         </div>
       </td>
-      <td className="py-4 px-5">
+      <td className="py-4 px-5 text-start">
         <p className="font-bold text-sm text-white">{invoice.student_name}</p>
       </td>
-      <td className="py-4 px-5">
+      <td className="py-4 px-5 text-start">
         <StatusBadge status={invoice.status} />
       </td>
-      <td className="py-4 px-5 text-sm font-bold text-muted-foreground" dir="ltr">
+      <td className="py-4 px-5 text-sm font-bold text-muted-foreground text-start" dir="ltr">
         {formatDate(invoice.due_date)}
       </td>
-      <td className="py-4 px-5 text-right">
+      <td className="py-4 px-5 text-start">
         <p className="font-black text-sm text-white" dir="ltr">
           {formatCurrency(invoice.total_amount, invoice.currency)}
         </p>
@@ -102,7 +102,7 @@ function InvoiceRow({ invoice, canMarkPaid, onMarkPaid, isMarkingPaid }: Invoice
           </p>
         )}
       </td>
-      <td className="py-4 px-5 text-left">
+      <td className="py-4 px-5 text-end">
         <div className="flex items-center gap-2 justify-end">
           <MarkPaidButton
             invoice={invoice}
@@ -175,7 +175,7 @@ function InvoiceMobileCard({
         />
         <Link
           href={`/dashboard/billing/invoices/${invoice.id}`}
-          className="mr-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/5 text-muted-foreground text-xs font-black hover:bg-primary hover:text-white transition-all touch-target"
+          className="me-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/5 text-muted-foreground text-xs font-black hover:bg-primary hover:text-white transition-all touch-target"
           aria-label={`عرض تفاصيل الفاتورة ${invoice.invoice_number}`}
         >
           عرض التفاصيل
@@ -296,7 +296,7 @@ export default function BillingPage() {
         <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white/[0.02] border border-white/5 rounded-2xl">
           <div className="relative flex-1 group">
             <Search
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
+              className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
               aria-hidden="true"
             />
             <input
@@ -304,16 +304,16 @@ export default function BillingPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="البحث بالطالب، رقم الفاتورة..."
-              className="w-full pr-11 pl-4 py-3 rounded-xl bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-sm font-bold text-white transition-all placeholder:text-muted-foreground/50"
+              className="w-full pe-11 ps-4 py-3 rounded-xl bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 focus:outline-none text-sm font-bold text-white transition-all placeholder:text-muted-foreground/50"
               aria-label="البحث في الفواتير"
             />
           </div>
           <div className="relative">
-            <Filter className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <Filter className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="sm:min-w-[180px] pr-11"
+              className="sm:min-w-[180px] pe-11"
               aria-label="تصفية حسب الحالة"
             >
               <option value="">جميع الحالات</option>
@@ -329,11 +329,19 @@ export default function BillingPage() {
         {isLoading ? (
           <div className="table-desktop glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-right border-collapse" aria-label="جدول الفواتير">
+              <table className="w-full border-collapse" aria-label="جدول الفواتير">
                 <thead>
                   <tr className="bg-white/[0.03] border-b border-white/5">
-                    {["رقم الفاتورة", "اسم الطالب", "الحالة", "تاريخ الاستحقاق", "المبلغ الإجمالي", ""].map((h) => (
-                      <th key={h} className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">{h}</th>
+                    {["رقم الفاتورة", "اسم الطالب", "الحالة", "تاريخ الاستحقاق", "المبلغ الإجمالي", ""].map((h, idx) => (
+                      <th 
+                        key={h} 
+                        className={cn(
+                          "py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground",
+                          idx === 0 ? "rounded-s-lg text-start" : idx === 5 ? "rounded-e-lg text-end" : "text-start"
+                        )}
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -341,7 +349,9 @@ export default function BillingPage() {
                   {[...Array(5)].map((_, i) => (
                     <tr key={i} className="animate-pulse border-b border-white/5">
                       {[...Array(6)].map((_, j) => (
-                        <td key={j} className="py-5 px-5"><div className="h-4 bg-white/5 rounded-lg w-full" /></td>
+                        <td key={j} className={cn("py-5 px-5", j === 5 ? "text-end" : "text-start")}>
+                          <div className={cn("h-4 bg-white/5 rounded-lg w-full", j === 5 && "ms-auto")} />
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -354,15 +364,15 @@ export default function BillingPage() {
         ) : (
           <div className="table-desktop glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-right border-collapse" aria-label="جدول الفواتير">
+              <table className="w-full border-collapse" aria-label="جدول الفواتير">
                 <thead>
                   <tr className="bg-white/[0.03] border-b border-white/5">
-                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">رقم الفاتورة</th>
-                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">اسم الطالب</th>
-                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">الحالة</th>
-                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">تاريخ الاستحقاق</th>
-                    <th className="py-5 px-5 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground">المبلغ الإجمالي</th>
-                    <th className="py-5 px-5" />
+                    <th className="py-5 px-5 rounded-s-lg text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">رقم الفاتورة</th>
+                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">اسم الطالب</th>
+                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الحالة</th>
+                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">تاريخ الاستحقاق</th>
+                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">المبلغ الإجمالي</th>
+                    <th className="py-5 px-5 rounded-e-lg text-end" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">

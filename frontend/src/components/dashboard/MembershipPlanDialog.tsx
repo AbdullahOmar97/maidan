@@ -84,12 +84,12 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
           {/* Basic info */}
           <FormField label="اسم الباقة" required>
             <div className="relative">
-              <Tag className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Tag className="absolute end-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 required
                 dir="rtl"
                 placeholder="مثال: الباقة الأساسية"
-                className="pr-10"
+                className="pe-10"
                 value={formData.name}
                 onChange={(e) => set("name", e.target.value)}
               />
@@ -110,13 +110,13 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
           <div className="grid grid-cols-2 gap-4">
             <FormField label="السعر" required>
               <div className="relative">
-                <DollarSign className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <DollarSign className="absolute end-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   required
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  className="pr-10"
+                  className="pe-10"
                   value={formData.price}
                   onChange={(e) => set("price", e.target.value)}
                 />
@@ -199,7 +199,7 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
                     <div
                       className={cn(
                         "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
-                        isOn ? "right-0.5" : "right-4.5"
+                        isOn ? "end-0.5" : "end-4.5"
                       )}
                     />
                   </div>

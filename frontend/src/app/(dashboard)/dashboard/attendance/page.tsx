@@ -56,7 +56,7 @@ export default function AttendancePage() {
         ) : (
           sessions?.map((session) => (
             <div key={session.id} className="glass-card p-8 group hover:border-primary/40 transition-all relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
               
               <div className="flex items-start justify-between mb-8 relative z-10">
                 <div className="space-y-1">

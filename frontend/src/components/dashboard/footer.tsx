@@ -16,8 +16,8 @@ export function DashboardFooter() {
         </p>
       </div>
       <div className="flex items-center gap-2 opacity-50">
-        <span>Powered by</span>
         <span className="font-bold tracking-widest text-primary">MAIDAN</span>
+        <span>Powered by</span>
       </div>
     </footer>
   );

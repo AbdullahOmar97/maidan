@@ -23,9 +23,9 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
   return (
     <div className="flex h-screen bg-background overflow-hidden relative">
       {/* ── Decorative Background Elements ── */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-primary/5 blur-[100px] rounded-full pointer-events-none z-0" aria-hidden="true" />
-      <div className="absolute top-[20%] right-[10%] w-[20%] h-[20%] bg-blue-500/5 blur-[80px] rounded-full pointer-events-none z-0" aria-hidden="true" />
+      <div className="absolute top-[-10%] start-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
+      <div className="absolute bottom-[-10%] end-[-10%] w-[30%] h-[30%] bg-primary/5 blur-[100px] rounded-full pointer-events-none z-0" aria-hidden="true" />
+      <div className="absolute top-[20%] end-[10%] w-[20%] h-[20%] bg-blue-500/5 blur-[80px] rounded-full pointer-events-none z-0" aria-hidden="true" />
 
       {/* ── Desktop Sidebar (hidden on mobile via CSS) ── */}
       <div className="relative z-20 shrink-0">

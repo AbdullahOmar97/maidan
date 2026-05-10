@@ -99,7 +99,7 @@ export default function NewStudentPage() {
       <div className="h-[60vh] flex items-center justify-center">
         <div className="relative">
           <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          <Loader2 className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          <Loader2 className="w-6 h-6 text-primary absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
       </div>
     );
@@ -144,7 +144,7 @@ export default function NewStudentPage() {
           {/* Section 1: Basic Info */}
           <div className="lg:col-span-2 space-y-8">
             <div className="glass-card p-8 space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
@@ -163,7 +163,7 @@ export default function NewStudentPage() {
                     value={formData.first_name}
                     onChange={handleChange}
                     placeholder="مثال: عبدالله"
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end"
                     dir="rtl"
                   />
                 </InputWrapper>
@@ -176,7 +176,7 @@ export default function NewStudentPage() {
                     value={formData.last_name}
                     onChange={handleChange}
                     placeholder="مثال: عمر"
-                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-right"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end"
                     dir="rtl"
                   />
                 </InputWrapper>
@@ -185,7 +185,7 @@ export default function NewStudentPage() {
 
             {/* Section 2: Contact Info */}
             <div className="glass-card p-8 space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-blue-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shadow-lg shadow-blue-500/10">
@@ -226,7 +226,7 @@ export default function NewStudentPage() {
           {/* Section 3: System Details (Sidebar) */}
           <div className="space-y-8">
             <div className="glass-card p-8 space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
+              <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">

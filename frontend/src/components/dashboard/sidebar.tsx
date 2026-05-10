@@ -228,11 +228,11 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   return (
     <aside
-      className="hidden lg:flex w-64 h-full flex-col bg-card/30 border-l border-white/[0.05] backdrop-blur-2xl shrink-0 overflow-hidden relative"
+      className="hidden lg:flex w-64 h-full flex-col bg-card/30 border-e border-white/[0.05] backdrop-blur-2xl shrink-0 overflow-hidden relative"
       aria-label="شريط التنقل"
     >
       {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] -mr-16 -mt-16 pointer-events-none" aria-hidden="true" />
+      <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-[60px] -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
 
       <LogoHeader />
       <NavList user={user} />
@@ -255,7 +255,7 @@ export function MobileSidebarContent({
   return (
     <div className="flex flex-col h-full bg-card/95 backdrop-blur-2xl relative overflow-hidden">
       {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] -mr-16 -mt-16 pointer-events-none" aria-hidden="true" />
+      <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-[60px] -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
       <NavList user={user} onLinkClick={onClose} />
       <BottomSection user={user} onLinkClick={onClose} />
     </div>

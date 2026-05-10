@@ -17,7 +17,7 @@ export function FormField({ label, required, hint, children, className }: FormFi
     <div className={cn("space-y-1.5", className)}>
       <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         {label}
-        {required && <span className="text-destructive mr-1">*</span>}
+        {required && <span className="text-destructive me-1">*</span>}
       </label>
       {children}
       {hint && <p className="text-[11px] text-muted-foreground/70">{hint}</p>}

@@ -124,6 +124,12 @@
     100% { transform: translateX(100%); }
   }
 
+  [dir="rtl"] {
+    @keyframes shimmer {
+      100% { transform: translateX(-100%); }
+    }
+  }
+
   /* KPI Card */
   .kpi-card {
     @apply glass-card p-6 hover:border-primary/30 transition-all duration-500 hover:shadow-primary/5 hover:-translate-y-1;
@@ -299,16 +305,16 @@
   }
 
   .drawer-panel {
-    @apply fixed inset-y-0 right-0 z-50 flex flex-col
+    @apply fixed inset-y-0 start-0 z-50 flex flex-col
            w-[min(20rem,90vw)] h-full
-           bg-card border-l border-white/[0.05]
+           bg-card border-e border-white/[0.05]
            shadow-2xl shadow-black/40
            overflow-hidden;
-    animation: slide-in-from-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slide-in-from-start 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .drawer-panel.closing {
-    animation: slide-out-to-right 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slide-out-to-start 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
 
@@ -317,14 +323,26 @@
   to   { opacity: 1; }
 }
 
-@keyframes slide-in-from-right {
+@keyframes slide-in-from-start {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
 
-@keyframes slide-out-to-right {
+@keyframes slide-out-to-start {
   from { transform: translateX(0); }
   to   { transform: translateX(100%); }
+}
+
+[dir="rtl"] {
+  @keyframes slide-in-from-start {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+  }
+
+  @keyframes slide-out-to-start {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-100%); }
+  }
 }
 
 /* ============================================================

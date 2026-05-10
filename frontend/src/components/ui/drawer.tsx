@@ -81,7 +81,7 @@ export function Drawer({ open, onClose, children, title, className }: DrawerProp
           )}
           <button
             onClick={onClose}
-            className="mr-auto w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-white transition-all active:scale-90"
+            className="me-auto w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-white transition-all active:scale-90"
             aria-label="إغلاق القائمة"
           >
             <X className="w-5 h-5" />

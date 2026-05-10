@@ -2,6 +2,7 @@
 MAIDAN — Billing App Views + Serializers + URLs
 """
 
+from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from rest_framework import filters, permissions, serializers, status, viewsets
@@ -216,41 +217,45 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         """Approve a PENDING_APPROVAL membership → transitions to PENDING (awaiting payment)."""
-        membership = self.get_object()
-        if membership.status != Membership.Status.PENDING_APPROVAL:
-            return Response(
-                {"error": "هذا الاشتراك ليس في حالة انتظار الموافقة."},
-                status=status.HTTP_400_BAD_REQUEST,
+        with transaction.atomic():
+            membership = (
+                self.get_queryset()
+                .select_for_update()
+                .select_related("plan", "student")
+                .get(pk=self.kwargs["pk"])
             )
-        membership.status = Membership.Status.PENDING
-        membership.approved_by_id = request.user.id
-        membership.approved_at = timezone.now()
-        membership.save(update_fields=["status", "approved_by_id", "approved_at"])
+            if membership.status != Membership.Status.PENDING_APPROVAL:
+                return Response(
+                    {"error": "هذا الاشتراك ليس في حالة انتظار الموافقة."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            membership.status = Membership.Status.PENDING
+            membership.approved_by_id = request.user.id
+            membership.approved_at = timezone.now()
+            membership.save(update_fields=["status", "approved_by_id", "approved_at", "updated_at"])
 
-        # Now that it's approved, create the invoice if not already present
-        if not membership.invoices.exists():
-            from .models import MembershipPlan
-            plan = membership.plan
-            from decimal import Decimal
-            subtotal = plan.price + plan.setup_fee
-            tax_amount = subtotal * (plan.tax_rate / 100)
-            total_amount = subtotal + tax_amount
-            Invoice.objects.create(
-                student=membership.student,
-                membership=membership,
-                subtotal=subtotal,
-                discount_amount=0,
-                tax_rate=plan.tax_rate,
-                tax_amount=tax_amount,
-                total_amount=total_amount,
-                amount_paid=0,
-                currency=plan.currency,
-                status=Invoice.Status.PENDING,
-                due_date=membership.start_date or timezone.now().date(),
-                is_recurring=(plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME),
-                created_by_id=request.user.id,
-            )
+            if not membership.invoices.exists():
+                plan = membership.plan
+                subtotal = plan.price + plan.setup_fee
+                tax_amount = subtotal * (plan.tax_rate / 100)
+                total_amount = subtotal + tax_amount
+                Invoice.objects.create(
+                    student=membership.student,
+                    membership=membership,
+                    subtotal=subtotal,
+                    discount_amount=0,
+                    tax_rate=plan.tax_rate,
+                    tax_amount=tax_amount,
+                    total_amount=total_amount,
+                    amount_paid=0,
+                    currency=plan.currency,
+                    status=Invoice.Status.PENDING,
+                    due_date=membership.start_date or timezone.now().date(),
+                    is_recurring=(plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME),
+                    created_by_id=request.user.id,
+                )
 
+        membership.refresh_from_db()
         serializer = self.get_serializer(membership)
         return Response(serializer.data)
 
@@ -354,28 +359,30 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         Sets status=PAID, amount_paid=total_amount, paid_at=now.
         Requires `can_mark_invoice_paid` granular permission.
         """
-        invoice = self.get_object()
-
-        UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
-        if invoice.status in UNPAYABLE_STATUSES:
-            return Response(
-                {"error": f"لا يمكن تأكيد سداد فاتورة بحالة: {invoice.get_status_display()}."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         payment_method = request.data.get("payment_method", "cash")
         note = request.data.get("note", "")
 
-        now = timezone.now()
-        invoice.status = Invoice.Status.PAID
-        invoice.amount_paid = invoice.total_amount
-        invoice.paid_at = now
-        invoice.paid_by_id = request.user.id
-        audit_note = f"[سداد يدوي — {payment_method} — بواسطة {request.user.get_full_name()} في {now.date()}]"
-        if note:
-            audit_note += f" {note}"
-        invoice.notes = (invoice.notes + f"\n{audit_note}").strip()
-        invoice.save(update_fields=["status", "amount_paid", "paid_at", "paid_by_id", "notes"])
+        UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
+        with transaction.atomic():
+            invoice = self.get_queryset().select_for_update().get(pk=self.kwargs["pk"])
+            if invoice.status in UNPAYABLE_STATUSES:
+                return Response(
+                    {"error": f"لا يمكن تأكيد سداد فاتورة بحالة: {invoice.get_status_display()}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            now = timezone.now()
+            invoice.status = Invoice.Status.PAID
+            invoice.amount_paid = invoice.total_amount
+            invoice.paid_at = now
+            invoice.paid_by_id = request.user.id
+            audit_note = f"[سداد يدوي — {payment_method} — بواسطة {request.user.get_full_name()} في {now.date()}"
+            if note:
+                audit_note += f" {note}"
+            invoice.notes = (invoice.notes + f"\n{audit_note}").strip()
+            invoice.save(
+                update_fields=["status", "amount_paid", "paid_at", "paid_by_id", "notes", "updated_at"]
+            )
 
         serializer = self.get_serializer(invoice)
         return Response(serializer.data)

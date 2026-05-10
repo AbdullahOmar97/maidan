@@ -32,7 +32,7 @@ export function PageHeader({
       <div className="relative min-w-0">
         {/* Subtle background glow */}
         <div
-          className="absolute -left-10 -top-10 w-40 h-40 bg-primary/5 blur-[80px] rounded-full pointer-events-none -z-10"
+          className="absolute -start-10 -top-10 w-40 h-40 bg-primary/5 blur-[80px] rounded-full pointer-events-none -z-10"
           aria-hidden="true"
         />
 

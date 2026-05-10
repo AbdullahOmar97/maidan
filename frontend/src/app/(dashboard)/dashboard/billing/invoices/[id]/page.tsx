@@ -176,7 +176,7 @@ export default function InvoiceDetailPage() {
                   <div className="grid grid-cols-4 px-3 md:px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] md:tracking-[0.2em] border-b border-white/5">
                     <div className="col-span-2">الوصف</div>
                     <div className="text-center">الكمية</div>
-                    <div className="text-left">المبلغ</div>
+                    <div className="text-start">المبلغ</div>
                   </div>
                   <div className="grid grid-cols-4 px-3 md:px-4 py-3 md:py-4 items-center">
                     <div className="col-span-2">
@@ -184,7 +184,7 @@ export default function InvoiceDetailPage() {
                       {invoice.notes && <p className="text-xs text-muted-foreground mt-1">{invoice.notes}</p>}
                     </div>
                     <div className="text-center text-sm font-bold text-white">1</div>
-                    <div className="text-left text-sm font-black text-white" dir="ltr">
+                    <div className="text-start text-sm font-black text-white" dir="ltr">
                       {formatCurrency(invoice.subtotal, invoice.currency)}
                     </div>
                   </div>

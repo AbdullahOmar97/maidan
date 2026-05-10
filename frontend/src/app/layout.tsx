@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_Arabic } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "@/lib/providers/query-provider";
 import { SessionProvider } from "@/lib/providers/session-provider";
+import { Toaster } from "sonner";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -52,6 +53,7 @@ export default function RootLayout({
               {children}
             </QueryClientProvider>
           </SessionProvider>
+          <Toaster position="top-center" richColors />
         </ThemeProvider>
       </body>
     </html>
