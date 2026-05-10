@@ -19,7 +19,7 @@ PyJWT==2.9.0
 cryptography==43.0.3
 
 # Database
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.12
 django-db-geventpool==4.0.2
 
 # Cache & Async
