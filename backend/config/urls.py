@@ -17,6 +17,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # Diagnostic
+    path("diag/", lambda r: HttpResponse("URLConf is working")),
     path("ping/", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
     path("ping", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
 
