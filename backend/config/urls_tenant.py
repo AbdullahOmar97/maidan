@@ -12,11 +12,14 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 from django.db import connection
 
+print("DEBUG: Loading config/urls_tenant.py (Tenant URLConf)")
+
 urlpatterns = [
     # Admin (Diagnostic)
     path("admin/", admin.site.urls),
 
     # Diagnostic
+    path("diag/", lambda r: HttpResponse(f"URLConf (TENANT) is working - Schema: {connection.schema_name}")),
     path("ping/", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
     path("ping", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
 
