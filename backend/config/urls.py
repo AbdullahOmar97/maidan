@@ -12,16 +12,9 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 from django.db import connection
 
-print("!!!!! LOADING CONFIG/URLS.PY NOW !!!!!")
-
 urlpatterns = [
     # Admin (Diagnostic)
     path("admin/", admin.site.urls),
-
-    # Diagnostic
-    path("diag/", lambda r: HttpResponse(f"URLConf is working - Schema: {connection.schema_name}")),
-    path("ping/", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
-    path("ping", lambda r: HttpResponse(f"pong - Schema: {connection.schema_name} - URLConf: {getattr(r, 'urlconf', 'default')}")),
 
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
