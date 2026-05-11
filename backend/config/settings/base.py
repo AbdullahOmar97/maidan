@@ -86,6 +86,9 @@ TENANT_APPS = [
     # Django built-ins (per tenant)
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.admin",
 
     # Tenant-scoped apps
     "apps.students",
