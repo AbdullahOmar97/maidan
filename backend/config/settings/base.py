@@ -2,6 +2,7 @@
 MAIDAN — Base Django Settings
 All environments inherit from this file.
 """
+print("CRITICAL_DEBUG: Loading config/settings/base.py")
 
 import os
 from datetime import timedelta
