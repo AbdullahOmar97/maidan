@@ -19,6 +19,7 @@ x-backend-env: &backend-env
   AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME}
   SENTRY_DSN: ${SENTRY_DSN}
   SENTRY_ENVIRONMENT: production
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
 
 services:
   db:
