@@ -21,6 +21,9 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
+    # Health check
+    path("api/health/", include("shared.urls")),
+
     # Auth (also available per-tenant)
     path("api/v1/auth/", include("apps.accounts.urls")),
 

@@ -22,7 +22,7 @@ environ.Env.read_env(os.path.join(BASE_DIR.parent, ".env"))
 # ---------------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = ["*"]
 USE_X_FORWARDED_HOST = True
 
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 ROOT_URLCONF = "config.urls"
 PUBLIC_SCHEMA_URLCONF = "config.urls"
-TENANT_URLCONF = "config.urls"
+TENANT_URLCONF = "config.urls_tenant"
 
 WSGI_APPLICATION = "config.wsgi.application"
 

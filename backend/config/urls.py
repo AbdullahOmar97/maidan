@@ -24,24 +24,12 @@ urlpatterns = [
     # Health check
     path("api/health/", include("shared.urls")),
 
-    # Authentication (shared)
+    # Authentication (public — JWT tokens)
     path("api/v1/auth/", include("apps.accounts.urls")),
-
-    # Core modules (tenant-scoped)
-    path("api/v1/students/", include("apps.students.urls")),
-    path("api/v1/families/", include("apps.families.urls")),
+    # Public kiosk check-in needs attendance routes when resolving on public schema.
     path("api/v1/attendance/", include("apps.attendance.urls")),
-    path("api/v1/belts/", include("apps.belts.urls")),
-    path("api/v1/billing/", include("apps.billing.urls")),
-    path("api/v1/payments/", include("apps.payments.urls")),
-    path("api/v1/scheduling/", include("apps.scheduling.urls")),
-    path("api/v1/messaging/", include("apps.messaging.urls")),
-    path("api/v1/reporting/", include("apps.reporting.urls")),
-    path("api/v1/staff/", include("apps.staff.urls")),
-    path("api/v1/audit/", include("apps.audit.urls")),
 
-    # Tenant & Academy management
-    path("api/v1/academy/", include("apps.tenants.urls")),
+    # Tenant management (platform admin only)
     path("api/v1/platform/", include("apps.tenants.urls")),
 ]
 
