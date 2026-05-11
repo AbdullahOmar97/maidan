@@ -12,7 +12,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 from django.db import connection
 
-print("DEBUG: Loading config/urls.py (Public URLConf)")
+print("!!!!! LOADING CONFIG/URLS.PY NOW !!!!!")
 
 urlpatterns = [
     # Admin (Diagnostic)
