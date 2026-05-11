@@ -3,6 +3,7 @@ MAIDAN — Tenant URL Configuration
 Routes available within each tenant schema.
 """
 
+from django.http import HttpResponse
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
