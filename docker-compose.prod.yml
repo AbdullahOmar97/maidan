@@ -20,6 +20,10 @@ x-backend-env: &backend-env
   SENTRY_DSN: ${SENTRY_DSN}
   SENTRY_ENVIRONMENT: production
   DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+  LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+  DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
+
+
 
 services:
   db:
@@ -166,14 +170,29 @@ services:
       - frontend
 
   # ---------------------------------------------------------------------------
-  # Certbot (SSL Certificates)
+  # Certbot (Wildcard SSL Certificates via DuckDNS)
   # ---------------------------------------------------------------------------
   certbot:
-    image: certbot/certbot:latest
+    image: infinityofspace/certbot_dns_duckdns:latest
     volumes:
       - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@maidanjo.duckdns.org}
+    entrypoint: >
+      /bin/sh -c "
+      certbot certonly \
+        --non-interactive \
+        --agree-tos \
+        --email $$LETSENCRYPT_EMAIL \
+        --dns-duckdns \
+        --dns-duckdns-token $$DUCKDNS_TOKEN \
+        -d maidanjo.duckdns.org \
+        -d '*.maidanjo.duckdns.org' \
+        --expand \
+        --keep-until-expiring;
+      trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;
+      "
 
 volumes:
   postgres_data:
