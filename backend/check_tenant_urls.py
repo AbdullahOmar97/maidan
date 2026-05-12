@@ -7,7 +7,7 @@ import traceback
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 django.setup()
 
-tenant_urlconf = settings.TENANT_URLCONF
+tenant_urlconf = settings.ROOT_URLCONF
 print(f"Attempting to load URLCONF: {tenant_urlconf}")
 
 try:

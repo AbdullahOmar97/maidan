@@ -13,6 +13,9 @@ class TenantStatusMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        host = request.get_host()
+        print(f"DEBUG: django-tenants is seeing host: '{host}'")
+        
         if request.path.startswith('/admin/'):
             return self.get_response(request)
             
@@ -27,7 +30,7 @@ class TenantStatusMiddleware:
                     tenant = Tenant.objects.get(slug__iexact=subdomain)
                     request.tenant = tenant
                     # Ensure the correct URL configuration is used for the resolved tenant
-                    request.urlconf = settings.TENANT_URLCONF
+                    request.urlconf = settings.ROOT_URLCONF
                 except Tenant.DoesNotExist:
                     pass
 

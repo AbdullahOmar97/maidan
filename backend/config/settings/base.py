@@ -131,10 +131,11 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 # URLs & WSGI
 # ---------------------------------------------------------------------------
-ROOT_URLCONF = "config.urls"
+# django-tenants: ROOT_URLCONF is the tenant URLconf; when the host maps to the public
+# schema (or SHOW_PUBLIC_IF_NO_TENANT_FOUND), TenantMainMiddleware sets
+# request.urlconf to PUBLIC_SCHEMA_URLCONF instead.
+ROOT_URLCONF = "config.urls_tenant"
 PUBLIC_SCHEMA_URLCONF = "config.urls"
-# django-tenants additional settings
-TENANT_URLCONF = "config.urls_tenant"
 TENANT_LIMIT_SET_CALLS = True
 TENANT_COLOR_ADMIN_CONSOLE = True
 

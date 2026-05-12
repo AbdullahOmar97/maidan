@@ -11,7 +11,11 @@ from apps.tenants.models import Tenant, Domain
 print("--- Settings ---")
 print(f"ROOT_URLCONF: {settings.ROOT_URLCONF}")
 print(f"PUBLIC_SCHEMA_URLCONF: {getattr(settings, 'PUBLIC_SCHEMA_URLCONF', 'N/A')}")
-print(f"TENANT_URLCONF: {getattr(settings, 'TENANT_URLCONF', 'N/A')}")
+print(
+    "django-tenants: tenant hosts fall back to ROOT_URLCONF when middleware "
+    "does not set PUBLIC_SCHEMA_URLCONF;"
+    f" ROOT_URLCONF={settings.ROOT_URLCONF}"
+)
 print(f"ALLOWED_HOSTS: {settings.ALLOWED_HOSTS}")
 
 print("\n--- Tenants & Domains ---")
