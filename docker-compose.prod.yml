@@ -2,26 +2,42 @@
 # MAIDAN Dojo Management System — Docker Compose (Production)
 # =============================================================================
 
-x-backend-env: &backend-env
-  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.production}
-  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-  DATABASE_URL: ${DATABASE_URL}
-  POSTGRES_DB: ${POSTGRES_DB}
-  POSTGRES_USER: ${POSTGRES_USER}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  POSTGRES_HOST: db
-  REDIS_URL: ${REDIS_URL}
-  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
-  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
-  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME}
-  AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME}
-  SENTRY_DSN: ${SENTRY_DSN}
-  SENTRY_ENVIRONMENT: production
-  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
-  LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-  DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
+  
+  
+  
+    PLATFORM_NAME: ${PLATFORM_NAME}
+  PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+  DEFAULT_CURRENCY: ${DEFAULT_CURRENCY}
+  SUPPORTED_CURRENCIES: ${SUPPORTED_CURRENCIES}
+  DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE}
+  # JWT Settings
+  JWT_ACCESS_TOKEN_LIFETIME_MINUTES: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES}
+  JWT_REFRESH_TOKEN_LIFETIME_DAYS: ${JWT_REFRESH_TOKEN_LIFETIME_DAYS}
+  # Email Settings
+  EMAIL_BACKEND: ${EMAIL_BACKEND}
+  EMAIL_HOST: ${EMAIL_HOST}
+  EMAIL_PORT: ${EMAIL_PORT}
+  EMAIL_USE_TLS: ${EMAIL_USE_TLS}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+  # Payment Providers
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+  STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+  PAYTABS_PROFILE_ID: ${PAYTABS_PROFILE_ID}
+  PAYTABS_SERVER_KEY: ${PAYTABS_SERVER_KEY}
+  PAYTABS_REGION: ${PAYTABS_REGION}
+  PAYTABS_BASE_URL: ${PAYTABS_BASE_URL}
+  HYPERPAY_ACCESS_TOKEN: ${HYPERPAY_ACCESS_TOKEN}
+  HYPERPAY_BASE_URL: ${HYPERPAY_BASE_URL}
+  # Messaging
+  WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER}
+  WHATSAPP_API_KEY: ${WHATSAPP_API_KEY}
+  WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL}
+  # Media / Storage
+  USE_S3: ${USE_S3}
+  MEDIA_URL: ${MEDIA_URL}
 
 
 
@@ -69,8 +85,12 @@ services:
       dockerfile: Dockerfile
       target: production
     restart: always
+    env_file:
+      - .env
     environment:
-      <<: *backend-env
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SENTRY_ENVIRONMENT: production
+      POSTGRES_HOST: db
     volumes:
       - static_files:/app/staticfiles
     depends_on:
@@ -93,8 +113,12 @@ services:
       dockerfile: Dockerfile
       target: production
     restart: always
+    env_file:
+      - .env
     environment:
-      <<: *backend-env
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SENTRY_ENVIRONMENT: production
+      POSTGRES_HOST: db
     depends_on:
       db:
         condition: service_healthy
@@ -115,8 +139,12 @@ services:
       dockerfile: Dockerfile
       target: production
     restart: always
+    env_file:
+      - .env
     environment:
-      <<: *backend-env
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      SENTRY_ENVIRONMENT: production
+      POSTGRES_HOST: db
     depends_on:
       db:
         condition: service_healthy
@@ -139,13 +167,8 @@ services:
         AUTH_SECRET: ${AUTH_SECRET}
         NEXT_PUBLIC_PLATFORM_DOMAIN: ${NEXT_PUBLIC_PLATFORM_DOMAIN}
     restart: always
-    environment:
-      AUTH_SECRET: ${AUTH_SECRET}
-      AUTH_URL: ${AUTH_URL}
-      AUTH_TRUST_HOST: "true"
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      NEXT_PUBLIC_PLATFORM_DOMAIN: ${NEXT_PUBLIC_PLATFORM_DOMAIN}
+    env_file:
+      - .env
     deploy:
       resources:
         limits:
