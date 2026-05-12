@@ -170,17 +170,17 @@ services:
       - frontend
 
   # ---------------------------------------------------------------------------
-    # Certbot (Wildcard SSL Certificates via DuckDNS)
-    # ---------------------------------------------------------------------------
-    certbot:
-      image: infinityofspace/certbot_dns_duckdns:latest
-      restart: always
-      volumes:
-        - certbot_conf:/etc/letsencrypt
-      environment:
-        - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
-        - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@maidanjo.duckdns.org}
-      entrypoint: /bin/sh -c "certbot certonly --non-interactive --agree-tos --email $$LETSENCRYPT_EMAIL --dns-duckdns --dns-duckdns-token $$DUCKDNS_TOKEN -d maidanjo.duckdns.org -d '*.maidanjo.duckdns.org' --expand --keep-until-expiring && trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
+  # Certbot (Wildcard SSL Certificates via DuckDNS)
+  # ---------------------------------------------------------------------------
+  certbot:
+    image: infinityofspace/certbot_dns_duckdns:latest
+    restart: always
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@maidanjo.duckdns.org}
+    entrypoint: /bin/sh -c "certbot certonly --non-interactive --agree-tos --email $$LETSENCRYPT_EMAIL --dns-duckdns --dns-duckdns-token $$DUCKDNS_TOKEN -d maidanjo.duckdns.org -d '*.maidanjo.duckdns.org' --expand --keep-until-expiring && trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
 
 volumes:
   postgres_data:
