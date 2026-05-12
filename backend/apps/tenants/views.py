@@ -1,5 +1,6 @@
 """MAIDAN — Tenants App Views"""
 from django.db import transaction
+from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -39,14 +40,21 @@ class TenantViewSet(viewsets.ModelViewSet):
     def me(self, request):
         """Get or update current tenant settings."""
         tenant = request.tenant
-        if request.method == "PATCH":
-            serializer = TenantSerializer(tenant, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        # Tenant / Plan / Domain / PlatformSettings live in SHARED_APPS (public schema only).
+        # On tenant hostnames the DB connection is the tenant schema; ORM updates would hit
+        # the wrong schema (missing table → 500). Always read/write these rows in public.
+        ser_ctx = {"request": request}
+        with schema_context(get_public_schema_name()):
+            if request.method == "PATCH":
+                serializer = TenantSerializer(
+                    tenant, data=request.data, partial=True, context=ser_ctx
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data)
+
+            serializer = TenantSerializer(tenant, context=ser_ctx)
             return Response(serializer.data)
-        
-        serializer = TenantSerializer(tenant)
-        return Response(serializer.data)
 
     @action(detail=False, methods=["post"], permission_classes=[permissions.AllowAny])
     def register(self, request):
