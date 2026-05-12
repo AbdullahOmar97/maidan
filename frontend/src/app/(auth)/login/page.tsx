@@ -224,9 +224,9 @@ export default function LoginPage() {
                     <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       كلمة المرور
                     </label>
-                    <button type="button" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">
+                    <Link href="/forgot-password" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">
                       نسيت كلمة المرور؟
-                    </button>
+                    </Link>
                   </div>
                   <div className="relative group/pass">
                     <input

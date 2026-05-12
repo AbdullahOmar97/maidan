@@ -18,6 +18,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from apps.audit.utils import log_action
 from apps.tenants.models import Domain, Tenant
 from .models import PasswordResetToken, User
+from .tasks import send_password_reset_email
 from .serializers import (
     LoginSerializer,
     PasswordChangeSerializer,
@@ -332,17 +333,37 @@ class PasswordResetRequestView(APIView):
         email = serializer.validated_data["email"].lower()
         try:
             user = User.objects.get(email=email, is_active=True)
-            token = PasswordResetToken.objects.create(
+            token_obj = PasswordResetToken.objects.create(
                 user=user,
                 expires_at=timezone.now() + timedelta(hours=2),
             )
-            # TODO: Send reset email via Celery task
-            logger.info(f"Password reset requested for {email}, token: {token.token}")
+            
+            # Build base URL for the reset link
+            forwarded_host = request.headers.get("X-Forwarded-Host", "") or request.get_host()
+            forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+            scheme = (forwarded_proto.split(",")[0].strip() or request.scheme or "https").lower()
+            
+            # If it's a .localhost domain, force http
+            if forwarded_host.split(":")[0].endswith(".localhost"):
+                scheme = "http"
+            
+            base_url = f"{scheme}://{forwarded_host}"
+            
+            # Send reset email via Celery task
+            send_password_reset_email.delay(
+                user_email=user.email,
+                user_name=user.get_full_name(),
+                token=str(token_obj.token),
+                base_url=base_url
+            )
+            
+            logger.info(f"Password reset requested for {email}, token queued.")
         except User.DoesNotExist:
+            logger.info(f"Password reset requested for non-existent email: {email}")
             pass  # Don't reveal if email exists (security)
 
         return Response(
-            {"message": "If that email exists, a reset link has been sent."}
+            {"message": "إذا كان هذا البريد مسجلاً لدينا، فستصلك رسالة لإعادة تعيين كلمة المرور."}
         )
 
 

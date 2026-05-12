@@ -16,6 +16,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Forwarded-Proto": "https",
       ...(tenantHostname
         ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
         : {}),
@@ -70,6 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                "X-Forwarded-Proto": "https",
                 ...(tenantAwareHost
                   ? {
                       Host: tenantAwareHost,
