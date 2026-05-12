@@ -22,8 +22,11 @@ env = environ.Env()
 # ---------------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
+
+# Multi-tenancy settings
 USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ---------------------------------------------------------------------------
 # Multi-Tenancy (django-tenants)
@@ -130,7 +133,12 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 ROOT_URLCONF = "config.urls"
 PUBLIC_SCHEMA_URLCONF = "config.urls"
+# django-tenants additional settings
 TENANT_URLCONF = "config.urls_tenant"
+TENANT_LIMIT_SET_CALLS = True
+TENANT_COLOR_ADMIN_CONSOLE = True
+
+
 
 WSGI_APPLICATION = "config.wsgi.application"
 
