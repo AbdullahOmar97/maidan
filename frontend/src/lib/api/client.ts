@@ -102,9 +102,33 @@ export const api = {
     me: () => apiClient.get("/academy/me/"),
     updateMe: (data: unknown) => {
       const isFormData = data instanceof FormData;
-      return apiClient.patch("/academy/me/", data, {
-        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
-      });
+      // Default axios instance sets Content-Type: application/json. For FormData we must
+      // not send that header so the client can set multipart/form-data with a boundary.
+      return apiClient.patch(
+        "/academy/me/",
+        data,
+        isFormData
+          ? {
+              transformRequest: [
+                (body, headers) => {
+                  if (body instanceof FormData && headers) {
+                    const h = headers as Record<string, unknown> & {
+                      delete?: (k: string) => void;
+                    };
+                    if (typeof h.delete === "function") {
+                      h.delete("Content-Type");
+                      h.delete("content-type");
+                    } else {
+                      delete h["Content-Type"];
+                      delete h["content-type"];
+                    }
+                  }
+                  return body;
+                },
+              ],
+            }
+          : {}
+      );
     },
     transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
   },

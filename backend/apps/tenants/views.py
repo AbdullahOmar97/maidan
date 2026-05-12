@@ -39,12 +39,12 @@ class TenantViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get", "patch"])
     def me(self, request):
         """Get or update current tenant settings."""
-        tenant = request.tenant
         # Tenant / Plan / Domain / PlatformSettings live in SHARED_APPS (public schema only).
         # On tenant hostnames the DB connection is the tenant schema; ORM updates would hit
         # the wrong schema (missing table → 500). Always read/write these rows in public.
         ser_ctx = {"request": request}
         with schema_context(get_public_schema_name()):
+            tenant = Tenant.objects.get(pk=request.tenant.pk)
             if request.method == "PATCH":
                 serializer = TenantSerializer(
                     tenant, data=request.data, partial=True, context=ser_ctx

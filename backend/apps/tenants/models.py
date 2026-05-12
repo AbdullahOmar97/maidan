@@ -218,7 +218,13 @@ def delete_old_tenant_images(sender, instance, **kwargs):
         return
 
     if old_instance.logo and instance.logo != old_instance.logo:
-        old_instance.logo.delete(save=False)
-        
+        try:
+            old_instance.logo.delete(save=False)
+        except OSError:
+            pass
+
     if old_instance.favicon and instance.favicon != old_instance.favicon:
-        old_instance.favicon.delete(save=False)
+        try:
+            old_instance.favicon.delete(save=False)
+        except OSError:
+            pass
