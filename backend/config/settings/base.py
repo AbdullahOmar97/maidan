@@ -110,6 +110,7 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 # Middleware
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
+    "apps.accounts.middleware.DebugHostMiddleware",
     "django_tenants.middleware.main.TenantMainMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "apps.tenants.middleware.TenantStatusMiddleware",

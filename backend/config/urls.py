@@ -31,11 +31,6 @@ urlpatterns = [
 
     # Tenant management (platform admin only)
     path("api/v1/platform/", include("apps.tenants.urls")),
-    # Fallback for academy routes on public schema
-    path("api/v1/academy/", include("apps.tenants.urls")),
-    # Fallback for other core tenant modules
-    path("api/v1/students/", include("apps.students.urls")),
-    path("api/v1/belts/", include("apps.belts.urls")),
 ]
 
 if settings.DEBUG:

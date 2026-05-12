@@ -25,8 +25,6 @@ class TenantStatusMiddleware:
                 subdomain = host.split(".")[0]
                 try:
                     tenant = Tenant.objects.get(slug__iexact=subdomain)
-                    request.tenant = tenant
-                    request.urlconf = settings.TENANT_URLCONF
                 except Tenant.DoesNotExist:
                     pass
 
