@@ -29,7 +29,7 @@ class TenantSerializer(serializers.ModelSerializer):
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input"
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "slug", "schema_name", "created_at"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

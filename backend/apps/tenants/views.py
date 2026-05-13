@@ -39,22 +39,57 @@ class TenantViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get", "patch"])
     def me(self, request):
         """Get or update current tenant settings."""
-        # Tenant / Plan / Domain / PlatformSettings live in SHARED_APPS (public schema only).
-        # On tenant hostnames the DB connection is the tenant schema; ORM updates would hit
-        # the wrong schema (missing table → 500). Always read/write these rows in public.
-        ser_ctx = {"request": request}
-        with schema_context(get_public_schema_name()):
-            tenant = Tenant.objects.get(pk=request.tenant.pk)
-            if request.method == "PATCH":
-                serializer = TenantSerializer(
-                    tenant, data=request.data, partial=True, context=ser_ctx
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data)
+        # 1. Force resolve the tenant object before switching schema context.
+        # This prevents the 'lazy' resolution from hitting the wrong schema
+        # (table missing) when we are already inside the with schema_context block.
+        tenant_attr = getattr(request, "tenant", None)
+        if not tenant_attr:
+            return Response(
+                {"error": "لم يتم التعرف على النادي."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Accessing .pk forces resolution if it's a SimpleLazyObject
+        try:
+            tenant_pk = tenant_attr.pk
+        except Exception as e:
+            import logging
+            logger = logging.getLogger("maidan")
+            logger.error(f"Failed to resolve tenant PK: {str(e)}")
+            return Response(
+                {"error": "فشل في التعرف على بيانات النادي."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-            serializer = TenantSerializer(tenant, context=ser_ctx)
-            return Response(serializer.data)
+        ser_ctx = {"request": request}
+        try:
+            with schema_context(get_public_schema_name()):
+                tenant = Tenant.objects.get(pk=tenant_pk)
+                
+                if request.method == "PATCH":
+                    serializer = TenantSerializer(
+                        tenant, data=request.data, partial=True, context=ser_ctx
+                    )
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    # Evaluate .data here while still inside schema_context
+                    return Response(serializer.data)
+
+                serializer = TenantSerializer(tenant, context=ser_ctx)
+                return Response(serializer.data)
+        except Tenant.DoesNotExist:
+            return Response(
+                {"error": "سجل النادي غير موجود في قاعدة البيانات العامة."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger("maidan")
+            logger.error(f"Error in TenantViewSet.me (schema_context public): {str(e)}", exc_info=True)
+            return Response(
+                {"error": f"حدث خطأ غير متوقع: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=["post"], permission_classes=[permissions.AllowAny])
     def register(self, request):
