@@ -106,7 +106,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
       />
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <ModalBody className="space-y-6">
+        <ModalBody className="space-y-4">
           {error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
