@@ -296,7 +296,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">رابط الأكاديمية (Slug)</label>
-                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 focus-within:border-primary/50 transition-all group" dir="ltr">
+                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-4 sm:px-5 py-4 focus-within:border-primary/50 transition-all group overflow-hidden" dir="ltr">
                     <input
                       type="text"
                       name="slug"
@@ -304,9 +304,9 @@ export default function RegisterPage() {
                       value={formData.slug}
                       onChange={handleChange}
                       placeholder="elite-academy"
-                      className="flex-1 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-lg"
+                      className="flex-1 min-w-0 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-base sm:text-lg"
                     />
-                    <div className="text-sm font-black text-muted-foreground ms-2">
+                    <div className="text-[10px] sm:text-sm font-black text-muted-foreground ms-2 whitespace-nowrap shrink-0">
                       .{mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "maidan.app")}
                     </div>
                   </div>
