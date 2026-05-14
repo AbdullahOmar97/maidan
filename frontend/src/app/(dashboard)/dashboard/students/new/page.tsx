@@ -108,7 +108,7 @@ export default function NewStudentPage() {
 
   return (
     <PermissionGuard permission="can_manage_students">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-0 space-y-6 md:space-y-8 pb-40">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-0 space-y-6 md:space-y-8 pb-60">
         {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
@@ -140,10 +140,10 @@ export default function NewStudentPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Section 1: Basic Info */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative">
               <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
@@ -184,7 +184,7 @@ export default function NewStudentPage() {
             </div>
 
             {/* Section 2: Contact Info */}
-            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative">
               <div className="absolute top-0 end-0 w-32 h-32 bg-blue-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
@@ -224,8 +224,8 @@ export default function NewStudentPage() {
           </div>
 
           {/* Section 3: System Details (Sidebar) */}
-          <div className="space-y-6 md:space-y-8 pb-10">
-            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
+          <div className="space-y-6 md:space-y-8">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative">
               <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
@@ -300,6 +300,7 @@ export default function NewStudentPage() {
             </div>
           </div>
         </div>
+        <div className="h-40 md:hidden" aria-hidden="true" />
       </form>
     </div>
     </PermissionGuard>
