@@ -108,9 +108,9 @@ export default function NewStudentPage() {
 
   return (
     <PermissionGuard permission="can_manage_students">
-      <div className="max-w-4xl mx-auto space-y-8 pb-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-0 space-y-6 md:space-y-8 pb-20">
         {/* Header */}
-      <div className="flex items-center justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <Link
             href="/dashboard/students"
@@ -120,7 +120,7 @@ export default function NewStudentPage() {
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black text-white tracking-tight">إضافة طالب جديد</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">إضافة طالب جديد</h1>
               <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">خطوة 1/1</span>
             </div>
             <p className="text-muted-foreground text-sm font-bold mt-1 flex items-center gap-2">
@@ -140,10 +140,10 @@ export default function NewStudentPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Section 1: Basic Info */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
               <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
@@ -154,7 +154,7 @@ export default function NewStudentPage() {
               </div>
 
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <InputWrapper label="الاسم الأول" icon={Info}>
                   <input
                     required
@@ -184,7 +184,7 @@ export default function NewStudentPage() {
             </div>
 
             {/* Section 2: Contact Info */}
-            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
               <div className="absolute top-0 end-0 w-32 h-32 bg-blue-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">
@@ -194,7 +194,7 @@ export default function NewStudentPage() {
                 <h3 className="text-lg font-black text-white">معلومات التواصل</h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <InputWrapper label="رقم الهاتف" icon={Phone}>
                   <input
                     required
@@ -225,7 +225,7 @@ export default function NewStudentPage() {
 
           {/* Section 3: System Details (Sidebar) */}
           <div className="space-y-8">
-            <div className="glass-card p-8 space-y-8 relative overflow-hidden">
+            <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
               <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-2">

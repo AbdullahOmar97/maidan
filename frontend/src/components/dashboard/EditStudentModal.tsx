@@ -53,7 +53,7 @@ export function EditStudentModal({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="الاسم الأول" required>
               <Input
                 required
@@ -70,7 +70,7 @@ export function EditStudentModal({
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="البريد الإلكتروني">
               <Input
                 type="email"
@@ -90,7 +90,7 @@ export function EditStudentModal({
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="الجنس" required>
               <Select
                 value={student.gender}
