@@ -108,7 +108,7 @@ export default function NewStudentPage() {
 
   return (
     <PermissionGuard permission="can_manage_students">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-0 space-y-6 md:space-y-8 pb-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-0 space-y-6 md:space-y-8 pb-40">
         {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
@@ -224,7 +224,7 @@ export default function NewStudentPage() {
           </div>
 
           {/* Section 3: System Details (Sidebar) */}
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8 pb-10">
             <div className="glass-card p-5 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden">
               <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/5 blur-3xl -me-16 -mt-16 pointer-events-none" />
               
@@ -235,7 +235,7 @@ export default function NewStudentPage() {
                 <h3 className="text-lg font-black text-white">تفاصيل النظام</h3>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <InputWrapper label="الفرع / النادي" icon={MapPin}>
                   <Select
                     required

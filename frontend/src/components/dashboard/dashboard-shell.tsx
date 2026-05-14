@@ -51,7 +51,7 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
         />
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 flex flex-col"
+          className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 pb-20 sm:pb-6 lg:pb-8 flex flex-col"
           tabIndex={-1}
         >
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">

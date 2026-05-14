@@ -206,7 +206,7 @@ export default function RegisterPage() {
           <Sparkles className="h-3.5 w-3.5" />
           ابدأ رحلتك مع ميدان اليوم
         </div>
-        <h1 className="text-5xl font-black text-white mb-4 tracking-tight">تسجيل أكاديمية جديدة</h1>
+        <h1 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">تسجيل أكاديمية جديدة</h1>
         <p className="text-lg text-muted-foreground font-bold">أدخل تفاصيل الأكاديمية واختر الباقة المناسبة للبدء</p>
       </div>
 
@@ -220,7 +220,7 @@ export default function RegisterPage() {
             </h2>
             
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">الاسم الأول</label>
                   <input
