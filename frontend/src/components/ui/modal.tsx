@@ -76,7 +76,7 @@ export function Modal({
         ref={panelRef}
         className={cn(
           "relative w-full flex flex-col",
-          "max-h-[90vh]",
+          "max-h-[85vh] sm:max-h-[90vh]",
           SIZE[size],
           // Glass card style unified
           "bg-card border border-border/60",
@@ -145,7 +145,7 @@ interface ModalBodyProps {
 
 export function ModalBody({ children, className }: ModalBodyProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-6 py-5", className)}>
+    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-6 pt-5 pb-8", className)}>
       {children}
     </div>
   );
@@ -162,7 +162,7 @@ export function ModalFooter({ children, className }: ModalFooterProps) {
     <div
       className={cn(
         "shrink-0 flex items-center justify-end gap-3",
-        "px-6 py-4 border-t border-border/50 bg-secondary/10 rounded-b-2xl",
+        "px-6 py-4 pb-safe border-t border-border/50 bg-secondary/10 rounded-b-2xl",
         className
       )}
     >

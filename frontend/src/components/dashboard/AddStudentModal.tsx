@@ -105,7 +105,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
         onClose={onClose}
       />
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <ModalBody className="space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
@@ -138,7 +138,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
             </FormField>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="رقم الهاتف" required>
               <Input
                 required
@@ -163,7 +163,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
             </FormField>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="الجنس" required>
               <Select
                 name="gender"
