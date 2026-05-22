@@ -52,7 +52,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <ChevronDown
           className={cn(
             "pointer-events-none absolute top-1/2 -translate-y-1/2",
-            "ltr:right-3 rtl:left-3",
+            "end-3",
             "w-4 h-4 text-muted-foreground",
             "group-focus-within:text-primary group-focus-within:rotate-180",
             "transition-all duration-200"

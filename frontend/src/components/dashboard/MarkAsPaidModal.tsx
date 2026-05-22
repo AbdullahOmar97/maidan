@@ -87,27 +87,29 @@ export default function MarkAsPaidModal({
       </ModalBody>
 
       <ModalFooter>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isPending}
-          className="px-5 py-2.5 rounded-xl border border-border hover:bg-secondary/60 transition-colors text-sm font-medium disabled:opacity-50"
-        >
-          إلغاء
-        </button>
-        <button
-          type="button"
-          onClick={() => onConfirm(selectedMethod, note)}
-          disabled={isPending}
-          className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
-        >
-          {isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <CheckCircle className="w-4 h-4" />
-          )}
-          تأكيد السداد
-        </button>
+        <div className="flex gap-3 w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(selectedMethod, note)}
+            disabled={isPending}
+            className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            تأكيد السداد
+          </button>
+        </div>
       </ModalFooter>
     </Modal>
   );
