@@ -10,6 +10,8 @@ import { FormField, Input } from "@/components/ui/form-field";
 import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import type { Location } from "@/types";
+import { parseApiError } from "@/lib/utils";
+
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -68,21 +70,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
       onSuccess();
       onClose();
     } catch (err: any) {
-      let message = "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات.";
-      if (err.response?.data) {
-        const data = err.response.data;
-        if (typeof data === "object") {
-          const errors = Object.entries(data)
-            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
-            .join("\n");
-          if (errors) message = `خطأ في البيانات:\n${errors}`;
-        } else if (data.message) {
-          message = data.message;
-        } else if (data.detail) {
-          message = data.detail;
-        }
-      }
-      setError(message);
+      setError(parseApiError(err, "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات."));
     } finally {
       setIsSubmitting(false);
     }

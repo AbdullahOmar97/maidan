@@ -10,7 +10,7 @@ import {
   Search, X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, parseApiError } from "@/lib/utils";
 import { InputWrapper } from "@/components/form-elements";
 import type { Student } from "@/types";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -92,14 +92,7 @@ export default function NewInvoicePage() {
       router.push("/dashboard/billing");
     },
     onError: (err: any) => {
-      let message = "حدث خطأ أثناء إنشاء الفاتورة.";
-      if (err.response?.data && typeof err.response.data === "object") {
-        const msgs = Object.entries(err.response.data)
-          .map(([f, m]) => `${f}: ${Array.isArray(m) ? m.join(", ") : m}`)
-          .join("\n");
-        if (msgs) message = `خطأ في البيانات:\n${msgs}`;
-      }
-      setError(message);
+      setError(parseApiError(err, "حدث خطأ أثناء إنشاء الفاتورة."));
       toast.error("فشل إنشاء الفاتورة");
     },
   });

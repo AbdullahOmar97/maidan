@@ -101,3 +101,78 @@ export function translateErrorMessage(message: string): string {
   }
   return message;
 }
+
+export function parseApiError(err: any, defaultMessage = "حدث خطأ في النظام"): string {
+  if (!err) return defaultMessage;
+  
+  const errorData = err.response?.data;
+  if (!errorData) {
+    if (err.message) return translateErrorMessage(err.message);
+    return defaultMessage;
+  }
+
+  // Extract nested error if present
+  const apiError = errorData.error || errorData;
+
+  const fieldLabels: Record<string, string> = {
+    first_name: "الاسم الأول",
+    last_name: "الاسم الأخير",
+    phone: "رقم الهاتف",
+    email: "البريد الإلكتروني",
+    gender: "الجنس",
+    status: "الحالة",
+    location_id: "الفرع",
+    location: "الفرع",
+    non_field_errors: "خطأ",
+    detail: "التفاصيل",
+  };
+
+  const formatErrorsObj = (obj: any): string[] => {
+    return Object.entries(obj).map(([key, value]) => {
+      const fieldName = fieldLabels[key] || key;
+      let errorText = "";
+      if (Array.isArray(value)) {
+        errorText = value.join(", ");
+      } else if (typeof value === "object" && value !== null) {
+        errorText = JSON.stringify(value);
+      } else {
+        errorText = String(value);
+      }
+      
+      if (key === "non_field_errors") {
+        return translateErrorMessage(errorText);
+      }
+      return `${fieldName}: ${translateErrorMessage(errorText)}`;
+    });
+  };
+
+  // If there's a detail object with field errors, use it
+  if (apiError.detail && typeof apiError.detail === "object" && !Array.isArray(apiError.detail)) {
+    const messages = formatErrorsObj(apiError.detail);
+    if (messages.length > 0) return messages.join("\n");
+  }
+
+  // Otherwise check if the apiError itself has field errors
+  if (typeof apiError === "object" && !Array.isArray(apiError)) {
+    const { code, message, detail, ...rest } = apiError;
+    if (Object.keys(rest).length > 0) {
+      const messages = formatErrorsObj(rest);
+      if (messages.length > 0) return messages.join("\n");
+    }
+    
+    if (detail && typeof detail === "string") {
+      return translateErrorMessage(detail);
+    }
+    
+    if (message) {
+      return translateErrorMessage(message);
+    }
+  }
+
+  if (typeof apiError === "string") {
+    return translateErrorMessage(apiError);
+  }
+
+  return defaultMessage;
+}
+

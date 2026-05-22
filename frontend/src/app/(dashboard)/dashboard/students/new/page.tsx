@@ -8,7 +8,7 @@ import { ArrowRight, UserPlus, Loader2, AlertCircle, Sparkles, MapPin, Phone, Ma
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Location } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, parseApiError } from "@/lib/utils";
 import { InputWrapper } from "@/components/form-elements";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
@@ -56,20 +56,7 @@ export default function NewStudentPage() {
       router.push("/dashboard/students");
     },
     onError: (err: any) => {
-      let message = "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات.";
-      if (err.response?.data) {
-        const data = err.response.data;
-        if (typeof data === "object") {
-          const errors = Object.entries(data)
-            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
-            .join("\n");
-          if (errors) message = `خطأ في البيانات:\n${errors}`;
-        } else if (data.message) {
-          message = data.message;
-        } else if (data.detail) {
-          message = data.detail;
-        }
-      }
+      const message = parseApiError(err, "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات.");
       setError(message);
       toast.error("فشل إضافة الطالب");
     },

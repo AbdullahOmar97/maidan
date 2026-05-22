@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Award, Calendar, FileText, Loader2, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseApiError } from "@/lib/utils";
 import type { BeltRank, PaginatedResponse } from "@/types";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
@@ -64,18 +64,9 @@ export default function PromoteStudentDialog({
   };
 
   /* Build error message string */
-  const errorMessage = (() => {
-    if (!promotionMutation.isError) return null;
-    const data = (promotionMutation.error as any)?.response?.data;
-    if (!data) return "يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.";
-    if (typeof data === "string") return data.substring(0, 200);
-    if (typeof data === "object") {
-      return Object.entries(data)
-        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-        .join(" — ");
-    }
-    return "حدث خطأ غير معروف.";
-  })();
+  const errorMessage = promotionMutation.isError
+    ? parseApiError(promotionMutation.error, "يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.")
+    : null;
 
   return (
     <Modal open={isOpen} onClose={onClose} size="sm">

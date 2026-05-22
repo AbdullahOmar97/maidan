@@ -9,7 +9,7 @@ import {
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft
 } from "lucide-react";
-import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue } from "@/lib/utils";
+import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -54,16 +54,7 @@ export default function StudentDetailPage() {
     },
     onError: (err: any) => {
       console.error("Update student error:", err);
-      let message = "حدث خطأ أثناء تحديث بيانات الطالب.";
-      if (err.response?.data) {
-        const data = err.response.data;
-        if (typeof data === "object") {
-          message = Object.entries(data)
-            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
-            .join("\n");
-        }
-      }
-      setEditError(message);
+      setEditError(parseApiError(err, "حدث خطأ أثناء تحديث بيانات الطالب."));
     },
   });
 
