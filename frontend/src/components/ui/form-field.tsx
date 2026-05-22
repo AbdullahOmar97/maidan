@@ -14,25 +14,25 @@ interface FormFieldProps {
 
 export function FormField({ label, required, hint, children, className }: FormFieldProps) {
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+    <div className={cn("space-y-2", className)}>
+      <label className="block text-xs font-bold text-muted-foreground/80 uppercase tracking-wider">
         {label}
-        {required && <span className="text-destructive me-1">*</span>}
+        {required && <span className="text-destructive ms-1">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground/70">{hint}</p>}
+      {hint && <p className="text-[10px] font-bold text-muted-foreground/60">{hint}</p>}
     </div>
   );
 }
 
 /* ── Input ─────────────────────────────────────────────────────── */
 const inputBase =
-  "w-full px-4 py-2.5 rounded-xl text-sm font-medium " +
-  "bg-secondary/40 border border-border " +
-  "placeholder:text-muted-foreground/50 text-foreground " +
-  "focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/50 " +
-  "hover:border-border/80 " +
-  "transition-all duration-200 " +
+  "w-full px-4 py-3 rounded-xl text-sm font-medium " +
+  "bg-background/50 border border-border/80 " +
+  "placeholder:text-muted-foreground/40 text-foreground " +
+  "focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary focus:bg-background " +
+  "hover:border-primary/30 " +
+  "transition-all duration-300 " +
   "disabled:opacity-50 disabled:cursor-not-allowed";
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {

@@ -66,7 +66,7 @@ export function Modal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/75 backdrop-blur-[6px] transition-all duration-300"
         onClick={disableBackdropClose ? undefined : onClose}
         aria-hidden="true"
       />
@@ -78,14 +78,17 @@ export function Modal({
           "relative w-full flex flex-col",
           "max-h-[85vh] sm:max-h-[90vh]",
           SIZE[size],
-          // Glass card style unified
-          "bg-card border border-border/60",
-          "rounded-2xl shadow-2xl",
+          // Beautiful dark-mode premium card style with glowing border
+          "bg-card/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
+          "rounded-[2rem] overflow-hidden",
           // Entry animation
-          "animate-in fade-in zoom-in-95 duration-200",
+          "animate-in fade-in zoom-in-95 duration-300 ease-out",
           className
         )}
       >
+        {/* Top accent line */}
+        <div className="absolute top-0 inset-x-0 h-[3px] gradient-brand opacity-80" />
+        
         {children}
       </div>
     </div>
@@ -105,22 +108,22 @@ interface ModalHeaderProps {
 
 export function ModalHeader({ icon, iconColor, title, subtitle, onClose }: ModalHeaderProps) {
   return (
-    <div className="shrink-0 flex items-center justify-between gap-4 px-6 py-5 border-b border-border/50 bg-secondary/20 rounded-t-2xl">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="shrink-0 flex items-center justify-between gap-4 px-6 pt-6 pb-5 border-b border-white/[0.05] bg-white/[0.01]">
+      <div className="flex items-center gap-3.5 min-w-0">
         {icon && (
           <div
             className={cn(
-              "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
-              iconColor ?? "bg-primary/10 text-primary"
+              "shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105",
+              iconColor ?? "gradient-brand text-white shadow-primary/15"
             )}
           >
             {icon}
           </div>
         )}
         <div className="min-w-0">
-          <h2 className="text-base font-bold leading-tight truncate">{title}</h2>
+          <h2 className="text-lg font-black leading-tight tracking-tight text-white">{title}</h2>
           {subtitle && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
+            <p className="text-xs font-semibold text-muted-foreground mt-1 truncate">{subtitle}</p>
           )}
         </div>
       </div>
@@ -129,7 +132,7 @@ export function ModalHeader({ icon, iconColor, title, subtitle, onClose }: Modal
         type="button"
         onClick={onClose}
         aria-label="إغلاق"
-        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-white/5 hover:text-white transition-all active:scale-90 border border-transparent hover:border-white/[0.05]"
       >
         <X className="w-4 h-4" />
       </button>
@@ -145,7 +148,7 @@ interface ModalBodyProps {
 
 export function ModalBody({ children, className }: ModalBodyProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-6 pt-5 pb-8", className)}>
+    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-6 pt-6 pb-8", className)}>
       {children}
     </div>
   );
@@ -162,7 +165,7 @@ export function ModalFooter({ children, className }: ModalFooterProps) {
     <div
       className={cn(
         "shrink-0 flex items-center justify-end gap-3",
-        "px-6 py-4 pb-safe border-t border-border/50 bg-secondary/10 rounded-b-2xl",
+        "px-6 py-5 pb-safe border-t border-white/[0.05] bg-white/[0.01]",
         className
       )}
     >

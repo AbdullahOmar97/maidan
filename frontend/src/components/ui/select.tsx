@@ -24,21 +24,21 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             // Layout
             "w-full appearance-none cursor-pointer",
             // Spacing
-            "px-4 py-2.5 pe-10",
+            "px-4 py-3 pe-10",
             // Typography
             "text-sm font-medium",
             // Background & border
-            "bg-white/[0.04] border border-white/[0.08]",
+            "bg-background/50 border border-border/80",
             // Shape
             "rounded-xl",
             // Colors
             "text-foreground",
             // Hover
-            "hover:bg-white/[0.06] hover:border-white/[0.14]",
+            "hover:border-primary/30",
             // Focus
-            "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-white/[0.06]",
+            "focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary focus:bg-background",
             // Transition
-            "transition-all duration-200",
+            "transition-all duration-300",
             // Option colors (browser-native fallback)
             "[&>option]:bg-[hsl(var(--card))] [&>option]:text-foreground",
             className
