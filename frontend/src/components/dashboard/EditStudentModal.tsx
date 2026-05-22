@@ -108,6 +108,9 @@ export function EditStudentModal({
                 <option value="active">نشط</option>
                 <option value="trial">تجريبي</option>
                 <option value="lead">عميل محتمل</option>
+                <option value="suspended">موقوف</option>
+                <option value="inactive">غير نشط</option>
+                <option value="graduated">خريج</option>
               </Select>
             </FormField>
           </div>

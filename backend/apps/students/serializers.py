@@ -127,6 +127,42 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             )
         ]
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        
+        # Branch capacity validation
+        location = attrs.get("location")
+        status_val = attrs.get("status")
+        
+        # If updating, get values from self.instance if not provided in attrs
+        if self.instance:
+            if location is None:
+                location = self.instance.location
+            if status_val is None:
+                status_val = self.instance.status
+        else:
+            if status_val is None:
+                status_val = "lead"
+                
+        # Only check capacity if the student's status is 'active' or 'trial'
+        if status_val in ["active", "trial"] and location:
+            # Count other active/trial students in this location
+            query = Student.objects.filter(
+                location=location,
+                status__in=["active", "trial"],
+                deleted_at__isnull=True
+            )
+            if self.instance and self.instance.pk:
+                query = query.exclude(pk=self.instance.pk)
+                
+            current_active_count = query.count()
+            if current_active_count >= location.capacity:
+                raise serializers.ValidationError({
+                    "location_id": f"لقد تجاوز عدد الطلاب في هذا الفرع السعة الاستيعابية المتاحة ({location.capacity} طلاب)."
+                })
+                
+        return attrs
+
     def get_photo_url(self, obj):
         if obj.photo:
             request = self.context.get("request")

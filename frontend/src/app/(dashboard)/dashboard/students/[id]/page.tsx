@@ -7,7 +7,8 @@ import {
   ArrowRight, Phone, Mail, MapPin, Calendar, Award, 
   CreditCard, ClipboardList, MessageSquare, Edit, 
   Loader2, AlertCircle, User, History,
-  TrendingUp, Download, Plus, Sparkles, ChevronLeft
+  TrendingUp, Download, Plus, Sparkles, ChevronLeft,
+  Trash2
 } from "lucide-react";
 import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import Link from "next/link";
@@ -19,6 +20,7 @@ import ManualAttendanceDialog from "@/components/dashboard/ManualAttendanceDialo
 import MembershipDialog from "@/components/dashboard/MembershipDialog";
 import { EditStudentModal } from "@/components/dashboard/EditStudentModal";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -31,12 +33,26 @@ export default function StudentDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editData, setEditData] = useState<Student | null>(null);
   const [editError, setEditError] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const studentId = Number(id);
 
   const { data: student, isLoading, error } = useQuery<Student>({
     queryKey: ["student", id],
     queryFn: () => api.students.get(studentId).then((res: { data: Student }) => res.data),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.students.delete(studentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      toast.success("تم حذف الطالب بنجاح");
+      router.push("/dashboard/students");
+    },
+    onError: (err: any) => {
+      console.error("Delete student error:", err);
+      toast.error(parseApiError(err, "حدث خطأ أثناء حذف الطالب."));
+    },
   });
 
   const { data: locations = [] } = useQuery<Location[]>({
@@ -169,6 +185,13 @@ export default function StudentDetailPage() {
           >
             <Edit className="w-4 h-4" />
             تعديل الملف
+          </button>
+          <button 
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-all active:scale-95"
+          >
+            <Trash2 className="w-4 h-4" />
+            حذف الطالب
           </button>
         </div>
       </div>
@@ -766,6 +789,42 @@ export default function StudentDetailPage() {
           onChange={(updated) => setEditData((prev: Student | null) => prev ? { ...prev, ...updated } : null)}
           onSave={handleSaveEdit}
         />
+      )}
+
+      {isDeleteModalOpen && (
+        <Modal open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} size="sm">
+          <ModalHeader
+            icon={<Trash2 className="w-5 h-5 text-red-500" />}
+            title="حذف ملف الطالب"
+            subtitle={student.full_name}
+            onClose={() => setIsDeleteModalOpen(false)}
+          />
+          <ModalBody className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed text-right" dir="rtl">
+              هل أنت متأكد من رغبتك في حذف ملف الطالب؟ سيتم أرشفة بيانات الطالب والاشتراكات بشكل آمن.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate()}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                تأكيد الحذف
+              </button>
+            </div>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
     </PermissionGuard>
