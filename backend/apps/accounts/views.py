@@ -59,6 +59,8 @@ class LoginView(APIView):
                     message = "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً."
                 elif tenant.status == Tenant.SubscriptionStatus.EXPIRED:
                     message = "لقد انتهى اشتراكك. يرجى التجديد للمتابعة."
+                elif tenant.status == Tenant.SubscriptionStatus.INACTIVE:
+                    message = "هذا النادي معطل حالياً. يرجى مراجعة الإدارة."
                 
                 return Response(
                     {
@@ -208,13 +210,32 @@ class TenantDiscoveryView(APIView):
                 {
                     "found": False,
                     "code": "pending_approval",
-                    "message": "Account is pending approval.",
+                    "message": "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً.",
                 },
                 status=status.HTTP_200_OK,
             )
 
-        if not tenant.is_active:
-            return Response(generic_response, status=status.HTTP_200_OK)
+        if tenant.status == Tenant.SubscriptionStatus.EXPIRED:
+            return Response(
+                {
+                    "found": False,
+                    "code": "subscription_expired",
+                    "message": "لقد انتهى اشتراكك. يرجى التجديد للمتابعة.",
+                    "status": "expired",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if tenant.status == Tenant.SubscriptionStatus.INACTIVE or not tenant.is_active:
+            return Response(
+                {
+                    "found": False,
+                    "code": "tenant_inactive",
+                    "message": "هذا النادي معطل حالياً. يرجى مراجعة الإدارة.",
+                    "status": "inactive",
+                },
+                status=status.HTTP_200_OK,
+            )
 
         domain = Domain.objects.filter(tenant=tenant).order_by("-is_primary", "id").first()
         if not domain:

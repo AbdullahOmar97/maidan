@@ -46,12 +46,9 @@ export default function LoginPage() {
       if (res.status === 403) {
         const data = await res.json();
         if (data.error?.code === "tenant_inactive" || data.error?.code === "subscription_expired") {
-          setErrorTitle(
-            data.error.status === "pending" ? "قيد المراجعة" : 
-            data.error.status === "expired" ? "اشتراك منتهي" : "النادي غير مفعل"
-          );
-          setError(data.error.message);
-          setIsLocked(true);
+          const statusType = data.error.status === "pending" ? "pending" : 
+                             data.error.status === "expired" ? "expired" : "inactive";
+          router.replace(`/status?type=${statusType}&message=${encodeURIComponent(data.error.message)}`);
         }
       }
     } catch (err) {
@@ -96,6 +93,12 @@ export default function LoginPage() {
         if (data?.code === "pending_approval") {
           setErrorTitle("قيد المراجعة");
           setError("حسابك قيد المراجعة حالياً، يرجى الانتظار لحين تفعيله من قبل الإدارة.");
+        } else if (data?.code === "subscription_expired") {
+          setErrorTitle("اشتراك منتهي");
+          setError("لقد انتهى اشتراكك. يرجى التجديد للمتابعة.");
+        } else if (data?.code === "tenant_inactive") {
+          setErrorTitle("النادي غير مفعل");
+          setError("هذا الحساب غير نشط حالياً. يرجى التواصل مع إدارة المنصة للمزيد من التفاصيل.");
         } else {
           setError("لم نتمكن من العثور على نادٍ مرتبط بهذا البريد الإلكتروني");
         }
