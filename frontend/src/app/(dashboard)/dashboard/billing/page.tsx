@@ -149,17 +149,17 @@ function InvoiceMobileCard({
       </div>
 
       {/* Details grid */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
+      <div className="grid grid-cols-2 gap-2 text-xs text-start">
         <div>
           <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px] mb-0.5">تاريخ الاستحقاق</p>
-          <p className="font-bold text-white" >{formatDate(invoice.due_date)}</p>
+          <p className="font-bold text-white"><bdi>{formatDate(invoice.due_date)}</bdi></p>
         </div>
         <div>
           <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px] mb-0.5">المبلغ</p>
-          <p className="font-black text-white" >{formatCurrency(invoice.total_amount, invoice.currency)}</p>
+          <p className="font-black text-white"><bdi>{formatCurrency(invoice.total_amount, invoice.currency)}</bdi></p>
           {invoice.amount_due > 0 && invoice.status !== "paid" && (
-            <p className="text-[10px] font-bold text-amber-400" >
-              متبقي: {formatCurrency(invoice.amount_due, invoice.currency)}
+            <p className="text-[10px] font-bold text-amber-400">
+              متبقي: <bdi>{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
             </p>
           )}
         </div>

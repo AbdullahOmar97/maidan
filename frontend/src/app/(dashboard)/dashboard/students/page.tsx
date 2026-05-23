@@ -80,7 +80,7 @@ function StudentCard({ student }: { student: Student }) {
               <div className="w-6 h-6 rounded-xl bg-white/5 flex items-center justify-center text-primary/70 group-hover:bg-primary/20 group-hover:text-primary transition-all">
                 <Phone className="w-3 h-3" />
               </div>
-              <span className="tracking-tight">{student.phone}</span>
+              <span className="tracking-tight"><bdi>{student.phone}</bdi></span>
             </div>
           )}
           {student.email && (

@@ -224,7 +224,7 @@ export default function LocationDetailPage() {
                   <Phone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-bold text-muted-foreground">رقم الهاتف</p>
-                    <p className="text-sm font-semibold text-white mt-1" >{location.phone || "---"}</p>
+                    <p className="text-sm font-semibold text-white mt-1"><bdi>{location.phone || "---"}</bdi></p>
                   </div>
                 </div>
 
@@ -353,10 +353,10 @@ export default function LocationDetailPage() {
 
             <div className="space-y-3">
               <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">معلومات الاتصال</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-4 rounded-xl border border-border/30 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-4 rounded-xl border border-border/30 text-sm text-start">
                 <div>
                   <span className="text-muted-foreground block text-xs">رقم الهاتف</span>
-                  <span className="font-semibold text-white mt-1 block" >{selectedStaff.phone || "---"}</span>
+                  <span className="font-semibold text-white mt-1 block"><bdi>{selectedStaff.phone || "---"}</bdi></span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-xs">البريد الإلكتروني</span>

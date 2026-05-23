@@ -107,7 +107,7 @@ export default function MembershipDialog({
                 <p className="text-xs text-muted-foreground mb-2">{selectedPlan.description}</p>
               )}
               <p className="text-lg font-black text-primary">
-                {formatCurrency(selectedPlan.price, selectedPlan.currency)}
+                <bdi>{formatCurrency(selectedPlan.price, selectedPlan.currency)}</bdi>
               </p>
             </div>
           )}

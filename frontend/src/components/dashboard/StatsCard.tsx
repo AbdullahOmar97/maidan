@@ -177,8 +177,8 @@ export function StatsCard({
 
       {/* Value + labels */}
       <div className="relative z-10">
-        <p className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1.5 text-gradient" >
-          {formatted}
+        <p className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1.5 text-gradient">
+          <bdi>{formatted}</bdi>
         </p>
         <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">
           {label}

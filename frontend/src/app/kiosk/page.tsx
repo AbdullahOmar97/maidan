@@ -270,7 +270,7 @@ export default function KioskPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold">{student.full_name}</p>
-                      <p className="text-sm text-muted-foreground">{student.phone}</p>
+                      <p className="text-sm text-muted-foreground"><bdi>{student.phone}</bdi></p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary rtl-flip transition-colors" />
                   </button>

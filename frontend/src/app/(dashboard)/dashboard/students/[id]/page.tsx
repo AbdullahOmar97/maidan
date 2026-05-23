@@ -831,15 +831,15 @@ export default function StudentDetailPage() {
   );
 }
 
-function ContactItem({ icon: Icon, label, value, dir }: { icon: any, label: string, value?: string, dir?: string }) {
+function ContactItem({ icon: Icon, label, value }: { icon: any, label: string, value?: string }) {
   return (
-    <div className="flex items-center gap-4 group/item">
+    <div className="flex items-center gap-4 group/item text-start">
       <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-sm">
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
-        <p className="text-sm font-bold text-white truncate" dir={dir}>{value || "—"}</p>
+        <p className="text-sm font-bold text-white truncate"><bdi>{value || "—"}</bdi></p>
       </div>
     </div>
   );
@@ -849,7 +849,7 @@ function OverviewRow({ label, value, valueClass }: { label: string, value: strin
   return (
     <div className="flex justify-between items-center py-1 group/row">
       <span className="text-sm font-bold text-muted-foreground group-hover/row:text-white transition-colors">{label}</span>
-      <span className={cn("text-sm font-black", valueClass || "text-white")}>{value}</span>
+      <span className={cn("text-sm font-black", valueClass || "text-white")}><bdi>{value}</bdi></span>
     </div>
   );
 }

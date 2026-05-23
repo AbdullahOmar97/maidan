@@ -240,7 +240,7 @@ export default function LocationsPage() {
                       <span className="text-muted-foreground flex items-center gap-2">
                         <Phone className="w-4 h-4" /> الهاتف
                       </span>
-                      <span className="font-medium" >{location.phone || "---"}</span>
+                      <span className="font-medium"><bdi>{location.phone || "---"}</bdi></span>
                     </div>
                     {location.email && (
                       <div className="flex items-center justify-between text-sm">

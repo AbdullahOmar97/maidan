@@ -388,16 +388,16 @@ export default function NewInvoicePage() {
                 <div className="space-y-3" aria-live="polite" aria-label="ملخص المبالغ">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">المبلغ الفرعي:</span>
-                    <span className="text-white font-bold" >{formatCurrency(subtotal, formData.currency)}</span>
+                    <span className="text-white font-bold"><bdi>{formatCurrency(subtotal, formData.currency)}</bdi></span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">الخصم:</span>
-                    <span className="text-red-400 font-bold" >-{formatCurrency(discount, formData.currency)}</span>
+                    <span className="text-red-400 font-bold"><bdi>-{formatCurrency(discount, formData.currency)}</bdi></span>
                   </div>
                   <div className="pt-3 border-t border-white/5 flex justify-between">
                     <span className="text-white font-black">الإجمالي المستحق:</span>
-                    <span className="text-primary font-black text-lg md:text-xl" >
-                      {formatCurrency(total, formData.currency)}
+                    <span className="text-primary font-black text-lg md:text-xl">
+                      <bdi>{formatCurrency(total, formData.currency)}</bdi>
                     </span>
                   </div>
                 </div>

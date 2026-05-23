@@ -79,7 +79,7 @@ function TenantCard({ tenant }: { tenant: any }) {
         {tenant.phone && (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Phone className="w-4 h-4 text-primary/70" />
-            <span>{tenant.phone}</span>
+            <span><bdi>{tenant.phone}</bdi></span>
           </div>
         )}
       </div>
@@ -87,7 +87,7 @@ function TenantCard({ tenant }: { tenant: any }) {
       <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
           <Calendar className="w-3 h-3" />
-          <span>مسجل منذ: {new Date(tenant.created_at).toLocaleDateString("ar-SA")}</span>
+          <span>مسجل منذ: <bdi>{new Date(tenant.created_at).toLocaleDateString("ar-SA")}</bdi></span>
         </div>
         
         <Link 

@@ -143,7 +143,7 @@ export default function PlansPage() {
                     </div>
                     <div className="text-end">
                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">السعر</span>
-                      <span className="text-lg font-black text-primary" >{formatCurrency(plan.price, plan.currency)}</span>
+                      <span className="text-lg font-black text-primary"><bdi>{formatCurrency(plan.price, plan.currency)}</bdi></span>
                     </div>
                   </div>
 

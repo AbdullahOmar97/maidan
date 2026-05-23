@@ -276,7 +276,7 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
         {member.phone && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Phone className="w-3.5 h-3.5" />
-            <span >{member.phone}</span>
+            <span><bdi>{member.phone}</bdi></span>
           </div>
         )}
       </td>
