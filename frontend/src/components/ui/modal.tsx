@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,12 @@ export function Modal({
   className,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   /* Close on Escape */
   useEffect(() => {
@@ -56,9 +63,9 @@ export function Modal({
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -91,7 +98,8 @@ export function Modal({
         
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -108,7 +116,7 @@ interface ModalHeaderProps {
 
 export function ModalHeader({ icon, iconColor, title, subtitle, onClose }: ModalHeaderProps) {
   return (
-    <div className="shrink-0 flex items-center justify-between gap-4 px-6 pt-6 pb-5 border-b border-white/[0.05] bg-white/[0.01]">
+    <div className="shrink-0 flex items-center justify-between gap-4 px-8 pt-8 pb-5 border-b border-white/[0.05] bg-white/[0.01]">
       <div className="flex items-center gap-3.5 min-w-0">
         {icon && (
           <div
@@ -148,7 +156,7 @@ interface ModalBodyProps {
 
 export function ModalBody({ children, className }: ModalBodyProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-6 pt-6 pb-8", className)}>
+    <div className={cn("flex-1 overflow-y-auto custom-scrollbar px-8 pt-6 pb-8", className)}>
       {children}
     </div>
   );
@@ -165,7 +173,7 @@ export function ModalFooter({ children, className }: ModalFooterProps) {
     <div
       className={cn(
         "shrink-0 flex items-center justify-end gap-3",
-        "px-6 py-5 pb-safe border-t border-white/[0.05] bg-white/[0.01]",
+        "px-8 py-6 pb-8 border-t border-white/[0.05] bg-white/[0.01]",
         className
       )}
     >
