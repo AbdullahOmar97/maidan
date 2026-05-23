@@ -16,10 +16,10 @@ interface PaymentMethodOption {
 }
 
 const PAYMENT_METHODS: PaymentMethodOption[] = [
-  { value: "cash",          label: "نقد",             icon: Banknote,  activeClass: "bg-emerald-500/15 border-emerald-500/40 text-emerald-400" },
-  { value: "bank_transfer", label: "تحويل بنكي",      icon: Building2, activeClass: "bg-blue-500/15 border-blue-500/40 text-blue-400"         },
-  { value: "card",          label: "بطاقة بنكية",     icon: CreditCard,activeClass: "bg-violet-500/15 border-violet-500/40 text-violet-400"    },
-  { value: "mobile_wallet", label: "محفظة إلكترونية", icon: Smartphone,activeClass: "bg-amber-500/15 border-amber-500/40 text-amber-400"       },
+  { value: "cash", label: "نقد", icon: Banknote, activeClass: "bg-emerald-500/15 border-emerald-500/40 text-emerald-400" },
+  { value: "bank_transfer", label: "تحويل بنكي", icon: Building2, activeClass: "bg-blue-500/15 border-blue-500/40 text-blue-400" },
+  { value: "card", label: "بطاقة بنكية", icon: CreditCard, activeClass: "bg-violet-500/15 border-violet-500/40 text-violet-400" },
+  { value: "mobile_wallet", label: "محفظة إلكترونية", icon: Smartphone, activeClass: "bg-amber-500/15 border-amber-500/40 text-amber-400" },
 ];
 
 interface MarkAsPaidModalProps {
@@ -81,7 +81,7 @@ export default function MarkAsPaidModal({
             disabled={isPending}
             rows={2}
             placeholder="رقم وصل الدفع، اسم المحوّل..."
-            dir="rtl"
+
           />
         </FormField>
       </ModalBody>

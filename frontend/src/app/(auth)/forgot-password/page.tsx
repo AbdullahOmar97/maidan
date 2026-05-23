@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] end-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
-        
+
         {/* Animated Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
@@ -64,10 +64,10 @@ export default function ForgotPasswordPage() {
         {/* Brand/Logo Section */}
         <div className="text-center mb-10 group cursor-default">
           <Link href="/login" className="relative inline-flex mb-6">
-             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
-             <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
-                <Shield className="w-10 h-10 text-white" />
-             </div>
+            <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
+            <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
           </Link>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
             MAIDAN
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
         {/* Main Card */}
         <div className="glass-card relative p-10 overflow-hidden border-white/10">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-          
+
           <div className="relative z-10">
             {isSuccess ? (
               <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
@@ -123,7 +123,7 @@ export default function ForgotPasswordPage() {
                         onChange={(event) => setEmail(event.target.value)}
                         className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
                         placeholder="name@example.com"
-                        dir="ltr"
+
                       />
                       <div className="absolute inset-y-0 start-4 flex items-center text-muted-foreground">
                         <Mail className="w-5 h-5" />
@@ -132,9 +132,9 @@ export default function ForgotPasswordPage() {
                   </div>
 
                   {/* Error Message */}
-                  <ErrorAlert 
-                    error={error} 
-                    variant="compact" 
+                  <ErrorAlert
+                    error={error}
+                    variant="compact"
                     className="mb-4"
                   />
 
@@ -160,7 +160,7 @@ export default function ForgotPasswordPage() {
                 </form>
 
                 <div className="mt-8 text-center">
-                  <Link 
+                  <Link
                     href="/login"
                     className="inline-flex items-center gap-2 text-[11px] font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-widest group"
                   >

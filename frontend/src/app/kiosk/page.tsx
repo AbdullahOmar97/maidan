@@ -48,12 +48,12 @@ export default function KioskPage() {
   const activeLocations = (locations?.filter((loc: any) => loc.is_active) ?? []).filter((loc: any) => {
     // If user is admin/owner, they see all
     if (PRIVILEGED_ROLES.includes(user?.role)) return true;
-    
+
     // If user has assigned locations, they only see those
     if (user?.assigned_location_ids && Array.isArray(user.assigned_location_ids) && user.assigned_location_ids.length > 0) {
       return user.assigned_location_ids.includes(loc.id);
     }
-    
+
     // Default: see all (for legacy or unassigned staff if any)
     return true;
   });
@@ -62,7 +62,7 @@ export default function KioskPage() {
   useEffect(() => {
     if (selectedLocation) return;
     if (activeLocations.length === 0) return;
-    
+
     if (activeLocations.length === 1) {
       handleSelectLocation(activeLocations[0]);
       return;
@@ -147,7 +147,7 @@ export default function KioskPage() {
 
         <div className="flex items-center gap-6">
           {/* Switch location button */}
-          <button 
+          <button
             onClick={() => {
               setSelectedLocation(null);
               localStorage.removeItem("kiosk_location");
@@ -177,128 +177,128 @@ export default function KioskPage() {
       {/* Main Content */}
       {!selectedLocation ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto w-full text-center">
-           <div className="w-20 h-20 rounded-3xl gradient-brand mb-8 flex items-center justify-center shadow-2xl shadow-primary/40">
-             <MapPin className="w-10 h-10 text-white" />
-           </div>
-           <h2 className="text-3xl font-bold mb-4">مرحباً بك في ميدان</h2>
-           <p className="text-muted-foreground mb-12">يرجى اختيار الفرع الحالي لهذا الجهاز للبدء</p>
-           
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-             {activeLocations.map((loc) => (
-               <button
-                 key={loc.id}
-                 onClick={() => handleSelectLocation(loc)}
-                 className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group text-end flex items-center justify-between"
-               >
-                 <div>
-                   <p className="font-bold text-lg">{loc.name}</p>
-                   <p className="text-sm text-muted-foreground">موقع التدريب</p>
-                 </div>
-                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary rtl-flip transition-colors" />
-               </button>
-             ))}
-           </div>
+          <div className="w-20 h-20 rounded-3xl gradient-brand mb-8 flex items-center justify-center shadow-2xl shadow-primary/40">
+            <MapPin className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">مرحباً بك في ميدان</h2>
+          <p className="text-muted-foreground mb-12">يرجى اختيار الفرع الحالي لهذا الجهاز للبدء</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {activeLocations.map((loc) => (
+              <button
+                key={loc.id}
+                onClick={() => handleSelectLocation(loc)}
+                className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all group text-end flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-bold text-lg">{loc.name}</p>
+                  <p className="text-sm text-muted-foreground">موقع التدريب</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary rtl-flip transition-colors" />
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto w-full">
-        {/* Check-in Result */}
-        {lastCheckIn && (
-          <div
-            className={cn(
-              "w-full mb-8 p-6 rounded-2xl border text-center transition-all animate-fade-in",
-              lastCheckIn.success
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : "bg-red-500/10 border-red-500/30 text-red-400"
-            )}
-          >
-            {lastCheckIn.success ? (
-              <CheckCircle className="w-12 h-12 mx-auto mb-3" />
-            ) : (
-              <XCircle className="w-12 h-12 mx-auto mb-3" />
-            )}
-            <p className="text-xl font-bold">{lastCheckIn.message}</p>
-          </div>
-        )}
-
-        {/* Search Box */}
-        <div className="w-full glass-card p-8 text-center">
-          <div className="w-16 h-16 rounded-2xl gradient-brand mx-auto mb-6 flex items-center justify-center shadow-xl shadow-primary/30">
-            <Users className="w-8 h-8 text-white" />
-          </div>
-
-          <h2 className="text-2xl font-bold mb-2">ابحث عن طالب</h2>
-          <p className="text-muted-foreground text-sm mb-8">
-            اكتب اسمك أو رقم هاتفك لتسجيل الحضور
-          </p>
-
-          <div className="relative">
-            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="الاسم أو رقم الهاتف..."
-              className="w-full pe-12 ps-4 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all text-center"
-              autoFocus
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Search Results */}
-          {searchValue.length >= 2 && (
-            <div className="mt-4 space-y-2">
-              {searching && (
-                <div className="text-center py-4 text-muted-foreground text-sm">
-                  جاري البحث...
-                </div>
+          {/* Check-in Result */}
+          {lastCheckIn && (
+            <div
+              className={cn(
+                "w-full mb-8 p-6 rounded-2xl border text-center transition-all animate-fade-in",
+                lastCheckIn.success
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "bg-red-500/10 border-red-500/30 text-red-400"
               )}
-              {!searching && studentResults?.length === 0 && (
-                <div className="text-center py-4 text-muted-foreground text-sm">
-                  لم يتم العثور على طالب
-                </div>
+            >
+              {lastCheckIn.success ? (
+                <CheckCircle className="w-12 h-12 mx-auto mb-3" />
+              ) : (
+                <XCircle className="w-12 h-12 mx-auto mb-3" />
               )}
-              {studentResults?.map((student: Student) => (
-                <button
-                  key={student.id}
-                  id={`checkin-student-${student.id}`}
-                  onClick={() => checkinMutation.mutate(student.id)}
-                  disabled={checkinMutation.isPending}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-primary/10 border border-border hover:border-primary/30 transition-all group text-end"
-                >
-                  <div className="w-12 h-12 rounded-xl gradient-brand-soft border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shrink-0">
-                    {student.first_name?.[0]?.toUpperCase()}
+              <p className="text-xl font-bold">{lastCheckIn.message}</p>
+            </div>
+          )}
+
+          {/* Search Box */}
+          <div className="w-full glass-card p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl gradient-brand mx-auto mb-6 flex items-center justify-center shadow-xl shadow-primary/30">
+              <Users className="w-8 h-8 text-white" />
+            </div>
+
+            <h2 className="text-2xl font-bold mb-2">ابحث عن طالب</h2>
+            <p className="text-muted-foreground text-sm mb-8">
+              اكتب اسمك أو رقم هاتفك لتسجيل الحضور
+            </p>
+
+            <div className="relative">
+              <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder="الاسم أو رقم الهاتف..."
+                className="w-full pe-12 ps-4 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all text-center"
+                autoFocus
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Search Results */}
+            {searchValue.length >= 2 && (
+              <div className="mt-4 space-y-2">
+                {searching && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    جاري البحث...
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold">{student.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{student.phone}</p>
+                )}
+                {!searching && studentResults?.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    لم يتم العثور على طالب
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary rtl-flip transition-colors" />
-                </button>
-              ))}
+                )}
+                {studentResults?.map((student: Student) => (
+                  <button
+                    key={student.id}
+                    id={`checkin-student-${student.id}`}
+                    onClick={() => checkinMutation.mutate(student.id)}
+                    disabled={checkinMutation.isPending}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-primary/10 border border-border hover:border-primary/30 transition-all group text-end"
+                  >
+                    <div className="w-12 h-12 rounded-xl gradient-brand-soft border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shrink-0">
+                      {student.first_name?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold">{student.full_name}</p>
+                      <p className="text-sm text-muted-foreground">{student.phone}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary rtl-flip transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Today's Sessions */}
+          {sessions && sessions.length > 0 && (
+            <div className="w-full mt-6">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">حصص اليوم</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {sessions.map((session) => (
+                  <div key={session.id} className="glass-card p-4 flex items-center gap-3">
+                    <div className="w-2 h-10 rounded-full bg-primary" />
+                    <div>
+                      <p className="font-medium text-sm">{session.class_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {session.location_name} · {session.attendance_count} حاضر
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Today's Sessions */}
-        {sessions && sessions.length > 0 && (
-          <div className="w-full mt-6">
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">حصص اليوم</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {sessions.map((session) => (
-                <div key={session.id} className="glass-card p-4 flex items-center gap-3">
-                  <div className="w-2 h-10 rounded-full bg-primary" />
-                  <div>
-                    <p className="font-medium text-sm">{session.class_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {session.location_name} · {session.attendance_count} حاضر
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
       )}
     </div>
   );
@@ -317,7 +317,7 @@ function KioskClock() {
   if (!mounted) return <div className="text-sm font-mono text-muted-foreground w-20" />;
 
   return (
-    <div className="text-sm font-mono text-muted-foreground" dir="ltr">
+    <div className="text-sm font-mono text-muted-foreground" >
       {time.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
     </div>
   );

@@ -11,12 +11,12 @@ import { FormField, Input } from "@/components/ui/form-field";
 import { MultiSelect } from "@/components/ui/multi-select";
 
 const STAFF_ROLES: { id: string; label: string }[] = [
-  { id: "manager",        label: ROLE_LABELS.manager },
+  { id: "manager", label: ROLE_LABELS.manager },
   { id: "branch_manager", label: ROLE_LABELS.branch_manager },
-  { id: "front_desk",     label: ROLE_LABELS.front_desk },
-  { id: "instructor",     label: ROLE_LABELS.instructor },
-  { id: "finance",        label: ROLE_LABELS.finance },
-  { id: "staff",          label: ROLE_LABELS.staff },
+  { id: "front_desk", label: ROLE_LABELS.front_desk },
+  { id: "instructor", label: ROLE_LABELS.instructor },
+  { id: "finance", label: ROLE_LABELS.finance },
+  { id: "staff", label: ROLE_LABELS.staff },
 ];
 
 interface EditStaffModalProps {
@@ -78,7 +78,7 @@ export function EditStaffModal({
               <Input
                 required
                 type="email"
-                dir="ltr"
+
                 value={staff.email}
                 onChange={(e) => set("email", e.target.value)}
               />
@@ -87,7 +87,7 @@ export function EditStaffModal({
               <Input
                 required
                 type="tel"
-                dir="ltr"
+
                 value={staff.phone}
                 onChange={(e) => set("phone", e.target.value)}
               />

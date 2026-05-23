@@ -41,45 +41,45 @@ const COLOR_STYLES: Record<ColorKey, {
   blobBg: string;
 }> = {
   primary: {
-    text:   "text-primary",
-    bg:     "bg-primary/10",
+    text: "text-primary",
+    bg: "bg-primary/10",
     border: "border-primary/20",
-    glow:   "shadow-primary/20",
+    glow: "shadow-primary/20",
     blobBg: "bg-primary",
   },
   emerald: {
-    text:   "text-emerald-400",
-    bg:     "bg-emerald-500/10",
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
     border: "border-emerald-500/20",
-    glow:   "shadow-emerald-500/20",
+    glow: "shadow-emerald-500/20",
     blobBg: "bg-emerald-500",
   },
   amber: {
-    text:   "text-amber-400",
-    bg:     "bg-amber-500/10",
+    text: "text-amber-400",
+    bg: "bg-amber-500/10",
     border: "border-amber-500/20",
-    glow:   "shadow-amber-500/20",
+    glow: "shadow-amber-500/20",
     blobBg: "bg-amber-500",
   },
   red: {
-    text:   "text-red-400",
-    bg:     "bg-red-500/10",
+    text: "text-red-400",
+    bg: "bg-red-500/10",
     border: "border-red-500/20",
-    glow:   "shadow-red-500/20",
+    glow: "shadow-red-500/20",
     blobBg: "bg-red-500",
   },
   blue: {
-    text:   "text-blue-400",
-    bg:     "bg-blue-500/10",
+    text: "text-blue-400",
+    bg: "bg-blue-500/10",
     border: "border-blue-500/20",
-    glow:   "shadow-blue-500/20",
+    glow: "shadow-blue-500/20",
     blobBg: "bg-blue-500",
   },
   gray: {
-    text:   "text-muted-foreground",
-    bg:     "bg-white/5",
+    text: "text-muted-foreground",
+    bg: "bg-white/5",
     border: "border-white/10",
-    glow:   "shadow-white/5",
+    glow: "shadow-white/5",
     blobBg: "bg-white",
   },
 };
@@ -119,8 +119,8 @@ export function StatsCard({
 }: StatsCardProps) {
   if (loading) return <StatsCardSkeleton />;
 
-  const style      = COLOR_STYLES[color];
-  const formatted  = isCurrency ? formatCurrency(Number(value), currency) : value;
+  const style = COLOR_STYLES[color];
+  const formatted = isCurrency ? formatCurrency(Number(value), currency) : value;
 
   const card = (
     <div className="glass-card p-5 md:p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-500 hover:-translate-y-0.5">
@@ -152,11 +152,11 @@ export function StatsCard({
               trend === "up"
                 ? "bg-emerald-500/10 text-emerald-400"
                 : trend === "down"
-                ? "bg-red-500/10 text-red-400"
-                : "bg-white/5 text-muted-foreground"
+                  ? "bg-red-500/10 text-red-400"
+                  : "bg-white/5 text-muted-foreground"
             )}
           >
-            {trend === "up"   && <TrendingUp   className="w-3 h-3" aria-hidden="true" />}
+            {trend === "up" && <TrendingUp className="w-3 h-3" aria-hidden="true" />}
             {trend === "down" && <TrendingDown className="w-3 h-3" aria-hidden="true" />}
             {trendValue}
           </div>
@@ -177,7 +177,7 @@ export function StatsCard({
 
       {/* Value + labels */}
       <div className="relative z-10">
-        <p className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1.5 text-gradient" dir="ltr">
+        <p className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1.5 text-gradient" >
           {formatted}
         </p>
         <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">

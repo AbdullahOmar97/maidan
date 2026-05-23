@@ -100,7 +100,7 @@ export default function MembershipDialog({
                 <p className="text-sm font-semibold">{selectedPlan.name}</p>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary px-2 py-0.5 rounded-md">
                   {selectedPlan.billing_cycle === "monthly" ? "شهري" :
-                   selectedPlan.billing_cycle === "annual" ? "سنوي" : selectedPlan.billing_cycle}
+                    selectedPlan.billing_cycle === "annual" ? "سنوي" : selectedPlan.billing_cycle}
                 </span>
               </div>
               {selectedPlan.description && (
@@ -128,7 +128,7 @@ export default function MembershipDialog({
               onChange={(e) => setNotes(e.target.value)}
               disabled={membershipMutation.isPending}
               placeholder="أي ملاحظات إضافية حول الاشتراك..."
-              dir="rtl"
+
               rows={2}
             />
           </FormField>

@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  ArrowRight, 
+import {
+  ArrowRight,
   ArrowLeft,
-  Shield, 
-  Sparkles, 
-  User, 
-  Mail, 
-  Lock, 
-  Building2, 
+  Shield,
+  Sparkles,
+  User,
+  Mail,
+  Lock,
+  Building2,
   Globe,
   Loader2,
   CheckCircle2,
@@ -99,7 +99,7 @@ export default function RegisterPage() {
 
       setTenantData(data);
       setIsSuccess(true);
-      
+
     } catch (err: any) {
       const errorData = err.response?.data;
       let errorMessage = "حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.";
@@ -145,7 +145,7 @@ export default function RegisterPage() {
           errorMessage = translateErrorMessage(errorData);
         }
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -161,10 +161,10 @@ export default function RegisterPage() {
         <h1 className="text-5xl font-black text-white mb-4 tracking-tight">تم استلام طلبك بنجاح!</h1>
         <div className="max-w-2xl space-y-6">
           <p className="text-2xl text-muted-foreground leading-relaxed">
-            شكراً لتسجيل أكاديميتك ({formData.academy_name}). 
+            شكراً لتسجيل أكاديميتك ({formData.academy_name}).
             حسابك الآن <strong>قيد المراجعة</strong> من قبل فريق الإدارة.
           </p>
-          
+
           <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-end space-y-4">
             <h3 className="text-xl font-black text-white flex items-center gap-3">
               <Shield className="w-6 h-6 text-amber-500" />
@@ -187,7 +187,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="pt-8">
-            <Link 
+            <Link
               href="/login"
               className="text-primary font-black hover:underline flex items-center justify-center gap-2"
             >
@@ -219,7 +219,7 @@ export default function RegisterPage() {
               <User className="w-5 h-5" />
               بيانات المدير العام للأكاديمية
             </h2>
-            
+
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -297,7 +297,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">رابط الأكاديمية (Slug)</label>
-                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-4 sm:px-5 py-4 focus-within:border-primary/50 transition-all group overflow-hidden" dir="ltr">
+                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-4 sm:px-5 py-4 focus-within:border-primary/50 transition-all group overflow-hidden" >
                     <input
                       type="text"
                       name="slug"
@@ -325,13 +325,13 @@ export default function RegisterPage() {
 
             <div className="space-y-4">
               {plans.map((plan) => (
-                <div 
+                <div
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan.id)}
                   className={cn(
                     "glass-card p-6 cursor-pointer transition-all duration-300 relative border-2 group",
-                    selectedPlan === plan.id 
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" 
+                    selectedPlan === plan.id
+                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                       : "border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
                   )}
                 >
@@ -350,7 +350,7 @@ export default function RegisterPage() {
                       <span className="text-xs text-muted-foreground me-1 font-black uppercase">{plan.currency} / شهرياً</span>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-y-2 mt-4 pt-4 border-t border-white/5">
                     <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
@@ -390,7 +390,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
               ))}
-              
+
               {plansLoading && (
                 <div className="py-12 text-center text-muted-foreground font-bold italic">
                   جاري تحميل الباقات...
@@ -411,10 +411,10 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <ErrorAlert 
-          error={error} 
-          title="فشل التسجيل" 
-          subtitle="خطأ في البيانات" 
+        <ErrorAlert
+          error={error}
+          title="فشل التسجيل"
+          subtitle="خطأ في البيانات"
         />
 
         <div className="pt-4">

@@ -152,13 +152,13 @@ function InvoiceMobileCard({
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
           <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px] mb-0.5">تاريخ الاستحقاق</p>
-          <p className="font-bold text-white" dir="ltr">{formatDate(invoice.due_date)}</p>
+          <p className="font-bold text-white" >{formatDate(invoice.due_date)}</p>
         </div>
         <div>
           <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px] mb-0.5">المبلغ</p>
-          <p className="font-black text-white" dir="ltr">{formatCurrency(invoice.total_amount, invoice.currency)}</p>
+          <p className="font-black text-white" >{formatCurrency(invoice.total_amount, invoice.currency)}</p>
           {invoice.amount_due > 0 && invoice.status !== "paid" && (
-            <p className="text-[10px] font-bold text-amber-400" dir="ltr">
+            <p className="text-[10px] font-bold text-amber-400" >
               متبقي: {formatCurrency(invoice.amount_due, invoice.currency)}
             </p>
           )}
@@ -206,21 +206,21 @@ function EmptyState() {
 // ---------------------------------------------------------------------------
 export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("");
-  const [search, setSearch]             = useState("");
-  const [markingId, setMarkingId]       = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [markingId, setMarkingId] = useState<number | null>(null);
   const [modalInvoice, setModalInvoice] = useState<Invoice | null>(null);
-  const queryClient                     = useQueryClient();
+  const queryClient = useQueryClient();
 
   const { canMarkInvoicePaid, canManageBilling, canCreateInvoice } = useBillingPermissions();
 
   const { data: summary } = useQuery({
     queryKey: ["billing", "summary"],
-    queryFn:  () => api.billing.invoices.summary().then((r) => r.data),
+    queryFn: () => api.billing.invoices.summary().then((r) => r.data),
   });
 
   const { data: invoices, isLoading } = useQuery<PaginatedResponse<Invoice>>({
     queryKey: ["billing", "invoices", { status: statusFilter, search }],
-    queryFn:  () =>
+    queryFn: () =>
       api.billing.invoices
         .list({ status: statusFilter || undefined, search: search || undefined })
         .then((r) => r.data),
@@ -229,18 +229,18 @@ export default function BillingPage() {
   const markPaidMutation = useMutation({
     mutationFn: ({ invoice, paymentMethod, note }: { invoice: Invoice; paymentMethod: PaymentMethodKey; note: string }) =>
       api.billing.invoices.markPaid(invoice.id, { payment_method: paymentMethod, note }),
-    onMutate:  ({ invoice }) => setMarkingId(invoice.id),
+    onMutate: ({ invoice }) => setMarkingId(invoice.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
       toast.success("تم تأكيد السداد بنجاح ✓");
       setModalInvoice(null);
     },
-    onError:   (err: any) => toast.error(err.response?.data?.error || "فشل تأكيد السداد"),
+    onError: (err: any) => toast.error(err.response?.data?.error || "فشل تأكيد السداد"),
     onSettled: () => setMarkingId(null),
   });
 
-  const handleMarkPaid    = (invoice: Invoice) => setModalInvoice(invoice);
+  const handleMarkPaid = (invoice: Invoice) => setModalInvoice(invoice);
   const handleModalConfirm = (paymentMethod: PaymentMethodKey, note: string) => {
     if (!modalInvoice) return;
     markPaidMutation.mutate({ invoice: modalInvoice, paymentMethod, note });
@@ -286,10 +286,10 @@ export default function BillingPage() {
 
         {/* Summary KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <StatsCard label="مدفوع هذا الشهر" value={summary?.paid_this_month ?? 0}  icon={CheckCircle}  color="emerald" isCurrency />
-          <StatsCard label="إجمالي معلق"      value={summary?.total_pending  ?? 0}  icon={Clock}        color="amber"   isCurrency />
-          <StatsCard label="متأخر"             value={summary?.total_overdue  ?? 0}  icon={AlertTriangle} color="red"    badge={summary?.overdue_count} isCurrency />
-          <StatsCard label="إجمالي مدفوع"     value={summary?.total_paid     ?? 0}  icon={TrendingUp}   color="primary" isCurrency />
+          <StatsCard label="مدفوع هذا الشهر" value={summary?.paid_this_month ?? 0} icon={CheckCircle} color="emerald" isCurrency />
+          <StatsCard label="إجمالي معلق" value={summary?.total_pending ?? 0} icon={Clock} color="amber" isCurrency />
+          <StatsCard label="متأخر" value={summary?.total_overdue ?? 0} icon={AlertTriangle} color="red" badge={summary?.overdue_count} isCurrency />
+          <StatsCard label="إجمالي مدفوع" value={summary?.total_paid ?? 0} icon={TrendingUp} color="primary" isCurrency />
         </div>
 
         {/* Filter Toolbar */}
@@ -333,8 +333,8 @@ export default function BillingPage() {
                 <thead>
                   <tr className="bg-white/[0.03] border-b border-white/5">
                     {["رقم الفاتورة", "اسم الطالب", "الحالة", "تاريخ الاستحقاق", "المبلغ الإجمالي", ""].map((h, idx) => (
-                      <th 
-                        key={h} 
+                      <th
+                        key={h}
                         className={cn(
                           "py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground",
                           idx === 0 ? "rounded-s-lg text-start" : idx === 5 ? "rounded-e-lg text-end" : "text-start"

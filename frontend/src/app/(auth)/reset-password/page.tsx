@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] end-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
-        
+
         {/* Animated Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
@@ -92,10 +92,10 @@ export default function ResetPasswordPage() {
         {/* Brand/Logo Section */}
         <div className="text-center mb-10 group cursor-default">
           <div className="relative inline-flex mb-6">
-             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
-             <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
-                <Shield className="w-10 h-10 text-white" />
-             </div>
+            <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
+            <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
             MAIDAN
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
         {/* Main Card */}
         <div className="glass-card relative p-10 overflow-hidden border-white/10">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-          
+
           <div className="relative z-10">
             {isSuccess ? (
               <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
@@ -147,7 +147,7 @@ export default function ResetPasswordPage() {
                         onChange={(event) => setPassword(event.target.value)}
                         className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
                         placeholder="••••••••"
-                        dir="ltr"
+
                       />
                       <button
                         type="button"
@@ -172,7 +172,7 @@ export default function ResetPasswordPage() {
                         onChange={(event) => setPasswordConfirm(event.target.value)}
                         className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
                         placeholder="••••••••"
-                        dir="ltr"
+
                       />
                       <div className="absolute inset-y-0 start-4 flex items-center text-muted-foreground">
                         <Lock className="w-5 h-5" />
@@ -181,9 +181,9 @@ export default function ResetPasswordPage() {
                   </div>
 
                   {/* Error Message */}
-                  <ErrorAlert 
-                    error={error} 
-                    variant="compact" 
+                  <ErrorAlert
+                    error={error}
+                    variant="compact"
                     className="mb-4"
                   />
 

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Loader2, AlertCircle, Sparkles, MapPin, 
-  Phone, Mail, User, Info, CheckCircle2 
+import {
+  Loader2, AlertCircle, Sparkles, MapPin,
+  Phone, Mail, User, Info, CheckCircle2
 } from "lucide-react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, ErrorBanner } from "@/components/ui/form-field";
@@ -78,9 +78,9 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === "location_id" ? parseInt(value) : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === "location_id" ? parseInt(value) : value
     }));
   };
 
@@ -105,7 +105,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                 value={formData.first_name}
                 onChange={handleChange}
                 placeholder="عبدالله"
-                dir="rtl"
+
               />
             </FormField>
 
@@ -116,7 +116,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                 value={formData.last_name}
                 onChange={handleChange}
                 placeholder="عمر"
-                dir="rtl"
+
               />
             </FormField>
           </div>
@@ -130,7 +130,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="05x xxx xxxx"
-                dir="ltr"
+
               />
             </FormField>
 
@@ -141,7 +141,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="student@example.com"
-                dir="ltr"
+
               />
             </FormField>
           </div>

@@ -26,7 +26,7 @@ function SetupPasswordContent() {
     event.preventDefault();
     setError("");
     setErrorTitle("فشل العملية");
-    
+
     if (password !== passwordConfirm) {
       setError("كلمات المرور غير متطابقة");
       return;
@@ -101,7 +101,7 @@ function SetupPasswordContent() {
   return (
     <div className="glass-card relative p-10 overflow-hidden border-white/10">
       <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-      
+
       <div className="relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black text-white tracking-tight mb-2">تفعيل الحساب</h2>
@@ -123,7 +123,7 @@ function SetupPasswordContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                 placeholder="name@example.com"
-                dir="ltr"
+
               />
             </div>
           </div>
@@ -142,7 +142,7 @@ function SetupPasswordContent() {
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                 placeholder="05xxxxxxxx"
-                dir="ltr"
+
               />
             </div>
             <p className="text-[10px] text-muted-foreground/60 me-1 mt-1 italic">أدخل رقم الهاتف الذي قام المدير بتسجيله لك</p>
@@ -163,7 +163,7 @@ function SetupPasswordContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
-                  dir="ltr"
+
                 />
                 <button
                   type="button"
@@ -188,17 +188,17 @@ function SetupPasswordContent() {
                   onChange={(e) => setPasswordConfirm(e.target.value)}
                   className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
-                  dir="ltr"
+
                 />
               </div>
             </div>
           </div>
 
           {/* Error Message */}
-          <ErrorAlert 
-            error={error} 
+          <ErrorAlert
+            error={error}
             title={errorTitle}
-            variant="compact" 
+            variant="compact"
             className="mb-4"
           />
 
@@ -239,9 +239,9 @@ export default function SetupPasswordPage() {
       <div className="relative w-full max-w-2xl px-6 py-12">
         <div className="text-center mb-10">
           <div className="relative inline-flex mb-6">
-             <div className="relative w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center shadow-2xl rotate-12">
-                <Shield className="w-8 h-8 text-white" />
-             </div>
+            <div className="relative w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center shadow-2xl rotate-12">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
           </div>
           <h1 className="text-3xl font-black text-white tracking-tighter mb-2">MAIDAN</h1>
         </div>

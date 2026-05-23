@@ -69,7 +69,7 @@ export function EditStudentModal({
             <FormField label="البريد الإلكتروني">
               <Input
                 type="email"
-                dir="ltr"
+
                 value={student.email || ""}
                 onChange={(e) => set("email", e.target.value)}
               />
@@ -78,7 +78,7 @@ export function EditStudentModal({
               <Input
                 required
                 type="tel"
-                dir="ltr"
+
                 value={student.phone}
                 onChange={(e) => set("phone", e.target.value)}
               />

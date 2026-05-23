@@ -19,30 +19,30 @@ import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 export default function NewInvoicePage() {
-  const router        = useRouter();
-  const queryClient   = useQueryClient();
-  const searchParams  = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const preselectedId = searchParams.get("studentId");
 
   const [fetchingStudent, setFetchingStudent] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentSearch,   setStudentSearch]   = useState("");
-  const [searchResults,   setSearchResults]   = useState<Student[]>([]);
-  const [showResults,     setShowResults]     = useState(false);
-  const [isSearching,     setIsSearching]     = useState(false);
-  const [error,           setError]           = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState("");
 
   const debouncedSearch = useDebounce(studentSearch, 400);
 
   const [formData, setFormData] = useState({
-    student_id:      "",
-    subtotal:        "",
+    student_id: "",
+    subtotal: "",
     discount_amount: "0",
-    tax_rate:        "0",
-    currency:        "JOD",
-    due_date:        new Date().toISOString().split("T")[0],
-    notes:           "",
-    is_recurring:    false,
+    tax_rate: "0",
+    currency: "JOD",
+    due_date: new Date().toISOString().split("T")[0],
+    notes: "",
+    is_recurring: false,
   });
 
   // Fetch tenant default currency
@@ -103,10 +103,10 @@ export default function NewInvoicePage() {
     setError("");
     invoiceMutation.mutate({
       ...formData,
-      student_id:      parseInt(formData.student_id),
-      subtotal:        parseFloat(formData.subtotal),
+      student_id: parseInt(formData.student_id),
+      subtotal: parseFloat(formData.subtotal),
       discount_amount: parseFloat(formData.discount_amount),
-      tax_rate:        parseFloat(formData.tax_rate),
+      tax_rate: parseFloat(formData.tax_rate),
     });
   };
 
@@ -128,9 +128,9 @@ export default function NewInvoicePage() {
   };
 
   // Computed totals
-  const subtotal  = parseFloat(formData.subtotal || "0");
-  const discount  = parseFloat(formData.discount_amount || "0");
-  const total     = Math.max(0, subtotal - discount);
+  const subtotal = parseFloat(formData.subtotal || "0");
+  const discount = parseFloat(formData.discount_amount || "0");
+  const total = Math.max(0, subtotal - discount);
 
   if (fetchingStudent) {
     return (
@@ -216,7 +216,7 @@ export default function NewInvoicePage() {
                         onChange={(e) => setStudentSearch(e.target.value)}
                         placeholder="ابحث بالاسم أو رقم الطالب..."
                         className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end min-h-[44px]"
-                        dir="rtl"
+
                         aria-label="البحث عن الطالب"
                         autoComplete="off"
                       />
@@ -307,7 +307,7 @@ export default function NewInvoicePage() {
                       onChange={handleChange}
                       placeholder="0.00"
                       className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 min-h-[44px]"
-                      dir="ltr"
+
                       aria-label="المبلغ الأساسي للفاتورة"
                     />
                   </InputWrapper>
@@ -337,7 +337,7 @@ export default function NewInvoicePage() {
                       value={formData.discount_amount}
                       onChange={handleChange}
                       className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold min-h-[44px]"
-                      dir="ltr"
+
                       aria-label="قيمة الخصم"
                     />
                   </InputWrapper>
@@ -365,7 +365,7 @@ export default function NewInvoicePage() {
                     rows={3}
                     placeholder="ستظهر هذه الملاحظات في الفاتورة..."
                     className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end resize-none"
-                    dir="rtl"
+
                     aria-label="ملاحظات الفاتورة"
                   />
                 </InputWrapper>
@@ -388,15 +388,15 @@ export default function NewInvoicePage() {
                 <div className="space-y-3" aria-live="polite" aria-label="ملخص المبالغ">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">المبلغ الفرعي:</span>
-                    <span className="text-white font-bold" dir="ltr">{formatCurrency(subtotal, formData.currency)}</span>
+                    <span className="text-white font-bold" >{formatCurrency(subtotal, formData.currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">الخصم:</span>
-                    <span className="text-red-400 font-bold" dir="ltr">-{formatCurrency(discount, formData.currency)}</span>
+                    <span className="text-red-400 font-bold" >-{formatCurrency(discount, formData.currency)}</span>
                   </div>
                   <div className="pt-3 border-t border-white/5 flex justify-between">
                     <span className="text-white font-black">الإجمالي المستحق:</span>
-                    <span className="text-primary font-black text-lg md:text-xl" dir="ltr">
+                    <span className="text-primary font-black text-lg md:text-xl" >
                       {formatCurrency(total, formData.currency)}
                     </span>
                   </div>

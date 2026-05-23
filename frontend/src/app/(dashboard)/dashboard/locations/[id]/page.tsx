@@ -4,8 +4,8 @@ import React, { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { 
-  ArrowRight, Building2, MapPin, Phone, Mail, Clock, 
+import {
+  ArrowRight, Building2, MapPin, Phone, Mail, Clock,
   Users, UserCheck, Shield, CheckCircle2, CircleOff, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,8 +81,8 @@ export default function LocationDetailPage() {
 
   // Extract location
   const location = useMemo<Location | null>(() => {
-    const list = Array.isArray(locationsResponse) 
-      ? locationsResponse 
+    const list = Array.isArray(locationsResponse)
+      ? locationsResponse
       : locationsResponse?.results ?? [];
     return list.find((loc: any) => loc.id === locationId) || null;
   }, [locationsResponse, locationId]);
@@ -90,19 +90,19 @@ export default function LocationDetailPage() {
   // Extract staff list assigned to this location
   const assignedStaff = useMemo<StaffMember[]>(() => {
     if (!location) return [];
-    const list = Array.isArray(staffResponse) 
-      ? staffResponse 
+    const list = Array.isArray(staffResponse)
+      ? staffResponse
       : staffResponse?.results ?? [];
-    return list.filter((member: any) => 
-      Array.isArray(member.assigned_location_ids) && 
+    return list.filter((member: any) =>
+      Array.isArray(member.assigned_location_ids) &&
       member.assigned_location_ids.includes(location.id)
     );
   }, [staffResponse, location]);
 
   const manager = useMemo<StaffMember | null>(() => {
     if (!location || !location.manager_id) return null;
-    const list = Array.isArray(staffResponse) 
-      ? staffResponse 
+    const list = Array.isArray(staffResponse)
+      ? staffResponse
       : staffResponse?.results ?? [];
     return list.find((member: any) => member.id === location.manager_id) || null;
   }, [staffResponse, location]);
@@ -130,7 +130,7 @@ export default function LocationDetailPage() {
           <h2 className="text-2xl font-black text-white">عذراً، لم نجد الفرع المطلوب</h2>
           <p className="text-muted-foreground max-w-sm">ربما تم حذف هذا الموقع أو لا تملك صلاحية الوصول إليه حالياً.</p>
         </div>
-        <button 
+        <button
           onClick={() => router.push("/dashboard/locations")}
           className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all"
         >
@@ -179,7 +179,7 @@ export default function LocationDetailPage() {
                 <h1 className="text-4xl font-black tracking-tight text-white">{location.name}</h1>
                 <StatusBadge status={location.is_active ? "active" : "inactive"} />
               </div>
-              
+
               <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm font-bold text-muted-foreground">
                 <span className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
@@ -224,7 +224,7 @@ export default function LocationDetailPage() {
                   <Phone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-bold text-muted-foreground">رقم الهاتف</p>
-                    <p className="text-sm font-semibold text-white mt-1" dir="ltr">{location.phone || "---"}</p>
+                    <p className="text-sm font-semibold text-white mt-1" >{location.phone || "---"}</p>
                   </div>
                 </div>
 
@@ -250,7 +250,7 @@ export default function LocationDetailPage() {
             <div className="glass-card p-6 space-y-4 group">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">المدير المسؤول</h3>
               {manager ? (
-                <div 
+                <div
                   onClick={() => setSelectedStaff(manager)}
                   className="flex items-center gap-4 bg-secondary/10 hover:bg-secondary/20 border border-border/50 p-4 rounded-2xl cursor-pointer transition-colors"
                 >
@@ -293,7 +293,7 @@ export default function LocationDetailPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {assignedStaff.map((member) => (
-                    <div 
+                    <div
                       key={member.id}
                       onClick={() => setSelectedStaff(member)}
                       className="flex items-center gap-4 bg-secondary/15 hover:bg-secondary/35 border border-border/40 hover:border-primary/30 p-4 rounded-2xl cursor-pointer transition-all duration-200 group/member"
@@ -356,7 +356,7 @@ export default function LocationDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-4 rounded-xl border border-border/30 text-sm">
                 <div>
                   <span className="text-muted-foreground block text-xs">رقم الهاتف</span>
-                  <span className="font-semibold text-white mt-1 block" dir="ltr">{selectedStaff.phone || "---"}</span>
+                  <span className="font-semibold text-white mt-1 block" >{selectedStaff.phone || "---"}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-xs">البريد الإلكتروني</span>
@@ -378,8 +378,8 @@ export default function LocationDetailPage() {
                       {Object.keys(selectedStaff.permissions)
                         .filter(k => selectedStaff.permissions?.[k] === true)
                         .map(k => (
-                          <span 
-                            key={k} 
+                          <span
+                            key={k}
                             className="bg-primary/10 border border-primary/20 text-primary text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />

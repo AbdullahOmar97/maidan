@@ -18,14 +18,14 @@ interface MembershipPlanDialogProps {
 }
 
 const DEFAULT_FORM = {
-  name:          "",
-  description:   "",
-  price:         "",
+  name: "",
+  description: "",
+  price: "",
   billing_cycle: "monthly",
-  currency:      "JOD",
-  tax_rate:      "15.00",
-  is_active:     true,
-  is_public:     true,
+  currency: "JOD",
+  tax_rate: "15.00",
+  is_active: true,
+  is_public: true,
 };
 
 export default function MembershipPlanDialog({ isOpen, onClose, plan }: MembershipPlanDialogProps) {
@@ -38,14 +38,14 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
   useEffect(() => {
     if (plan) {
       setFormData({
-        name:          plan.name,
-        description:   plan.description ?? "",
-        price:         plan.price.toString(),
+        name: plan.name,
+        description: plan.description ?? "",
+        price: plan.price.toString(),
         billing_cycle: plan.billing_cycle,
-        currency:      plan.currency,
-        tax_rate:      plan.tax_rate.toString(),
-        is_active:     plan.is_active,
-        is_public:     plan.is_public,
+        currency: plan.currency,
+        tax_rate: plan.tax_rate.toString(),
+        is_active: plan.is_active,
+        is_public: plan.is_public,
       });
     } else {
       setFormData(DEFAULT_FORM);
@@ -87,7 +87,7 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
               <Tag className="absolute end-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 required
-                dir="rtl"
+
                 placeholder="مثال: الباقة الأساسية"
                 className="pe-10"
                 value={formData.name}
@@ -98,7 +98,7 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
 
           <FormField label="الوصف">
             <Textarea
-              dir="rtl"
+
               rows={3}
               placeholder="تفاصيل الباقة، المزايا، شروط الاشتراك..."
               value={formData.description}
@@ -171,7 +171,7 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
           <div className="grid grid-cols-2 gap-3">
             {(
               [
-                { key: "is_active", label: "الباقة نشطة",   activeClass: "bg-emerald-500/10 border-emerald-500/25 text-emerald-400" },
+                { key: "is_active", label: "الباقة نشطة", activeClass: "bg-emerald-500/10 border-emerald-500/25 text-emerald-400" },
                 { key: "is_public", label: "عرض عام للطلاب", activeClass: "bg-primary/10 border-primary/25 text-primary" },
               ] as const
             ).map(({ key, label, activeClass }) => {

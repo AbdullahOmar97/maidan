@@ -42,12 +42,12 @@ export default function LoginPage() {
     try {
       // Use nginx-proxied path directly — /api/ is routed to Django by nginx
       const res = await fetch("/api/v1/academy/me/");
-      
+
       if (res.status === 403) {
         const data = await res.json();
         if (data.error?.code === "tenant_inactive" || data.error?.code === "subscription_expired") {
-          const statusType = data.error.status === "pending" ? "pending" : 
-                             data.error.status === "expired" ? "expired" : "inactive";
+          const statusType = data.error.status === "pending" ? "pending" :
+            data.error.status === "expired" ? "expired" : "inactive";
           router.replace(`/status?type=${statusType}&message=${encodeURIComponent(data.error.message)}`);
         }
       }
@@ -164,7 +164,7 @@ export default function LoginPage() {
         <div className="absolute top-[-10%] end-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] start-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
         <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />
-        
+
         {/* Animated Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
@@ -173,13 +173,13 @@ export default function LoginPage() {
         {/* Brand/Logo Section */}
         <div className="text-center mb-10 group cursor-default">
           <div className="relative inline-flex mb-6">
-             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
-             <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
-                <Shield className="w-10 h-10 text-white" />
-             </div>
-             <div className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
-                <Sparkles className="w-4 h-4 text-primary" />
-             </div>
+            <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
+            <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
+            <div className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
+              <Sparkles className="w-4 h-4 text-primary" />
+            </div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
             MAIDAN
@@ -194,7 +194,7 @@ export default function LoginPage() {
         {/* Main Card */}
         <div className="glass-card relative p-10 overflow-hidden group/card border-white/10">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-          
+
           <div className="relative z-10">
             <h2 className="text-2xl font-black text-white text-center mb-8 tracking-tight">
               {isTenantLogin ? "تسجيل الدخول" : "الدخول إلى النادي"}
@@ -215,7 +215,7 @@ export default function LoginPage() {
                     onChange={(event) => setEmail(event.target.value)}
                     className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                     placeholder="name@example.com"
-                    dir="ltr"
+
                   />
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function LoginPage() {
                       onChange={(event) => setPassword(event.target.value)}
                       className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
                       placeholder="••••••••"
-                      dir="ltr"
+
                     />
                     <button
                       type="button"
@@ -254,10 +254,10 @@ export default function LoginPage() {
               )}
 
               {/* Error Message */}
-              <ErrorAlert 
-                error={error} 
+              <ErrorAlert
+                error={error}
                 title={errorTitle}
-                variant="compact" 
+                variant="compact"
                 className="mb-4"
               />
 
@@ -285,7 +285,7 @@ export default function LoginPage() {
 
             {isTenantLogin && (
               <div className="mt-6 text-center animate-in fade-in duration-700 delay-300">
-                <Link 
+                <Link
                   href={email ? `/setup-password?email=${encodeURIComponent(email)}` : "/setup-password"}
                   className="inline-flex items-center gap-2 text-[11px] font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-widest group"
                 >
@@ -299,11 +299,11 @@ export default function LoginPage() {
               <div className="mt-10 pt-8 border-t border-white/5 space-y-4">
                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group/demo hover:border-primary/30 transition-all">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/demo:scale-110 transition-transform">
-                     <Shield className="w-5 h-5" />
+                    <Shield className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">حساب تجريبي للمعاينة</p>
-                    <p className="text-xs font-bold text-white truncate" dir="ltr">admin@dragons-dojo.sa / admin1234</p>
+                    <p className="text-xs font-bold text-white truncate" >admin@dragons-dojo.sa / admin1234</p>
                   </div>
                 </div>
               </div>
@@ -316,17 +316,17 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-10 text-center space-y-6">
-           {!isTenantLogin && (
-             <p className="text-muted-foreground text-xs font-bold">
-               ليس لديك حساب؟ <Link href="/register" className="text-primary hover:underline font-black">سجل أكاديميتك الآن مجاناً</Link>
-             </p>
-           )}
-           <div className="flex items-center justify-center gap-6 opacity-30">
-              <span className="h-px w-12 bg-white/20" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-white">MAIDAN PLATFORM</p>
-              <span className="h-px w-12 bg-white/20" />
-           </div>
-           <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
+          {!isTenantLogin && (
+            <p className="text-muted-foreground text-xs font-bold">
+              ليس لديك حساب؟ <Link href="/register" className="text-primary hover:underline font-black">سجل أكاديميتك الآن مجاناً</Link>
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-6 opacity-30">
+            <span className="h-px w-12 bg-white/20" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-white">MAIDAN PLATFORM</p>
+            <span className="h-px w-12 bg-white/20" />
+          </div>
+          <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
             © {new Date().getFullYear()} — جميع الحقوق محفوظة
           </p>
         </div>

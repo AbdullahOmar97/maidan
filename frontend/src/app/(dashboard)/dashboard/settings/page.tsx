@@ -21,13 +21,13 @@ export default function SettingsPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [selectedNewOwner, setSelectedNewOwner] = useState("");
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
-  
+
   const [saveStatus, setSaveStatus] = useState<Record<string, "idle" | "saving" | "success" | "error">>({
     profile: "idle",
     academy: "idle",
     branding: "idle",
   });
-  
+
   const [initialProfile, setInitialProfile] = useState({
     first_name: "",
     last_name: "",
@@ -91,7 +91,7 @@ export default function SettingsPage() {
           };
           setAcademy(academyData);
           setInitialAcademy(academyData);
-          
+
           const brandingData = {
             logoUrl: tenantData.logo || "",
             faviconUrl: tenantData.favicon || "",
@@ -195,7 +195,7 @@ export default function SettingsPage() {
       }
 
       const response = await api.tenants.updateMe(formData);
-      
+
       if (response.data) {
         const newData = {
           logoUrl: response.data.logo || branding.logoUrl,
@@ -208,7 +208,7 @@ export default function SettingsPage() {
         });
         setInitialBranding(newData);
       }
-      
+
       await refreshTenant();
       setSaveStatus(prev => ({ ...prev, branding: "success" }));
       toast.success("تم تحديث الهوية البصرية بنجاح");
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                   <label className="text-sm font-medium">رقم الهاتف</label>
                   <input
                     type="text"
-                    dir="ltr"
+
                     className="w-full p-2.5 rounded-lg border bg-background/50 focus:border-primary/50 outline-none transition-all"
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                   <label className="text-sm font-medium">البريد الإلكتروني</label>
                   <input
                     type="email"
-                    dir="ltr"
+
                     className="w-full p-2.5 rounded-lg border bg-muted/50 cursor-not-allowed outline-none"
                     value={profile.email}
                     readOnly
@@ -346,8 +346,8 @@ export default function SettingsPage() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {saveStatus.profile === "saving" ? "جاري الحفظ..." : 
-                 saveStatus.profile === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
+                {saveStatus.profile === "saving" ? "جاري الحفظ..." :
+                  saveStatus.profile === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
               </button>
               {profileNamesInvalid && (
                 <p className="text-sm text-destructive">
@@ -432,8 +432,8 @@ export default function SettingsPage() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {saveStatus.academy === "saving" ? "جاري الحفظ..." : 
-                 saveStatus.academy === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
+                {saveStatus.academy === "saving" ? "جاري الحفظ..." :
+                  saveStatus.academy === "success" ? "تم الحفظ بنجاح" : "حفظ التغييرات"}
               </button>
               {!canEditAcademy && (
                 <p className="text-sm text-muted-foreground">
@@ -450,100 +450,100 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">تخصيص ألوان وشعارات النادي</p>
               </div>
               <hr className="border-border/50" />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">شعار النادي (Logo)</label>
-                      <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
-                        {branding.logo ? (
-                          <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
-                              <img src={URL.createObjectURL(branding.logo)} alt="New Logo" className="max-w-full max-h-full object-contain" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">{branding.logo.name}</p>
-                          </div>
-                        ) : branding.logoUrl ? (
-                          <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
-                              <img src={branding.logoUrl} alt="Current Logo" className="max-w-full max-h-full object-contain" />
-                            </div>
-                            <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الشعار</p>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
-                            <p className="text-sm text-muted-foreground">اضغط لرفع الشعار</p>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setBranding({ ...branding, logo: e.target.files[0] });
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">أيقونة المتصفح (Favicon)</label>
-                      <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
-                        {branding.favicon ? (
-                          <div className="flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
-                              <img src={URL.createObjectURL(branding.favicon)} alt="New Favicon" className="max-w-full max-h-full object-contain" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">{branding.favicon.name}</p>
-                          </div>
-                        ) : branding.faviconUrl ? (
-                          <div className="flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
-                              <img src={branding.faviconUrl} alt="Current Favicon" className="max-w-full max-h-full object-contain" />
-                            </div>
-                            <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الأيقونة</p>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
-                            <p className="text-sm text-muted-foreground">اضغط لرفع الأيقونة</p>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setBranding({ ...branding, favicon: e.target.files[0] });
-                            }
-                          }}
-                        />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">شعار النادي (Logo)</label>
+                  <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
+                    {branding.logo ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
+                          <img src={URL.createObjectURL(branding.logo)} alt="New Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{branding.logo.name}</p>
                       </div>
-                    </div>
+                    ) : branding.logoUrl ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
+                          <img src={branding.logoUrl} alt="Current Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الشعار</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
+                        <p className="text-sm text-muted-foreground">اضغط لرفع الشعار</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setBranding({ ...branding, logo: e.target.files[0] });
+                        }
+                      }}
+                    />
                   </div>
-                <button
-                  onClick={handleBrandingSave}
-                  disabled={saveStatus.branding === "saving" || !brandingHasChanges}
-                  className={cn(
-                    "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 mt-6",
-                    saveStatus.branding === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
-                  )}
-                >
-                  {saveStatus.branding === "saving" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : saveStatus.branding === "success" ? (
-                    <Shield className="w-4 h-4" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  {saveStatus.branding === "saving" ? "جاري الحفظ..." : 
-                   saveStatus.branding === "success" ? "تم الحفظ بنجاح" : "حفظ الهوية البصرية"}
-                </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">أيقونة المتصفح (Favicon)</label>
+                  <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
+                    {branding.favicon ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
+                          <img src={URL.createObjectURL(branding.favicon)} alt="New Favicon" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{branding.favicon.name}</p>
+                      </div>
+                    ) : branding.faviconUrl ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
+                          <img src={branding.faviconUrl} alt="Current Favicon" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الأيقونة</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
+                        <p className="text-sm text-muted-foreground">اضغط لرفع الأيقونة</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setBranding({ ...branding, favicon: e.target.files[0] });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-            )}
+              <button
+                onClick={handleBrandingSave}
+                disabled={saveStatus.branding === "saving" || !brandingHasChanges}
+                className={cn(
+                  "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 mt-6",
+                  saveStatus.branding === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
+                )}
+              >
+                {saveStatus.branding === "saving" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : saveStatus.branding === "success" ? (
+                  <Shield className="w-4 h-4" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saveStatus.branding === "saving" ? "جاري الحفظ..." :
+                  saveStatus.branding === "success" ? "تم الحفظ بنجاح" : "حفظ الهوية البصرية"}
+              </button>
+            </div>
+          )}
 
           {activeTab === "security" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -563,7 +563,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       نقل الملكية هو إجراء **حساس ودائم**. عند إتمام هذا الإجراء، ستنتقل كافة صلاحيات المالك (بما في ذلك إدارة الإعدادات المالية والفوترة) إلى الموظف المختار، بينما سيتم تحويل حسابك أنت إلى رتبة "مدير".
                     </p>
-                    
+
                     <div className="space-y-2 pt-2">
                       <label className="text-sm font-bold">اختر الموظف الجديد للملكية</label>
                       <Select
@@ -577,7 +577,7 @@ export default function SettingsPage() {
                       </Select>
                     </div>
 
-                    <button 
+                    <button
                       disabled={!selectedNewOwner}
                       onClick={() => setShowTransferConfirm(true)}
                       className="px-6 py-2.5 rounded-lg bg-destructive text-white text-sm font-bold shadow-lg hover:bg-destructive/90 transition-all disabled:opacity-50"
@@ -594,18 +594,18 @@ export default function SettingsPage() {
                           <h2 className="text-xl font-bold">تأكيد نقل الملكية</h2>
                         </div>
                         <p className="text-sm leading-relaxed">
-                          هل أنت متأكد تماماً من رغبتك في نقل ملكية النادي إلى **{staff.find(s => s.id === selectedNewOwner)?.full_name}**؟ 
+                          هل أنت متأكد تماماً من رغبتك في نقل ملكية النادي إلى **{staff.find(s => s.id === selectedNewOwner)?.full_name}**؟
                           <br /><br />
                           لا يمكن التراجع عن هذا الإجراء إلا بواسطة المالك الجديد.
                         </p>
                         <div className="flex justify-end gap-3 pt-2">
-                          <button 
+                          <button
                             onClick={() => setShowTransferConfirm(false)}
                             className="px-6 py-2 rounded-lg border border-border hover:bg-secondary transition-all"
                           >
                             إلغاء
                           </button>
-                          <button 
+                          <button
                             disabled={transferring}
                             onClick={handleTransferOwnership}
                             className="px-6 py-2 rounded-lg bg-destructive text-white font-bold hover:bg-destructive/90 flex items-center gap-2 disabled:opacity-50"
