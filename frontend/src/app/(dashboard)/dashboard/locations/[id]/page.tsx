@@ -354,13 +354,13 @@ export default function LocationDetailPage() {
             <div className="space-y-3">
               <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">معلومات الاتصال</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-4 rounded-xl border border-border/30 text-sm text-start">
-                <div>
-                  <span className="text-muted-foreground block text-xs">رقم الهاتف</span>
-                  <span className="font-semibold text-white mt-1 block"><bdi>{selectedStaff.phone || "---"}</bdi></span>
+                <div className="text-start">
+                  <span className="text-muted-foreground block text-xs text-start">رقم الهاتف</span>
+                  <span className="font-semibold text-white mt-1 block text-start"><bdi>{selectedStaff.phone || "---"}</bdi></span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground block text-xs">البريد الإلكتروني</span>
-                  <span className="font-semibold text-white mt-1 block break-all">{selectedStaff.email}</span>
+                <div className="text-start">
+                  <span className="text-muted-foreground block text-xs text-start">البريد الإلكتروني</span>
+                  <span className="font-semibold text-white mt-1 block break-all text-start">{selectedStaff.email}</span>
                 </div>
               </div>
             </div>

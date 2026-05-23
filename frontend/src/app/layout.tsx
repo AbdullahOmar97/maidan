@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${inter.variable} ${notoArabic.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
