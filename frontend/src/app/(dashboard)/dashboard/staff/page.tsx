@@ -147,12 +147,12 @@ export default function StaffPage() {
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                 <tr>
-                  <th className="px-4 py-3 rounded-s-lg font-medium text-start">الاسم</th>
-                  <th className="px-4 py-3 font-medium text-start">الدور</th>
-                  <th className="px-4 py-3 font-medium text-start">الفرع</th>
-                  <th className="px-4 py-3 font-medium text-start">التواصل</th>
-                  <th className="px-4 py-3 font-medium text-start">الحالة</th>
-                  <th className="px-4 py-3 rounded-e-lg font-medium text-end">الإجراءات</th>
+                  <th className="px-4 py-3 rounded-s-lg font-medium text-start whitespace-nowrap">الاسم</th>
+                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الدور</th>
+                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الفرع</th>
+                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">التواصل</th>
+                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الحالة</th>
+                  <th className="px-4 py-3 rounded-e-lg font-medium text-end whitespace-nowrap">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -285,16 +285,16 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
               : member.first_name?.charAt(0) ?? "U"}
           </div>
           <div>
-            <p className="font-semibold text-foreground">{member.full_name}</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-              <Shield className="w-3 h-3" />
-              {member.email}
+            <p className="font-semibold text-foreground whitespace-nowrap">{member.full_name}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 whitespace-nowrap">
+              <Shield className="w-3 h-3 shrink-0" />
+              <span className="truncate max-w-[180px]">{member.email}</span>
             </p>
           </div>
         </div>
       </td>
       <td className="px-4 py-4 text-start">
-        <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary/10 border-primary/20 text-primary">
+        <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary/10 border-primary/20 text-primary whitespace-nowrap">
           {ROLE_LABELS[member.role] ?? member.role}
         </span>
       </td>
@@ -309,13 +309,13 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
             ))}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground/50">—</span>
+          <span className="text-xs text-muted-foreground/50 whitespace-nowrap">—</span>
         )}
       </td>
       <td className="px-4 py-4 text-start">
         {member.phone && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Phone className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+            <Phone className="w-3.5 h-3.5 shrink-0" />
             <span><bdi>{member.phone}</bdi></span>
           </div>
         )}
@@ -324,17 +324,17 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
         <StatusBadge status={member.is_active ? "active" : "inactive"} />
       </td>
       <td className="px-4 py-4 text-end">
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 px-3 py-1.5 rounded-lg transition-all font-bold border border-border"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 px-3 py-1.5 rounded-lg transition-all font-bold border border-border whitespace-nowrap"
           >
             <Pencil className="w-3 h-3" />
             تعديل
           </button>
           <button
             onClick={onManagePermissions}
-            className="flex items-center gap-1.5 text-xs text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-all font-bold border border-primary/20"
+            className="flex items-center gap-1.5 text-xs text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-all font-bold border border-primary/20 whitespace-nowrap"
           >
             <Lock className="w-3 h-3" />
             إدارة الصلاحيات
@@ -362,10 +362,10 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-bold text-foreground truncate">{member.full_name}</p>
+            <p className="font-bold text-foreground truncate whitespace-nowrap">{member.full_name}</p>
             <StatusBadge status={member.is_active ? "active" : "inactive"} />
           </div>
-          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5 whitespace-nowrap">
             <Shield className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
             <span className="truncate">{member.email}</span>
           </p>
@@ -375,27 +375,27 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
       {/* Details Row: Role & Contact */}
       <div className="grid grid-cols-2 gap-3 py-3 border-y border-border/40 text-start">
         <div className="text-start">
-          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start">الدور</span>
-          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border bg-primary/10 border-primary/20 text-primary text-start">
+          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start whitespace-nowrap">الدور</span>
+          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border bg-primary/10 border-primary/20 text-primary text-start whitespace-nowrap">
             {ROLE_LABELS[member.role] ?? member.role}
           </span>
         </div>
         <div className="text-start">
-          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start">التواصل</span>
+          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start whitespace-nowrap">التواصل</span>
           {member.phone ? (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground text-start">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground text-start whitespace-nowrap">
               <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
               <span><bdi>{member.phone}</bdi></span>
             </div>
           ) : (
-            <span className="text-xs text-muted-foreground/50 text-start">—</span>
+            <span className="text-xs text-muted-foreground/50 text-start whitespace-nowrap">—</span>
           )}
         </div>
       </div>
 
       {/* Branch Allocation */}
       <div className="space-y-1.5 text-start">
-        <span className="text-[10px] font-bold text-muted-foreground block text-start">الفروع</span>
+        <span className="text-[10px] font-bold text-muted-foreground block text-start whitespace-nowrap">الفروع</span>
         {member.branch_names && member.branch_names.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 justify-start">
             {member.branch_names.map((name, idx) => (
@@ -406,7 +406,7 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
             ))}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground/50 text-start">—</span>
+          <span className="text-xs text-muted-foreground/50 text-start whitespace-nowrap">—</span>
         )}
       </div>
 
@@ -414,14 +414,14 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
       <div className="flex items-center gap-2 pt-1">
         <button
           onClick={onEdit}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 py-2.5 rounded-xl transition-all font-bold border border-border active:scale-95"
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 py-2.5 rounded-xl transition-all font-bold border border-border active:scale-95 whitespace-nowrap"
         >
           <Pencil className="w-3.5 h-3.5" />
           تعديل
         </button>
         <button
           onClick={onManagePermissions}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-primary hover:bg-primary/10 py-2.5 rounded-xl transition-all font-bold border border-primary/20 active:scale-95"
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-primary hover:bg-primary/10 py-2.5 rounded-xl transition-all font-bold border border-primary/20 active:scale-95 whitespace-nowrap"
         >
           <Lock className="w-3.5 h-3.5" />
           إدارة الصلاحيات
