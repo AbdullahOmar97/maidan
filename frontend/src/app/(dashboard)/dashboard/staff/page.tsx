@@ -373,15 +373,15 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
       </div>
 
       {/* Details Row: Role & Contact */}
-      <div className="grid grid-cols-2 gap-3 py-3 border-y border-border/40 text-start">
-        <div className="text-start">
-          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start whitespace-nowrap">الدور</span>
+      <div className="py-3 border-y border-border/40 space-y-2.5">
+        <div className="flex items-center justify-between text-start gap-4">
+          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">الدور</span>
           <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border bg-primary/10 border-primary/20 text-primary text-start whitespace-nowrap">
             {ROLE_LABELS[member.role] ?? member.role}
           </span>
         </div>
-        <div className="text-start">
-          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start whitespace-nowrap">التواصل</span>
+        <div className="flex items-center justify-between text-start gap-4">
+          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">التواصل</span>
           {member.phone ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground text-start whitespace-nowrap">
               <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -411,17 +411,17 @@ function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-col gap-2 pt-1">
         <button
           onClick={onEdit}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 py-2.5 rounded-xl transition-all font-bold border border-border active:scale-95 whitespace-nowrap"
+          className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 py-2.5 rounded-xl transition-all font-bold border border-border active:scale-95 whitespace-nowrap"
         >
           <Pencil className="w-3.5 h-3.5" />
-          تعديل
+          تعديل الموظف
         </button>
         <button
           onClick={onManagePermissions}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-primary hover:bg-primary/10 py-2.5 rounded-xl transition-all font-bold border border-primary/20 active:scale-95 whitespace-nowrap"
+          className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:bg-primary/10 py-2.5 rounded-xl transition-all font-bold border border-primary/20 active:scale-95 whitespace-nowrap"
         >
           <Lock className="w-3.5 h-3.5" />
           إدارة الصلاحيات
