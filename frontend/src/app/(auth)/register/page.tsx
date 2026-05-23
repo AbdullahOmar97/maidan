@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   ArrowRight, 
+  ArrowLeft,
   Shield, 
   Sparkles, 
   User, 
@@ -191,7 +192,7 @@ export default function RegisterPage() {
               className="text-primary font-black hover:underline flex items-center justify-center gap-2"
             >
               العودة لصفحة الدخول
-              <ArrowRight className="w-4 h-4 rtl-flip" />
+              <ArrowLeft className="w-4 h-4 rtl-flip" />
             </Link>
           </div>
         </div>
@@ -430,7 +431,7 @@ export default function RegisterPage() {
             ) : (
               <>
                 إتمام عملية التسجيل
-                <ArrowRight className="w-5 h-5 rtl-flip group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 rtl-flip group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
               </>
             )}
           </button>

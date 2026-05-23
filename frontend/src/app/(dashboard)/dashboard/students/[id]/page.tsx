@@ -226,7 +226,7 @@ export default function StudentDetailPage() {
             </div>
           </div>
 
-          <div className="flex-1 text-center md:text-right">
+          <div className="flex-1 text-center md:text-end">
             <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3 justify-center md:justify-start">
               <h1 className="text-4xl font-black tracking-tight text-white">{student.full_name}</h1>
               <span className={cn("px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border mx-auto md:mx-0", getStatusBadgeClass(student.status))}>
@@ -800,7 +800,7 @@ export default function StudentDetailPage() {
             onClose={() => setIsDeleteModalOpen(false)}
           />
           <ModalBody className="space-y-3">
-            <p className="text-sm text-muted-foreground leading-relaxed text-right" dir="rtl">
+            <p className="text-sm text-muted-foreground leading-relaxed text-start" dir="rtl">
               هل أنت متأكد من رغبتك في حذف ملف الطالب؟ سيتم أرشفة بيانات الطالب والاشتراكات بشكل آمن.
             </p>
           </ModalBody>

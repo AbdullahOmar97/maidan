@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   ChevronLeft,
+  ChevronRight,
   Building2,
   UserCheck,
   X,
@@ -155,7 +156,7 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
           <CalendarCheck className="w-4 h-4" />
         </div>
         <span className="flex-1">وضع الكشك</span>
-        <ChevronLeft className="w-4 h-4 rtl-flip opacity-30 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+        <ChevronRight className="w-4 h-4 rtl-flip opacity-30 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" aria-hidden="true" />
       </Link>
 
       {user && (

@@ -89,16 +89,16 @@ function InvoiceRow({ invoice, canMarkPaid, onMarkPaid, isMarkingPaid }: Invoice
       <td className="py-4 px-5 text-start">
         <StatusBadge status={invoice.status} />
       </td>
-      <td className="py-4 px-5 text-sm font-bold text-muted-foreground text-start" dir="ltr">
-        {formatDate(invoice.due_date)}
+      <td className="py-4 px-5 text-sm font-bold text-muted-foreground text-start">
+        <bdi>{formatDate(invoice.due_date)}</bdi>
       </td>
-      <td className="py-4 px-5 text-start">
-        <p className="font-black text-sm text-white" dir="ltr">
-          {formatCurrency(invoice.total_amount, invoice.currency)}
+      <td className="py-4 px-5 text-end">
+        <p className="font-black text-sm text-white">
+          <bdi>{formatCurrency(invoice.total_amount, invoice.currency)}</bdi>
         </p>
         {invoice.amount_due > 0 && invoice.status !== "paid" && (
-          <p className="text-[10px] font-bold text-amber-400 mt-1" dir="ltr">
-            متبقي: {formatCurrency(invoice.amount_due, invoice.currency)}
+          <p className="text-[10px] font-bold text-amber-400 mt-1">
+            متبقي: <bdi>{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
           </p>
         )}
       </td>
@@ -371,7 +371,7 @@ export default function BillingPage() {
                     <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">اسم الطالب</th>
                     <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الحالة</th>
                     <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">تاريخ الاستحقاق</th>
-                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">المبلغ الإجمالي</th>
+                    <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-end">المبلغ الإجمالي</th>
                     <th className="py-5 px-5 rounded-e-lg text-end" />
                   </tr>
                 </thead>

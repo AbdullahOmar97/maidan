@@ -174,7 +174,7 @@ export default function LocationDetailPage() {
               </div>
             </div>
 
-            <div className="flex-1 text-center md:text-right">
+            <div className="flex-1 text-center md:text-end">
               <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3 justify-center md:justify-start">
                 <h1 className="text-4xl font-black tracking-tight text-white">{location.name}</h1>
                 <StatusBadge status={location.is_active ? "active" : "inactive"} />

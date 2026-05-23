@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Loader2, Shield, Sparkles, ArrowRight, Mail, CheckCircle2 } from "lucide-react";
+import { Loader2, Shield, Sparkles, ArrowRight, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorAlert } from "@/components/ErrorAlert";
 
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
                     href="/login"
                     className="inline-flex items-center gap-2 text-xs font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-widest"
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4 rtl-flip" />
                     <span>العودة لصفحة تسجيل الدخول</span>
                   </Link>
                 </div>
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
                     href="/login"
                     className="inline-flex items-center gap-2 text-[11px] font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-widest group"
                   >
-                    <ArrowRight className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
+                    <ArrowLeft className="w-3 h-3 rtl-flip group-hover:-translate-x-1 rtl:group-hover:translate-x-1 transition-transform" />
                     <span>العودة لتسجيل الدخول</span>
                   </Link>
                 </div>

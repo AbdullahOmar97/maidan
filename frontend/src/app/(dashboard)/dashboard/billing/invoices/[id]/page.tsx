@@ -162,7 +162,7 @@ export default function InvoiceDetailPage() {
                     <h2 className="text-lg md:text-xl font-black text-white">{invoice.student_name}</h2>
                   </div>
                 </div>
-                <div className="sm:text-right">
+                <div className="sm:text-end">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">تاريخ الاستحقاق</p>
                   <p className={cn("text-base md:text-lg font-black", isOverdue ? "text-red-400" : "text-white")}>
                     {formatDate(invoice.due_date)}
@@ -176,7 +176,7 @@ export default function InvoiceDetailPage() {
                   <div className="grid grid-cols-4 px-3 md:px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] md:tracking-[0.2em] border-b border-white/5">
                     <div className="col-span-2">الوصف</div>
                     <div className="text-center">الكمية</div>
-                    <div className="text-start">المبلغ</div>
+                    <div className="text-end">المبلغ</div>
                   </div>
                   <div className="grid grid-cols-4 px-3 md:px-4 py-3 md:py-4 items-center">
                     <div className="col-span-2">
@@ -184,8 +184,10 @@ export default function InvoiceDetailPage() {
                       {invoice.notes && <p className="text-xs text-muted-foreground mt-1">{invoice.notes}</p>}
                     </div>
                     <div className="text-center text-sm font-bold text-white">1</div>
-                    <div className="text-start text-sm font-black text-white" dir="ltr">
-                      {formatCurrency(invoice.subtotal, invoice.currency)}
+                    <div className="text-end text-sm font-black text-white">
+                      <bdi>
+                        {formatCurrency(invoice.subtotal, invoice.currency)}
+                      </bdi>
                     </div>
                   </div>
                 </div>
@@ -195,34 +197,34 @@ export default function InvoiceDetailPage() {
                   <div className="w-full max-w-xs space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-bold">المبلغ الفرعي</span>
-                      <span className="text-white font-black" dir="ltr">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+                      <bdi className="text-white font-black">{formatCurrency(invoice.subtotal, invoice.currency)}</bdi>
                     </div>
                     {invoice.discount_amount > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-red-400 font-bold">الخصم</span>
-                        <span className="text-red-400 font-black" dir="ltr">-{formatCurrency(invoice.discount_amount, invoice.currency)}</span>
+                        <bdi className="text-red-400 font-black">-{formatCurrency(invoice.discount_amount, invoice.currency)}</bdi>
                       </div>
                     )}
                     {invoice.tax_amount > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground font-bold">الضريبة ({invoice.tax_rate}%)</span>
-                        <span className="text-white font-black" dir="ltr">{formatCurrency(invoice.tax_amount, invoice.currency)}</span>
+                        <bdi className="text-white font-black">{formatCurrency(invoice.tax_amount, invoice.currency)}</bdi>
                       </div>
                     )}
                     <div className="pt-4 border-t border-white/10 flex justify-between">
                       <span className="text-white font-black text-base md:text-lg">الإجمالي</span>
-                      <span className="text-primary font-black text-xl md:text-2xl" dir="ltr">{formatCurrency(invoice.total_amount, invoice.currency)}</span>
+                      <bdi className="text-primary font-black text-xl md:text-2xl">{formatCurrency(invoice.total_amount, invoice.currency)}</bdi>
                     </div>
                     {invoice.amount_paid > 0 && (
                       <div className="flex justify-between text-sm pt-2">
                         <span className="text-emerald-400 font-bold">المبلغ المدفوع</span>
-                        <span className="text-emerald-400 font-black" dir="ltr">{formatCurrency(invoice.amount_paid, invoice.currency)}</span>
+                        <bdi className="text-emerald-400 font-black">{formatCurrency(invoice.amount_paid, invoice.currency)}</bdi>
                       </div>
                     )}
                     {invoice.status !== "paid" && (
                       <div className="p-3 md:p-4 rounded-2xl bg-primary/5 border border-primary/10 flex justify-between mt-4">
                         <span className="text-primary font-black text-xs md:text-sm uppercase tracking-widest">المتبقي للدفع</span>
-                        <span className="text-primary font-black" dir="ltr">{formatCurrency(invoice.amount_due, invoice.currency)}</span>
+                        <bdi className="text-primary font-black">{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
                       </div>
                     )}
                   </div>
