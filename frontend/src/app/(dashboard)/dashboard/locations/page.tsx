@@ -13,6 +13,7 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import React, { FormEvent, useMemo, useState } from "react";
 import { ROLE_LABELS } from "@/lib/constants";
+import Link from "next/link";
 
 type Location = {
   id: number;
@@ -265,69 +266,37 @@ export default function LocationsPage() {
                              </span>
                           </div>
                         )}
-                        {(() => {
-                           const branchStaff = staff.filter((s: any) => 
-                             s.id !== location.manager_id &&
-                             Array.isArray(s.assigned_location_ids) && 
-                             s.assigned_location_ids.includes(location.id)
-                           );
-                           if (branchStaff.length === 0) return null;
-                           return (
-                             <div className="pt-3 mt-3 border-t border-border/30 space-y-2 animate-in fade-in duration-300">
-                               <div className="flex items-center justify-between">
-                                 <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                                   <Users className="w-3.5 h-3.5 text-primary" /> طاقم عمل الفرع
-                                 </span>
-                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                   {branchStaff.length} موظفين
-                                 </span>
-                               </div>
-                               <div className="grid grid-cols-1 gap-1.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin">
-                                 {branchStaff.map((member: any) => (
-                                   <div key={member.id} className="flex items-center justify-between bg-secondary/20 hover:bg-secondary/40 border border-border/40 rounded-lg px-2.5 py-1.5 text-xs transition-colors">
-                                     <div className="flex items-center gap-2 truncate">
-                                       <div className="w-5 h-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-[9px] text-primary shrink-0">
-                                         {member.avatar_url ? (
-                                           <img src={member.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
-                                         ) : (
-                                           member.first_name?.charAt(0) ?? "U"
-                                         )}
-                                       </div>
-                                       <span className="font-medium text-foreground truncate max-w-[120px]" title={member.full_name}>
-                                         {member.full_name}
-                                       </span>
-                                     </div>
-                                     <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-primary/5 border border-primary/10 text-primary shrink-0">
-                                       {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] ?? member.role}
-                                     </span>
-                                   </div>
-                                 ))}
-                               </div>
-                             </div>
-                           );
-                         })()}
-                     </div>
+                      </div>
 
-                     {canManage && (
-                       <div className="mt-6 flex items-center gap-2 pt-4 border-t border-border/30">
-                          <button
-                            onClick={() => setEditingLocation(location)}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/50 hover:bg-primary/10 hover:text-primary transition-all text-xs font-medium"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            تعديل
-                          </button>
-                          <button
-                            onClick={() => setDeletingLocation(location)}
-                            className="px-3 py-2 rounded-lg bg-secondary/50 hover:bg-destructive/10 hover:text-destructive transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                       </div>
-                     )}
-                  </div>
-               </div>
-            ))}
+                      <div className="mt-6 flex items-center gap-2 pt-4 border-t border-border/30">
+                         <Link
+                           href={`/dashboard/locations/${location.id}`}
+                           className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all text-xs font-bold text-center"
+                         >
+                           <Building2 className="w-3.5 h-3.5" />
+                           عرض التفاصيل
+                         </Link>
+                         {canManage && (
+                           <>
+                             <button
+                               onClick={() => setEditingLocation(location)}
+                               className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/50 hover:bg-primary/10 hover:text-primary transition-all text-xs font-medium"
+                             >
+                               <Edit className="w-3.5 h-3.5" />
+                               تعديل
+                             </button>
+                             <button
+                               onClick={() => setDeletingLocation(location)}
+                               className="px-3 py-2 rounded-lg bg-secondary/50 hover:bg-destructive/10 hover:text-destructive transition-all"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                             </button>
+                           </>
+                         )}
+                      </div>
+                   </div>
+                </div>
+             ))}
          </div>
       )}
 

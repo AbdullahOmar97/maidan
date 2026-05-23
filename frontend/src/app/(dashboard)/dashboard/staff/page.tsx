@@ -70,6 +70,7 @@ export default function StaffPage() {
     mutationFn: (data: NewStaffFormData) => api.staff.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["locations", "list"] });
       setNewStaffForm(null);
       toast.success("تم إضافة الموظف بنجاح");
     },
@@ -82,6 +83,7 @@ export default function StaffPage() {
     mutationFn: ({ id, ...rest }: StaffMember) => api.staff.update(id, rest),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["locations", "list"] });
       setEditTarget(null);
       toast.success("تم تحديث بيانات الموظف بنجاح");
     },

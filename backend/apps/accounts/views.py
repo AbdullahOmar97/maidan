@@ -514,13 +514,15 @@ class StaffViewSet(viewsets.ModelViewSet):
         data = self.request.data
         # Strip branch assignment if caller lacks permission
         if "assigned_location_ids" in data and not self._can_assign_branch(self.request.user):
-            serializer.save(assigned_location_ids=[])
+            user = serializer.save(assigned_location_ids=[])
             from apps.staff.models import StaffMember
-            StaffMember.objects.get_or_create(user=serializer.instance)
+            StaffMember.objects.get_or_create(user=user)
+            self._sync_location_managers(user)
             return
         user = serializer.save()
         from apps.staff.models import StaffMember
         StaffMember.objects.get_or_create(user=user)
+        self._sync_location_managers(user)
 
     def perform_update(self, serializer):
         from shared.permissions import RoleChoices
@@ -557,4 +559,32 @@ class StaffViewSet(viewsets.ModelViewSet):
                  changes={"old": target_user.permissions, "new": new_permissions},
                  request=self.request
              )
-        serializer.save()
+        user = serializer.save()
+        self._sync_location_managers(user)
+
+    def _sync_location_managers(self, user):
+        from apps.students.models import Location
+        from shared.permissions import RoleChoices
+
+        # Find all locations where this user is currently the manager
+        currently_managed = Location.objects.filter(manager_id=user.id)
+
+        if user.role == RoleChoices.BRANCH_MANAGER:
+            # Parse the assigned_location_ids
+            assigned_ids = []
+            if isinstance(user.assigned_location_ids, list):
+                for lid in user.assigned_location_ids:
+                    try:
+                        assigned_ids.append(int(lid))
+                    except (ValueError, TypeError):
+                        pass
+            
+            # 1. Update newly assigned locations to set their manager to this user
+            if assigned_ids:
+                Location.objects.filter(id__in=assigned_ids).update(manager_id=user.id)
+            
+            # 2. Clear manager_id for locations that were managed by this user but are no longer assigned
+            currently_managed.exclude(id__in=assigned_ids).update(manager_id=None)
+        else:
+            # If the user is not a branch manager, they should not manage any locations
+            currently_managed.update(manager_id=None)
