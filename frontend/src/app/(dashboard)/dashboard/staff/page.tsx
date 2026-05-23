@@ -142,7 +142,8 @@ export default function StaffPage() {
             <ShieldCheck className="w-5 h-5 text-primary" />
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                 <tr>
@@ -183,6 +184,45 @@ export default function StaffPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="grid grid-cols-1 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-secondary/10 border border-border/40 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="shimmer w-12 h-12 rounded-xl shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="shimmer h-4 rounded w-1/2" />
+                        <div className="shimmer h-3 rounded w-3/4" />
+                      </div>
+                    </div>
+                    <div className="shimmer h-8 rounded-xl w-full" />
+                    <div className="flex gap-2">
+                      <div className="shimmer h-9 rounded-xl flex-1" />
+                      <div className="shimmer h-9 rounded-xl flex-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : staffData?.results?.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                لا يوجد موظفين مسجلين
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {staffData?.results?.map((member) => (
+                  <StaffCard
+                    key={member.id}
+                    member={member}
+                    onEdit={() => setEditTarget(member)}
+                    onManagePermissions={() => setPermissionsTarget(member)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,5 +342,91 @@ function StaffRow({ member, onEdit, onManagePermissions }: StaffRowProps) {
         </div>
       </td>
     </tr>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-component: StaffCard (Mobile View)
+// ---------------------------------------------------------------------------
+function StaffCard({ member, onEdit, onManagePermissions }: StaffRowProps) {
+  return (
+    <div className="bg-secondary/10 hover:bg-secondary/15 border border-border/40 hover:border-primary/20 p-5 rounded-2xl transition-all duration-200 space-y-4">
+      {/* Header Info */}
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center font-bold text-muted-foreground shrink-0 border border-border">
+          {member.avatar_url ? (
+            <img src={member.avatar_url} className="w-full h-full rounded-xl object-cover" alt={member.full_name} />
+          ) : (
+            member.first_name?.charAt(0) ?? "U"
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-foreground truncate">{member.full_name}</p>
+            <StatusBadge status={member.is_active ? "active" : "inactive"} />
+          </div>
+          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+            <Shield className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+            <span className="truncate">{member.email}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Details Row: Role & Contact */}
+      <div className="grid grid-cols-2 gap-3 py-3 border-y border-border/40 text-start">
+        <div className="text-start">
+          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start">الدور</span>
+          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border bg-primary/10 border-primary/20 text-primary text-start">
+            {ROLE_LABELS[member.role] ?? member.role}
+          </span>
+        </div>
+        <div className="text-start">
+          <span className="text-[10px] font-bold text-muted-foreground block mb-1 text-start">التواصل</span>
+          {member.phone ? (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground text-start">
+              <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span><bdi>{member.phone}</bdi></span>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground/50 text-start">—</span>
+          )}
+        </div>
+      </div>
+
+      {/* Branch Allocation */}
+      <div className="space-y-1.5 text-start">
+        <span className="text-[10px] font-bold text-muted-foreground block text-start">الفروع</span>
+        {member.branch_names && member.branch_names.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 justify-start">
+            {member.branch_names.map((name, idx) => (
+              <div key={idx} className="flex items-center gap-1 text-[10px] bg-secondary/30 border border-border px-2 py-0.5 rounded-lg shadow-sm">
+                <MapPin className="w-3 h-3 text-primary shrink-0" />
+                <span className="whitespace-nowrap">{name}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground/50 text-start">—</span>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={onEdit}
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 py-2.5 rounded-xl transition-all font-bold border border-border active:scale-95"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          تعديل
+        </button>
+        <button
+          onClick={onManagePermissions}
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs text-primary hover:bg-primary/10 py-2.5 rounded-xl transition-all font-bold border border-primary/20 active:scale-95"
+        >
+          <Lock className="w-3.5 h-3.5" />
+          إدارة الصلاحيات
+        </button>
+      </div>
+    </div>
   );
 }
