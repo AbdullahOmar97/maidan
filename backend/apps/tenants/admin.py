@@ -81,10 +81,25 @@ class PlanAdminForm(forms.ModelForm):
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
     form = PlanAdminForm
-    list_display = ("name", "slug", "price_monthly", "currency", "is_active", "is_free")
+    list_display = ("name", "slug", "price_monthly", "currency", "is_active", "is_free", "max_students", "max_staff", "max_locations")
     list_filter = ("is_active", "is_free", "currency")
     search_fields = ("name", "slug")
-    exclude = ("features",)  # Hide the raw JSON field
+    
+    fieldsets = (
+        ("Basic Information (المعلومات الأساسية)", {
+            "fields": ("name", "slug", "description", "is_active", "is_free")
+        }),
+        ("Pricing & Billing (الأسعار والفوترة)", {
+            "fields": ("price_monthly", "price_yearly", "currency")
+        }),
+        ("Subscription Limits (حدود الاشتراك)", {
+            "fields": ("max_students", "max_staff", "max_locations", "max_sms_per_month"),
+            "description": "حدد الطاقة الاستيعابية والحدود المتاحة لهذا الاشتراك"
+        }),
+        ("Plan Features (مميزات الباقة)", {
+            "fields": ("feature_list", "custom_features")
+        }),
+    )
 
 
 class DomainInline(admin.TabularInline):

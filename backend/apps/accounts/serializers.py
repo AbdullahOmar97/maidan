@@ -66,6 +66,20 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if password or password_confirm:
             if password != password_confirm:
                 raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+
+        # Plan staff capacity check
+        request = self.context.get("request")
+        if request and hasattr(request, "tenant") and request.tenant:
+            tenant = request.tenant
+            if tenant.schema_name != "public":
+                plan = tenant.plan
+                if plan:
+                    from apps.staff.models import StaffMember
+                    current_staff_count = StaffMember.objects.count()
+                    if current_staff_count >= plan.max_staff:
+                        raise serializers.ValidationError(
+                            {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الموظفين المسموح به في باقتك الحالية ({plan.max_staff} موظف)."}
+                        )
         return attrs
 
     def create(self, validated_data):

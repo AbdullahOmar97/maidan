@@ -16,6 +16,45 @@ class LocationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at"]
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        request = self.context.get("request")
+        if request and hasattr(request, "tenant") and request.tenant:
+            tenant = request.tenant
+            if tenant.schema_name != "public":
+                plan = tenant.plan
+                if plan:
+                    # 1. Enforce max locations limit on creation
+                    if not self.instance:
+                        current_locations_count = Location.objects.count()
+                        if current_locations_count >= plan.max_locations:
+                            raise serializers.ValidationError(
+                                {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الفروع المسموح به في باقتك الحالية ({plan.max_locations} فرع)."}
+                            )
+                    
+                    # 2. Enforce sum of capacities across all branches does not exceed plan.max_students
+                    from django.db.models import Sum
+                    capacity_val = attrs.get("capacity")
+                    if capacity_val is None:
+                        if self.instance:
+                            capacity_val = self.instance.capacity
+                        else:
+                            capacity_val = 50  # default capacity
+
+                    query = Location.objects.all()
+                    if self.instance and self.instance.pk:
+                        query = query.exclude(pk=self.instance.pk)
+
+                    other_branches_capacity = query.aggregate(total=Sum("capacity"))["total"] or 0
+                    total_capacity = other_branches_capacity + capacity_val
+
+                    if total_capacity > plan.max_students:
+                        raise serializers.ValidationError(
+                            {"capacity": f"إجمالي الطاقة الاستيعابية لجميع الفروع ({total_capacity}) يتجاوز الحد الأقصى المسموح به في الباقة للطلاب ({plan.max_students} طالب). الطاقة الاستيعابية المتاحة للفروع الأخرى هي {other_branches_capacity}."}
+                        )
+        return attrs
+
+
 
 class FamilySerializer(serializers.ModelSerializer):
     member_count = serializers.SerializerMethodField()
@@ -130,6 +169,19 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         
+        # Plan student capacity check
+        request = self.context.get("request")
+        if not self.instance and request and hasattr(request, "tenant") and request.tenant:
+            tenant = request.tenant
+            if tenant.schema_name != "public":
+                plan = tenant.plan
+                if plan:
+                    current_students = Student.objects.filter(deleted_at__isnull=True).count()
+                    if current_students >= plan.max_students:
+                        raise serializers.ValidationError(
+                            {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الطلاب المسموح به في باقتك الحالية ({plan.max_students} طالب)."}
+                        )
+
         # Branch capacity validation
         location = attrs.get("location")
         status_val = attrs.get("status")
