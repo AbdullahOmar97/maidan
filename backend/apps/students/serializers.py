@@ -24,13 +24,20 @@ class LocationSerializer(serializers.ModelSerializer):
             if tenant.schema_name != "public":
                 plan = tenant.plan
                 if plan:
-                    # 1. Enforce max locations limit on creation
+                    # 1. Enforce max locations limit on creation/activation
+                    is_activating = False
                     if not self.instance:
-                        current_locations_count = Location.objects.count()
-                        if current_locations_count >= plan.max_locations:
+                        is_activating = attrs.get("is_active", True)
+                    else:
+                        is_activating = attrs.get("is_active", False) and not self.instance.is_active
+
+                    if is_activating:
+                        active_locations_count = Location.objects.filter(is_active=True).count()
+                        if active_locations_count >= plan.max_locations:
                             raise serializers.ValidationError(
-                                {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الفروع المسموح به في باقتك الحالية ({plan.max_locations} فرع)."}
+                                {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الفروع النشطة المسموح به في باقتك الحالية ({plan.max_locations} فرع)."}
                             )
+
                     
                     # 2. Enforce sum of capacities across all branches does not exceed plan.max_students
                     from django.db.models import Sum
@@ -171,16 +178,25 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         
         # Plan student capacity check
         request = self.context.get("request")
-        if not self.instance and request and hasattr(request, "tenant") and request.tenant:
+        if request and hasattr(request, "tenant") and request.tenant:
             tenant = request.tenant
             if tenant.schema_name != "public":
                 plan = tenant.plan
                 if plan:
-                    current_students = Student.objects.filter(deleted_at__isnull=True).count()
-                    if current_students >= plan.max_students:
-                        raise serializers.ValidationError(
-                            {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الطلاب المسموح به في باقتك الحالية ({plan.max_students} طالب)."}
-                        )
+                    is_activating = False
+                    new_status = attrs.get("status")
+                    if not self.instance:
+                        is_activating = (new_status == "active")
+                    else:
+                        is_activating = (new_status == "active") and (self.instance.status != "active")
+
+                    if is_activating:
+                        active_students = Student.objects.filter(status="active", deleted_at__isnull=True).count()
+                        if active_students >= plan.max_students:
+                            raise serializers.ValidationError(
+                                {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الطلاب النشطين المسموح به في باقتك الحالية ({plan.max_students} طالب)."}
+                            )
+
 
         # Branch capacity validation
         location = attrs.get("location")

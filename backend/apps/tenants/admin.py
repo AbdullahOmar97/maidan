@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt, PlatformSettings
+from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt, PlatformSettings, SubscriptionChangeRequest
 
 
 @admin.register(GlobalDefaultBelt)
@@ -158,3 +158,12 @@ class TenantSubscriptionAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "billing_cycle", "plan")
     search_fields = ("tenant__name", "tenant__schema_name", "external_subscription_id")
+
+
+@admin.register(SubscriptionChangeRequest)
+class SubscriptionChangeRequestAdmin(admin.ModelAdmin):
+    list_display = ("tenant", "old_plan", "new_plan", "status", "requested_by", "created_at")
+    list_filter = ("status", "new_plan")
+    search_fields = ("tenant__name", "requested_by__email", "reason")
+    readonly_fields = ("created_at", "updated_at")
+

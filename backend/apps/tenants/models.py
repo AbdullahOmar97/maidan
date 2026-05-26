@@ -6,7 +6,9 @@ Public schema only.
 """
 
 from django.db import models
+from django.conf import settings
 from django_tenants.models import DomainMixin, TenantMixin
+
 
 
 class Plan(models.Model):
@@ -205,7 +207,45 @@ class PlatformSettings(models.Model):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
 
+
+class SubscriptionChangeRequest(models.Model):
+    """Tracks plan change/upgrade/downgrade requests from tenants."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending Approval"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="plan_change_requests")
+    old_plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True, blank=True, related_name="old_change_requests")
+    new_plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="new_change_requests")
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    
+    reason = models.TextField(blank=True, help_text="السبب لطلب التغيير")
+    admin_notes = models.TextField(blank=True, help_text="ملاحظات مسؤول المنصة")
+    
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="submitted_plan_requests"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "tenants"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.tenant.name} request to {self.new_plan.name} ({self.status})"
+
+
 from django.db.models.signals import pre_save
+
 from django.dispatch import receiver
 
 @receiver(pre_save, sender=Tenant)

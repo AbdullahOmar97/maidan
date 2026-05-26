@@ -28,6 +28,33 @@ class UserSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return obj.get_full_name()
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        
+        # Enforce active staff limits when activating a user
+        request = self.context.get("request")
+        if request and hasattr(request, "tenant") and request.tenant:
+            tenant = request.tenant
+            if tenant.schema_name != "public":
+                plan = tenant.plan
+                if plan:
+                    new_active = attrs.get("is_active")
+                    is_activating = False
+                    if self.instance:
+                        is_activating = new_active is True and not self.instance.is_active
+                    else:
+                        is_activating = new_active is True
+
+                    if is_activating:
+                        from apps.staff.models import StaffMember
+                        active_staff_count = StaffMember.objects.filter(user__is_active=True).count()
+                        if active_staff_count >= plan.max_staff:
+                            raise serializers.ValidationError(
+                                {"is_active": f"لقد تجاوزت الحد الأقصى لعدد الموظفين النشطين المسموح به في باقتك الحالية ({plan.max_staff} موظف)."}
+                            )
+        return attrs
+
+
     def get_avatar_url(self, obj):
         if obj.avatar:
             request = self.context.get("request")
@@ -75,12 +102,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
                 plan = tenant.plan
                 if plan:
                     from apps.staff.models import StaffMember
-                    current_staff_count = StaffMember.objects.count()
-                    if current_staff_count >= plan.max_staff:
+                    active_staff_count = StaffMember.objects.filter(user__is_active=True).count()
+                    if active_staff_count >= plan.max_staff:
                         raise serializers.ValidationError(
-                            {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الموظفين المسموح به في باقتك الحالية ({plan.max_staff} موظف)."}
+                            {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الموظفين النشطين المسموح به في باقتك الحالية ({plan.max_staff} موظف)."}
                         )
         return attrs
+
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

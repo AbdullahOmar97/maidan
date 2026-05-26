@@ -5,12 +5,14 @@ from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from shared.permissions import IsPlatformAdmin, IsStaff, RoleChoices
-from .models import Tenant, Plan
+from .models import Tenant, Plan, SubscriptionChangeRequest
 from .serializers import (
     PlanSerializer, 
     TenantSerializer, 
-    TenantRegistrationSerializer
+    TenantRegistrationSerializer,
+    SubscriptionChangeRequestSerializer
 )
+
 
 
 class PlanViewSet(viewsets.ModelViewSet):
@@ -166,3 +168,111 @@ class TenantViewSet(viewsets.ModelViewSet):
                 {"error": f"حدث خطأ أثناء نقل الملكية: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class SubscriptionChangeRequestViewSet(viewsets.ModelViewSet):
+    queryset = SubscriptionChangeRequest.objects.all()
+    serializer_class = SubscriptionChangeRequestSerializer
+
+    def get_permissions(self):
+        # Platform level list/approve/reject is restricted to Platform Admins
+        if self.action in ["list", "approve", "reject", "retrieve"]:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsTenantOwnerOrManager()]
+
+    def get_queryset(self):
+        user = self.request.user
+        from shared.permissions import RoleChoices
+        if user.role == RoleChoices.PLATFORM_ADMIN:
+            return SubscriptionChangeRequest.objects.all()
+        # Otherwise, scope to user's tenant only!
+        tenant = getattr(self.request, "tenant", None)
+        if tenant:
+            return SubscriptionChangeRequest.objects.filter(tenant=tenant)
+        return SubscriptionChangeRequest.objects.none()
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request, "tenant", None)
+        if not tenant:
+            raise serializers.ValidationError({"non_field_errors": "لم يتم التعرف على النادي."})
+        
+        # Save request with current tenant and user
+        serializer.save(
+            tenant=tenant,
+            old_plan=tenant.plan,
+            requested_by=self.request.user,
+            status=SubscriptionChangeRequest.Status.PENDING
+        )
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsPlatformAdmin])
+    def approve(self, request, pk=None):
+        sub_request = self.get_object()
+        if sub_request.status != SubscriptionChangeRequest.Status.PENDING:
+            return Response(
+                {"error": "هذا الطلب تم التعامل معه بالفعل ولا يمكن تعديله."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        admin_notes = request.data.get("admin_notes", "")
+        
+        with transaction.atomic():
+            sub_request.status = SubscriptionChangeRequest.Status.APPROVED
+            sub_request.admin_notes = admin_notes
+            sub_request.save()
+
+            # 1. Update the tenant plan
+            tenant = sub_request.tenant
+            tenant.plan = sub_request.new_plan
+            tenant.save()
+
+            # 2. Trigger auto-deactivation logic under tenant schema context
+            from django_tenants.utils import schema_context
+            from .utils import enforce_plan_downgrade_limits
+            
+            with schema_context(tenant.schema_name):
+                enforce_plan_downgrade_limits(tenant, sub_request.new_plan)
+
+        from apps.audit.utils import log_action
+        log_action(
+            request.user,
+            "approve_subscription_request",
+            "subscription_request",
+            str(sub_request.id),
+            changes={"tenant": tenant.name, "new_plan": sub_request.new_plan.name},
+            request=request
+        )
+
+        return Response({"message": "تمت الموافقة على طلب تغيير الباقة وتطبيق الحدود الجديدة بنجاح."})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, IsPlatformAdmin])
+    def reject(self, request, pk=None):
+        sub_request = self.get_object()
+        if sub_request.status != SubscriptionChangeRequest.Status.PENDING:
+            return Response(
+                {"error": "هذا الطلب تم التعامل معه بالفعل ولا يمكن تعديله."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        admin_notes = request.data.get("admin_notes", "")
+        if not admin_notes:
+            return Response(
+                {"error": "يجب تحديد سبب الرفض في ملاحظات المسؤول."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sub_request.status = SubscriptionChangeRequest.Status.REJECTED
+        sub_request.admin_notes = admin_notes
+        sub_request.save()
+
+        from apps.audit.utils import log_action
+        log_action(
+            request.user,
+            "reject_subscription_request",
+            "subscription_request",
+            str(sub_request.id),
+            changes={"tenant": sub_request.tenant.name, "new_plan": sub_request.new_plan.name, "notes": admin_notes},
+            request=request
+        )
+
+        return Response({"message": "تم رفض طلب تغيير الباقة."})
+

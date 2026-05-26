@@ -2,7 +2,8 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
-import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle } from "lucide-react";
+import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -27,6 +28,28 @@ export default function SettingsPage() {
     academy: "idle",
     branding: "idle",
   });
+
+  const [plans, setPlans] = useState<any[]>([]);
+  const [subRequests, setSubRequests] = useState<any[]>([]);
+  const [tenantFullData, setTenantFullData] = useState<any>(null);
+
+  const [submittingPlanRequest, setSubmittingPlanRequest] = useState(false);
+  const [requestReason, setRequestReason] = useState("");
+  const [selectedNewPlan, setSelectedNewPlan] = useState<any>(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+
+  const refreshRequests = async () => {
+    try {
+      const res = await api.tenants.subscriptionRequests.list();
+      setSubRequests(res.data.results || res.data);
+      
+      const tRes = await api.tenants.me();
+      setTenantFullData(tRes.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 
   const [initialProfile, setInitialProfile] = useState({
     first_name: "",
@@ -61,10 +84,13 @@ export default function SettingsPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        const [userResult, tenantResult] = await Promise.allSettled([
+        const [userResult, tenantResult, plansResult, requestsResult] = await Promise.allSettled([
           api.auth.me(),
           api.tenants.me(),
+          api.platform.plans.list(),
+          api.tenants.subscriptionRequests.list(),
         ]);
+
 
         if (userResult.status === "fulfilled") {
           const userData = userResult.value.data;
@@ -83,7 +109,9 @@ export default function SettingsPage() {
 
         if (tenantResult.status === "fulfilled") {
           const tenantData = tenantResult.value.data;
+          setTenantFullData(tenantData);
           const academyData = {
+
             name: tenantData.name || "",
             business_name: tenantData.business_name || "",
             default_currency: tenantData.default_currency || "JOD",
@@ -106,6 +134,14 @@ export default function SettingsPage() {
           console.error("Error fetching academy settings:", tenantResult.reason);
           toast.error("تعذر تحميل إعدادات الأكاديمية حالياً.");
         }
+
+        if (plansResult.status === "fulfilled") {
+          setPlans(plansResult.value.data.results || plansResult.value.data);
+        }
+        if (requestsResult.status === "fulfilled") {
+          setSubRequests(requestsResult.value.data.results || requestsResult.value.data);
+        }
+
       } catch (error) {
         console.error("Error fetching settings:", error);
         toast.error("تعذر تحميل البيانات. يرجى المحاولة لاحقاً.");
@@ -626,13 +662,344 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab !== "profile" && activeTab !== "academy" && activeTab !== "branding" && activeTab !== "security" && (
+          {activeTab === "billing" && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div>
+                <h2 className="text-xl font-black text-white">إدارة اشتراك الأكاديمية</h2>
+                <p className="text-sm text-muted-foreground mt-1">تتبع حدود باقتك الحالية واطلب الترقية أو تغيير الباقة بسهولة.</p>
+              </div>
+              <hr className="border-white/5" />
+
+              {/* Active Plan Stats */}
+              {tenantFullData && (
+                <div className="space-y-6">
+                  {/* Current Active Plan Overview */}
+                  {(() => {
+                    const currentPlan = plans.find(p => p.id === tenantFullData.plan);
+                    const limitsExceeded = 
+                      (tenantFullData.active_students_count > (currentPlan?.max_students ?? 0)) ||
+                      (tenantFullData.active_locations_count > (currentPlan?.max_locations ?? 0)) ||
+                      (tenantFullData.active_staff_count > (currentPlan?.max_staff ?? 0));
+
+                    return (
+                      <div className={cn(
+                        "p-6 rounded-3xl border relative overflow-hidden transition-all duration-300",
+                        limitsExceeded 
+                          ? "bg-destructive/10 border-destructive/20 text-white" 
+                          : "bg-white/[0.02] border-white/5 text-white"
+                      )}>
+                        <div className="absolute top-0 end-0 w-64 h-64 bg-primary/5 blur-[80px] -me-32 -mt-32 pointer-events-none" />
+                        
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                          <div className="space-y-2">
+                            <span className="px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">الباقة الحالية النشطة</span>
+                            <h3 className="text-2xl font-black mt-2 text-white">{currentPlan?.name || "الباقة الافتراضية"}</h3>
+                            <p className="text-sm text-muted-foreground max-w-xl">{currentPlan?.description || "باقة مخصصة لإدارة الأندية والأكاديميات بكفاءة."}</p>
+                          </div>
+
+                          <div className="text-start md:text-end shrink-0">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">قيمة الاشتراك</span>
+                            <span className="text-3xl font-black text-primary"><bdi>{currentPlan?.price_monthly ?? 0} {currentPlan?.currency ?? "JOD"}</bdi></span>
+                            <span className="text-xs font-bold text-muted-foreground block mt-1">شهرياً</span>
+                          </div>
+                        </div>
+
+                        {limitsExceeded && (
+                          <div className="mt-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3 text-sm font-bold animate-pulse">
+                            <AlertTriangle className="w-5 h-5 shrink-0" />
+                            <span>تنبيه: لقد تجاوزت بعض حدود باقتك الحالية. يرجى الترقية أو تقليل أعداد السجلات النشطة للعودة للحد الطبيعي.</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Limits Progress Grid */}
+                  {(() => {
+                    const currentPlan = plans.find(p => p.id === tenantFullData.plan);
+                    const getProgressPct = (curr: number, max: number) => Math.min(100, Math.round((curr / (max || 1)) * 100));
+
+                    const stats = [
+                      {
+                        label: "الفروع النشطة",
+                        curr: tenantFullData.active_locations_count ?? 0,
+                        max: currentPlan?.max_locations ?? 1,
+                        icon: Building2,
+                        color: "primary"
+                      },
+                      {
+                        label: "الطلاب النشطون",
+                        curr: tenantFullData.active_students_count ?? 0,
+                        max: currentPlan?.max_students ?? 100,
+                        icon: Users,
+                        color: "emerald"
+                      },
+                      {
+                        label: "الموظفون النشطون",
+                        curr: tenantFullData.active_staff_count ?? 0,
+                        max: currentPlan?.max_staff ?? 10,
+                        icon: UserCog,
+                        color: "amber"
+                      }
+                    ];
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {stats.map(s => {
+                          const pct = getProgressPct(s.curr, s.max);
+                          const exceeded = s.curr > s.max;
+                          return (
+                            <div key={s.label} className={cn(
+                              "glass-card p-5 space-y-4 border transition-all",
+                              exceeded ? "border-destructive/30 bg-destructive/5" : "border-white/5"
+                            )}>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-muted-foreground">{s.label}</span>
+                                <div className={cn(
+                                  "w-8 h-8 rounded-lg flex items-center justify-center bg-white/5",
+                                  exceeded ? "text-destructive" : "text-primary"
+                                )}>
+                                  <s.icon className="w-4 h-4" />
+                                </div>
+                              </div>
+
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className={cn("text-2xl font-black", exceeded ? "text-destructive" : "text-white")}>
+                                  {s.curr}
+                                </span>
+                                <span className="text-xs font-bold text-muted-foreground">من أصل {s.max}</span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                                  <div 
+                                    className={cn(
+                                      "h-full rounded-full transition-all duration-500",
+                                      exceeded ? "bg-destructive shadow-md shadow-destructive/20" : "bg-primary shadow-md shadow-primary/20"
+                                    )} 
+                                    style={{ width: `${pct}%` }} 
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground/60">
+                                  <span>{pct}%</span>
+                                  {exceeded && <span className="text-destructive font-black">تجاوزت الحد!</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Plans Catalog Grid */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-white">استعراض الباقات المتاحة</h3>
+                  <p className="text-sm text-muted-foreground mt-1">اختر الباقة المناسبة لاحتياجاتك واطلب الترقية فوراً.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {plans.map(p => {
+                    const isCurrent = tenantFullData && p.id === tenantFullData.plan;
+                    return (
+                      <div key={p.id} className={cn(
+                        "glass-card p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:scale-[1.02]",
+                        isCurrent ? "border-primary bg-primary/5" : "border-white/5"
+                      )}>
+                        {isCurrent && (
+                          <span className="absolute top-4 end-4 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest">
+                            الباقة النشطة
+                          </span>
+                        )}
+
+                        <div className="space-y-5 pt-4 text-start">
+                          <div>
+                            <h4 className="text-lg font-black text-white">{p.name}</h4>
+                            <p className="text-xs text-muted-foreground mt-1 min-h-[2.5rem]">{p.description || "باقة مرنة وسريعة للأندية الناشئة."}</p>
+                          </div>
+
+                          <div className="py-4 border-y border-white/5 flex items-baseline justify-between gap-2">
+                            <span className="text-2xl font-black text-primary"><bdi>{p.price_monthly} {p.currency ?? "SAR"}</bdi></span>
+                            <span className="text-xs font-bold text-muted-foreground">شهرياً</span>
+                          </div>
+
+                          <ul className="space-y-3 text-xs text-muted-foreground font-medium">
+                            <li className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>الحد الأقصى للفروع: <strong className="text-white font-bold">{p.max_locations}</strong></span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>الحد الأقصى للطلاب: <strong className="text-white font-bold">{p.max_students}</strong></span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>الحد الأقصى للموظفين: <strong className="text-white font-bold">{p.max_staff}</strong></span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="pt-6 mt-6 border-t border-white/5">
+                          {isCurrent ? (
+                            <button disabled className="w-full py-3 rounded-xl bg-white/5 text-muted-foreground text-xs font-black cursor-not-allowed">
+                              أنت مشترك في هذه الباقة
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedNewPlan(p);
+                                setShowPlanModal(true);
+                              }}
+                              className="w-full py-3 rounded-xl bg-primary text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              اطلب الانتقال لهذه الباقة
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* History Table */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-white">سجل طلبات تغيير الباقات</h3>
+                  <p className="text-sm text-muted-foreground mt-1">متابعة حالة طلبات الترقية أو التعديل المقدمة لمدير النظام.</p>
+                </div>
+
+                {subRequests.length === 0 ? (
+                  <div className="glass-card py-12 text-center border-dashed border-white/10 bg-transparent flex flex-col items-center justify-center">
+                    <CreditCard className="w-10 h-10 text-muted-foreground/30 mb-4" />
+                    <p className="text-sm text-muted-foreground">لا يوجد أي طلبات سابقة لتغيير الباقة.</p>
+                  </div>
+                ) : (
+                  <div className="glass-card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-start">
+                        <thead>
+                          <tr className="bg-white/[0.02] border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <th className="py-4 px-5 text-start">الباقة المطلوبة</th>
+                            <th className="py-4 px-5 text-start">السبب</th>
+                            <th className="py-4 px-5 text-start">تاريخ الطلب</th>
+                            <th className="py-4 px-5 text-start">الحالة</th>
+                            <th className="py-4 px-5 text-start">ملاحظات الإدارة</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-sm text-white font-medium">
+                          {subRequests.map(req => (
+                            <tr key={req.id} className="hover:bg-white/[0.01] transition-colors">
+                              <td className="py-4 px-5 text-start">
+                                <span className="font-bold">{req.new_plan_name}</span>
+                                {req.old_plan_name && <span className="text-[10px] text-muted-foreground block mt-0.5">بدلاً من {req.old_plan_name}</span>}
+                              </td>
+                              <td className="py-4 px-5 text-start max-w-xs truncate" title={req.reason}>
+                                {req.reason || "—"}
+                              </td>
+                              <td className="py-4 px-5 text-start text-xs text-muted-foreground">
+                                <bdi>{new Date(req.created_at).toLocaleDateString("ar-SA")}</bdi>
+                              </td>
+                              <td className="py-4 px-5 text-start">
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                  req.status === "pending" && "bg-amber-500/10 border-amber-500/20 text-amber-400",
+                                  req.status === "approved" && "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+                                  req.status === "rejected" && "bg-red-500/10 border-red-500/20 text-red-400"
+                                )}>
+                                  {req.status === "pending" && "معلق"}
+                                  {req.status === "approved" && "مقبول ✓"}
+                                  {req.status === "rejected" && "مرفوض ✗"}
+                                </span>
+                              </td>
+                              <td className="py-4 px-5 text-start max-w-xs text-xs text-muted-foreground" title={req.admin_notes}>
+                                {req.admin_notes || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Upgrade Request Modal */}
+              {showPlanModal && selectedNewPlan && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                  <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-white/10">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="w-6 h-6 text-primary" />
+                      <h2 className="text-xl font-black text-white">طلب تغيير باقة الاشتراك</h2>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
+                      <p className="text-muted-foreground">الباقة المستهدفة: <strong className="text-white font-bold">{selectedNewPlan.name}</strong></p>
+                      <p className="text-muted-foreground">قيمة الاشتراك: <strong className="text-white font-bold">{selectedNewPlan.price_monthly} {selectedNewPlan.currency ?? "SAR"}</strong> شهرياً</p>
+                    </div>
+
+                    <div className="space-y-2 text-start">
+                      <label className="text-sm font-bold text-white">سبب طلب تغيير الباقة (اختياري)</label>
+                      <textarea
+                        rows={4}
+                        placeholder="اكتب هنا التفاصيل الإضافية أو المتطلبات الخاصة بك لمدير المنصة..."
+                        className="w-full p-3 rounded-xl border bg-background/50 border-white/5 focus:border-primary/50 outline-none text-sm text-white transition-all placeholder:text-muted-foreground/40"
+                        value={requestReason}
+                        onChange={(e) => setRequestReason(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setShowPlanModal(false);
+                          setRequestReason("");
+                        }}
+                        className="px-6 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black hover:bg-white/5 active:scale-95 transition-all"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        disabled={submittingPlanRequest}
+                        onClick={async () => {
+                          try {
+                            setSubmittingPlanRequest(true);
+                            await api.tenants.subscriptionRequests.create({
+                              new_plan: selectedNewPlan.id,
+                              reason: requestReason
+                            });
+                            toast.success("تم إرسال طلب تغيير الباقة بنجاح ✓");
+                            setShowPlanModal(false);
+                            setRequestReason("");
+                            await refreshRequests();
+                          } catch (e: any) {
+                            toast.error(e.response?.data?.non_field_errors?.[0] || e.response?.data?.error || "فشل إرسال الطلب. قد يكون لديك طلب معلق بالفعل.");
+                          } finally {
+                            setSubmittingPlanRequest(false);
+                          }
+                        }}
+                        className="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center gap-2"
+                      >
+                        {submittingPlanRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : "إرسال الطلب الآن"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab !== "profile" && activeTab !== "academy" && activeTab !== "branding" && activeTab !== "security" && activeTab !== "billing" && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-20">
               <Settings className="w-16 h-16 mb-4 opacity-10 animate-[spin_10s_linear_infinite]" />
               <h3 className="text-lg font-medium">إعدادات {tabs.find((t) => t.id === activeTab)?.label}</h3>
               <p className="text-sm">قريباً...</p>
             </div>
           )}
+
         </div>
       </div>
     </div>

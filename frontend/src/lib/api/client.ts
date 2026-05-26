@@ -131,7 +131,12 @@ export const api = {
       );
     },
     transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
+    subscriptionRequests: {
+      list: () => apiClient.get("/academy/subscription-requests/"),
+      create: (data: { new_plan: number; reason?: string }) => apiClient.post("/academy/subscription-requests/", data),
+    },
   },
+
 
   // Dashboard
   dashboard: {
@@ -288,7 +293,13 @@ export const api = {
     plans: {
       list: () => apiClient.get("/platform/plans/", { skipAuth: true }),
     },
+    subscriptionRequests: {
+      list: () => apiClient.get("/platform/subscription-requests/"),
+      approve: (id: number, data?: { admin_notes?: string }) => apiClient.post(`/platform/subscription-requests/${id}/approve/`, data ?? {}),
+      reject: (id: number, data: { admin_notes: string }) => apiClient.post(`/platform/subscription-requests/${id}/reject/`, data),
+    },
   },
+
 };
 
 export type ApiError = {

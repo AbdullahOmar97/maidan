@@ -87,3 +87,48 @@ def seed_default_data(tenant):
         )
 
     logger.info(f"Successfully seeded default data for {tenant.schema_name}")
+
+
+def enforce_plan_downgrade_limits(tenant, new_plan):
+    """
+    Enforces new plan limits on active locations, staff, and students
+    by deactivating the newest records if they exceed the plan limits.
+    This should be called under schema context of the tenant.
+    """
+    from apps.students.models import Location, Student
+    from apps.staff.models import StaffMember
+
+    # 1. Deactivate newest active Locations if limits are exceeded
+    active_locations = Location.objects.filter(is_active=True).order_by("created_at")
+    active_locations_count = active_locations.count()
+    if active_locations_count > new_plan.max_locations:
+        excess = active_locations_count - new_plan.max_locations
+        to_deactivate = Location.objects.filter(is_active=True).order_by("-created_at")[:excess]
+        for loc in to_deactivate:
+            loc.is_active = False
+            loc.save(update_fields=["is_active"])
+            logger.info(f"Deactivated location due to downgrade: {loc.name} (Tenant: {tenant.schema_name})")
+
+    # 2. Deactivate newest active Staff if limits are exceeded
+    active_staff = StaffMember.objects.filter(user__is_active=True).order_by("created_at")
+    active_staff_count = active_staff.count()
+    if active_staff_count > new_plan.max_staff:
+        excess = active_staff_count - new_plan.max_staff
+        to_deactivate_staff = StaffMember.objects.filter(user__is_active=True).order_by("-created_at")[:excess]
+        for sm in to_deactivate_staff:
+            user = sm.user
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+            logger.info(f"Deactivated staff user due to downgrade: {user.email} (Tenant: {tenant.schema_name})")
+
+    # 3. Deactivate newest active Students if limits are exceeded
+    active_students = Student.objects.filter(status="active", deleted_at__isnull=True).order_by("created_at")
+    active_students_count = active_students.count()
+    if active_students_count > new_plan.max_students:
+        excess = active_students_count - new_plan.max_students
+        to_deactivate_students = Student.objects.filter(status="active", deleted_at__isnull=True).order_by("-created_at")[:excess]
+        for stu in to_deactivate_students:
+            stu.status = "inactive"
+            stu.save(update_fields=["status"])
+            logger.info(f"Deactivated student due to downgrade: {stu.full_name} (Tenant: {tenant.schema_name})")
+

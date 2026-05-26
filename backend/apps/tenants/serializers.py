@@ -2,7 +2,7 @@
 from django.db import transaction
 from django.conf import settings
 from rest_framework import serializers
-from .models import Tenant, Domain, Plan, PlatformSettings
+from .models import Tenant, Domain, Plan, PlatformSettings, SubscriptionChangeRequest
 from apps.accounts.models import User
 
 class PlanSerializer(serializers.ModelSerializer):
@@ -19,6 +19,10 @@ class DomainSerializer(serializers.ModelSerializer):
 class TenantSerializer(serializers.ModelSerializer):
     domains = DomainSerializer(many=True, read_only=True)
     domain_input = serializers.CharField(write_only=True, required=False)
+    
+    active_students_count = serializers.SerializerMethodField()
+    active_locations_count = serializers.SerializerMethodField()
+    active_staff_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenant
@@ -27,9 +31,38 @@ class TenantSerializer(serializers.ModelSerializer):
             "is_active", "plan", "on_trial", "trial_ends_at",
             "logo", "favicon", "default_language",
             "default_currency", "timezone", "country", "created_at",
-            "domains", "domain_input"
+            "domains", "domain_input",
+            "active_students_count", "active_locations_count", "active_staff_count"
         ]
         read_only_fields = ["id", "slug", "schema_name", "created_at"]
+
+    def get_active_students_count(self, obj):
+        from django_tenants.utils import schema_context
+        from apps.students.models import Student
+        try:
+            with schema_context(obj.schema_name):
+                return Student.objects.filter(status="active", deleted_at__isnull=True).count()
+        except Exception:
+            return 0
+
+    def get_active_locations_count(self, obj):
+        from django_tenants.utils import schema_context
+        from apps.students.models import Location
+        try:
+            with schema_context(obj.schema_name):
+                return Location.objects.filter(is_active=True).count()
+        except Exception:
+            return 0
+
+    def get_active_staff_count(self, obj):
+        from django_tenants.utils import schema_context
+        from apps.staff.models import StaffMember
+        try:
+            with schema_context(obj.schema_name):
+                return StaffMember.objects.filter(user__is_active=True).count()
+        except Exception:
+            return 0
+
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -139,3 +172,37 @@ class TenantRegistrationSerializer(serializers.Serializer):
             )
 
             return tenant
+
+
+class SubscriptionChangeRequestSerializer(serializers.ModelSerializer):
+    tenant_name = serializers.ReadOnlyField(source="tenant.name")
+    old_plan_name = serializers.ReadOnlyField(source="old_plan.name")
+    new_plan_name = serializers.ReadOnlyField(source="new_plan.name")
+    requested_by_email = serializers.ReadOnlyField(source="requested_by.email")
+
+    class Meta:
+        model = SubscriptionChangeRequest
+        fields = [
+            "id", "tenant", "tenant_name", "old_plan", "old_plan_name", 
+            "new_plan", "new_plan_name", "status", "reason", 
+            "admin_notes", "requested_by", "requested_by_email",
+            "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "tenant", "old_plan", "status", "admin_notes", "requested_by", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.user:
+            # Check if there is already a pending request for this tenant
+            tenant = getattr(request, "tenant", None)
+            if tenant:
+                exists = SubscriptionChangeRequest.objects.filter(
+                    tenant=tenant,
+                    status=SubscriptionChangeRequest.Status.PENDING
+                ).exists()
+                if exists:
+                    raise serializers.ValidationError(
+                        {"non_field_errors": "لديك طلب تغيير باقة معلق بالفعل. يرجى الانتظار لحين مراجعته."}
+                    )
+        return attrs
+
