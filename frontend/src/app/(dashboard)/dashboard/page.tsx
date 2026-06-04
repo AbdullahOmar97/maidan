@@ -228,15 +228,15 @@ export default function DashboardPage() {
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#dc2626" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip cursor={{ stroke: "#6366f1", strokeWidth: 2, strokeDasharray: "5 5" }} contentStyle={TOOLTIP_STYLE} itemStyle={{ fontWeight: "bold" }} />
-                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={4} fill="url(#revenueGrad)" animationDuration={2000} />
+                <Tooltip cursor={{ stroke: "#dc2626", strokeWidth: 2, strokeDasharray: "5 5" }} contentStyle={TOOLTIP_STYLE} itemStyle={{ fontWeight: "bold" }} />
+                <Area type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={4} fill="url(#revenueGrad)" animationDuration={2000} />
               </AreaChart>
             </ResponsiveContainer>
           ) : emptyChart("h-[220px]")}
@@ -298,7 +298,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="week" tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "rgba(255,255,255,0.02)" }} contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={28} />
+                <Bar dataKey="count" fill="#dc2626" radius={[6, 6, 0, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           ) : emptyChart("h-[200px]")}
