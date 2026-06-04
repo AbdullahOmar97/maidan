@@ -83,6 +83,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     gdpr_consent = models.BooleanField(default=False)
     gdpr_consent_at = models.DateTimeField(null=True, blank=True)
     is_initial_password_set = models.BooleanField(default=False)
+    force_password_reset = models.BooleanField(
+        default=False,
+        help_text="When True, user must reset password on next login.",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]

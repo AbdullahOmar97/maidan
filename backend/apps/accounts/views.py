@@ -93,6 +93,24 @@ class LoginView(APIView):
             raise e
 
         user = serializer.validated_data["user"]
+
+        # Force password reset — generate a token and redirect user
+        if user.force_password_reset:
+            from datetime import timedelta
+
+            token_obj = PasswordResetToken.objects.create(
+                user=user,
+                expires_at=timezone.now() + timedelta(hours=2),
+            )
+            return Response(
+                {
+                    "code": "force_password_reset",
+                    "message": "يجب إعادة تعيين كلمة المرور.",
+                    "token": str(token_obj.token),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         refresh = RefreshToken.for_user(user)
 
         # Update last login IP
@@ -406,9 +424,10 @@ class PasswordResetConfirmView(APIView):
             )
 
         token.user.set_password(serializer.validated_data["new_password"])
-        token.user.save()
+        token.user.force_password_reset = False
+        token.user.save(update_fields=["password", "force_password_reset"])
         token.is_used = True
-        token.save()
+        token.save(update_fields=["is_used"])
 
         return Response({"message": "Password reset successfully."})
 

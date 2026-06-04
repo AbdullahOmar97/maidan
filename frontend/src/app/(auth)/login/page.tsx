@@ -144,6 +144,9 @@ export default function LoginPage() {
       if (result.error.includes("SETUP_REQUIRED")) {
         const email = result.error.split(":")[1];
         router.push(`/setup-password?email=${encodeURIComponent(email)}`);
+      } else if (result.error.includes("FORCE_PASSWORD_RESET")) {
+        const token = result.error.split(":")[1];
+        router.push(`/reset-password?token=${encodeURIComponent(token)}`);
       } else if (result.error.includes("TENANT_INACTIVE")) {
         const message = result.error.split(":")[1];
         setError(message || "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة.");

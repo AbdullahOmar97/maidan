@@ -92,6 +92,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               if (errorData.code === "setup_required") {
                 throw new Error(`SETUP_REQUIRED:${errorData.email}`);
               }
+              if (errorData.code === "force_password_reset") {
+                throw new Error(`FORCE_PASSWORD_RESET:${errorData.token}`);
+              }
               if (errorData.error?.code === "tenant_inactive" || errorData.error?.code === "subscription_expired") {
                 throw new Error(`TENANT_INACTIVE:${errorData.error.message}`);
               }
