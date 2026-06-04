@@ -347,6 +347,17 @@ class PasswordResetRequestView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @staticmethod
+    def _build_base_url(request) -> str:
+        forwarded_host = request.headers.get("X-Forwarded-Host", "") or request.get_host()
+        forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+        scheme = (
+            forwarded_proto.split(",")[0].strip() or request.scheme or "https"
+        ).lower()
+        if forwarded_host.split(":")[0].endswith(".localhost"):
+            scheme = "http"
+        return f"{scheme}://{forwarded_host}"
+
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -358,30 +369,15 @@ class PasswordResetRequestView(APIView):
                 user=user,
                 expires_at=timezone.now() + timedelta(hours=2),
             )
-            
-            # Build base URL for the reset link
-            forwarded_host = request.headers.get("X-Forwarded-Host", "") or request.get_host()
-            forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
-            scheme = (forwarded_proto.split(",")[0].strip() or request.scheme or "https").lower()
-            
-            # If it's a .localhost domain, force http
-            if forwarded_host.split(":")[0].endswith(".localhost"):
-                scheme = "http"
-            
-            base_url = f"{scheme}://{forwarded_host}"
-            
-            # Send reset email via Celery task
             send_password_reset_email.delay(
                 user_email=user.email,
                 user_name=user.get_full_name(),
                 token=str(token_obj.token),
-                base_url=base_url
+                base_url=self._build_base_url(request),
             )
-            
-            logger.info(f"Password reset requested for {email}, token queued.")
+            logger.info("Password reset requested for %s, token queued.", email)
         except User.DoesNotExist:
-            logger.info(f"Password reset requested for non-existent email: {email}")
-            pass  # Don't reveal if email exists (security)
+            logger.info("Password reset requested for non-existent email: %s", email)
 
         return Response(
             {"message": "إذا كان هذا البريد مسجلاً لدينا، فستصلك رسالة لإعادة تعيين كلمة المرور."}

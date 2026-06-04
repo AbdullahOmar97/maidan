@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework import serializers
 from .models import Tenant, Domain, Plan, PlatformSettings, SubscriptionChangeRequest
 from apps.accounts.models import User
+from apps.accounts.tasks import send_tenant_welcome_task
 
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
@@ -147,7 +148,6 @@ class TenantRegistrationSerializer(serializers.Serializer):
             )
 
             # 2. Create Tenant
-            # schema_name must be same as slug (sanitized)
             schema_name = slug.replace("-", "_")
             tenant = Tenant.objects.create(
                 name=academy_name,
@@ -162,7 +162,6 @@ class TenantRegistrationSerializer(serializers.Serializer):
             )
 
             # 3. Create Domain
-            # If PLATFORM_DOMAIN is set, use slug.PLATFORM_DOMAIN
             platform_domain = getattr(settings, "PLATFORM_DOMAIN", "localhost")
             domain_name = f"{slug}.{platform_domain}"
             Domain.objects.create(
@@ -171,7 +170,17 @@ class TenantRegistrationSerializer(serializers.Serializer):
                 is_primary=True
             )
 
-            return tenant
+        # 4. Queue welcome email (outside atomic block — DB must be committed first)
+        scheme = "http" if platform_domain == "localhost" else "https"
+        login_url = f"{scheme}://{domain_name}/login"
+        send_tenant_welcome_task.delay(
+            user_email=email,
+            user_name=f"{first_name} {last_name}".strip(),
+            tenant_name=academy_name,
+            login_url=login_url,
+        )
+
+        return tenant
 
 
 class SubscriptionChangeRequestSerializer(serializers.ModelSerializer):

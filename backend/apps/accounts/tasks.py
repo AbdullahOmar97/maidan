@@ -1,40 +1,69 @@
-"""MAIDAN — Accounts Celery Tasks"""
+"""
+MAIDAN — Accounts Celery Tasks
+
+Thin wrappers around the email service layer (emails.py).
+All rendering/dispatch logic lives in emails.py; retries are handled here.
+"""
+
 import logging
+
 from celery import shared_task
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+
+from .emails import (
+    send_password_reset,
+    send_staff_invitation,
+    send_tenant_welcome,
+)
 
 logger = logging.getLogger("maidan.accounts")
 
-@shared_task(queue="default")
-def send_password_reset_email(user_email, user_name, token, base_url):
-    """
-    Send a password reset email to the user.
-    """
-    subject = "إعادة تعيين كلمة المرور - MAIDAN"
-    reset_url = f"{base_url}/reset-password?token={token}"
-    
-    context = {
-        "user_name": user_name,
-        "reset_url": reset_url,
-        "platform_name": getattr(settings, "PLATFORM_NAME", "MAIDAN"),
-    }
-    
-    html_message = render_to_string("accounts/password_reset_email.html", context)
-    plain_message = strip_tags(html_message)
-    
+_RETRY_KWARGS = dict(max_retries=3, default_retry_delay=60)
+
+
+@shared_task(queue="default", **_RETRY_KWARGS)
+def send_password_reset_email(user_email: str, user_name: str, token: str, base_url: str) -> None:
+    """Queue a password-reset email."""
     try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user_email],
-            html_message=html_message,
-            fail_silently=False,
+        send_password_reset(
+            user_email=user_email,
+            user_name=user_name,
+            token=token,
+            base_url=base_url,
         )
-        logger.info(f"Password reset email sent to {user_email}")
-    except Exception as e:
-        logger.error(f"Failed to send password reset email to {user_email}: {e}")
-        raise e
+    except Exception as exc:
+        logger.error("Failed to send password-reset email to %s: %s", user_email, exc)
+        raise send_password_reset_email.retry(exc=exc)
+
+
+@shared_task(queue="default", **_RETRY_KWARGS)
+def send_staff_invitation_task(user_email: str, user_name: str, setup_url: str) -> None:
+    """Queue a staff invitation / account-activation email."""
+    try:
+        send_staff_invitation(
+            user_email=user_email,
+            user_name=user_name,
+            setup_url=setup_url,
+        )
+    except Exception as exc:
+        logger.error("Failed to send staff invitation email to %s: %s", user_email, exc)
+        raise send_staff_invitation_task.retry(exc=exc)
+
+
+@shared_task(queue="default", **_RETRY_KWARGS)
+def send_tenant_welcome_task(
+    user_email: str,
+    user_name: str,
+    tenant_name: str,
+    login_url: str,
+) -> None:
+    """Queue a tenant-welcome email to the new academy owner."""
+    try:
+        send_tenant_welcome(
+            user_email=user_email,
+            user_name=user_name,
+            tenant_name=tenant_name,
+            login_url=login_url,
+        )
+    except Exception as exc:
+        logger.error("Failed to send tenant welcome email to %s: %s", user_email, exc)
+        raise send_tenant_welcome_task.retry(exc=exc)

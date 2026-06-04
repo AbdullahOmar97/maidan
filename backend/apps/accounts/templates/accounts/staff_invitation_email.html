@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفعيل حسابك - {{ platform_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #0f172a;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .header {
+            padding: 40px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.025em;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 14px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            font-size: 12px;
+            color: #fecaca;
+            letter-spacing: 0.05em;
+        }
+
+        .content {
+            padding: 40px;
+            text-align: right;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #ffffff;
+        }
+
+        p {
+            font-size: 15px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .highlight-box {
+            background: rgba(220, 38, 38, 0.08);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #fca5a5;
+        }
+
+        .btn-wrap {
+            text-align: center;
+            margin: 32px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.03em;
+            box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.4);
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #1e293b, transparent);
+            margin: 28px 0;
+        }
+
+        .note {
+            font-size: 13px !important;
+            color: #475569 !important;
+        }
+
+        .footer {
+            padding: 24px 32px;
+            text-align: center;
+            border-top: 1px solid #1e293b;
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: #475569;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">{{ platform_name }}</div>
+            <div class="badge">دعوة للانضمام</div>
+        </div>
+        <div class="content">
+            <h1>مرحباً {{ user_name }}،</h1>
+            <p>
+                تمت إضافتك كعضو في فريق العمل على منصة <strong>{{ platform_name }}</strong>.
+                لتفعيل حسابك والبدء، يجب عليك إنشاء كلمة المرور الخاصة بك.
+            </p>
+
+            <div class="highlight-box">
+                <p>⚡ ستحتاج إلى رقم هاتفك المسجّل للتحقق من هويتك أثناء إعداد كلمة المرور.</p>
+            </div>
+
+            <div class="btn-wrap">
+                <a href="{{ setup_url }}" class="btn">تفعيل الحساب وإنشاء كلمة المرور</a>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="note">
+                إذا لم تكن تتوقع هذه الرسالة، يمكنك تجاهلها بأمان. لن يتم تفعيل أي حساب دون اتخاذ أي إجراء من طرفك.
+            </p>
+            <p class="note">الرابط صالح لمدة 7 أيام من تاريخ إرسال هذه الرسالة.</p>
+        </div>
+        <div class="footer">
+            <p>© {{ platform_name }} — جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</body>
+
+</html>

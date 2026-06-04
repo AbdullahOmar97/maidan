@@ -192,8 +192,9 @@ export default function LoginPage() {
         </div>
 
         {/* Main Card */}
-        <div className="glass-card relative p-10 overflow-hidden group/card border-white/10">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+        <div className={cn(isTenantLogin && "light")}>
+          <div className="glass-card relative p-10 overflow-hidden group/card border-white/10">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
 
           <div className="relative z-10">
             <h2 className="text-2xl font-black text-white text-center mb-8 tracking-tight">
@@ -245,7 +246,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 start-4 flex items-center text-muted-foreground hover:text-white transition-colors"
+                      className="absolute inset-y-0 end-4 flex items-center text-muted-foreground hover:text-white transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -313,6 +314,7 @@ export default function LoginPage() {
           {/* Decorative Corner */}
           <div className="absolute -bottom-10 -start-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
         </div>
+      </div>
 
         {/* Footer */}
         <div className="mt-10 text-center space-y-6">

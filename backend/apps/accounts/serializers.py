@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
+from .tasks import send_staff_invitation_task
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -113,20 +114,53 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password", None)
         validated_data.pop("password_confirm", None)
-        
+
         user = User(**validated_data)
+        needs_setup = not password
+
         if password:
             user.set_password(password)
             user.is_initial_password_set = True
         else:
-            # Set a random password and require setup
+            # Assign a random unusable password; user must complete setup flow
             from django.utils.crypto import get_random_string
-            random_pass = get_random_string(32)
-            user.set_password(random_pass)
+            user.set_password(get_random_string(32))
             user.is_initial_password_set = False
-            
+
         user.save()
+
+        if needs_setup:
+            self._queue_invitation_email(user)
+
         return user
+
+    def _queue_invitation_email(self, user: User) -> None:
+        """Build the setup URL from the request context and queue the invitation task."""
+        request = self.context.get("request")
+        if not request:
+            return
+
+        forwarded_host = (
+            request.headers.get("X-Forwarded-Host", "") or request.get_host()
+        )
+        forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+        scheme = (
+            forwarded_proto.split(",")[0].strip() or request.scheme or "https"
+        ).lower()
+        if forwarded_host.split(":")[0].endswith(".localhost"):
+            scheme = "http"
+
+        from urllib.parse import quote
+        setup_url = (
+            f"{scheme}://{forwarded_host}"
+            f"/password/setup?email={quote(user.email)}"
+        )
+
+        send_staff_invitation_task.delay(
+            user_email=user.email,
+            user_name=user.get_full_name(),
+            setup_url=setup_url,
+        )
 
 
 class InitialPasswordSetupSerializer(serializers.Serializer):
