@@ -57,15 +57,15 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
   return (
     <header
-      className="h-[5rem] border-b border-white/[0.05] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-card/10 backdrop-blur-3xl shrink-0 relative z-20 gap-3"
+      className="h-[var(--topbar-height,4.5rem)] border-b border-white/[0.05] flex items-center justify-between px-3 sm:px-6 lg:px-8 bg-card/10 backdrop-blur-3xl shrink-0 relative z-20 gap-2 sm:gap-3"
       role="banner"
     >
       {/* ── Left: Hamburger (mobile only) ── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         <button
           id="mobile-menu-btn"
           onClick={onMenuToggle}
-          className="lg:hidden touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all active:scale-90"
+          className="lg:hidden touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all active:scale-90 shrink-0"
           aria-label="فتح القائمة"
           aria-expanded={false}
         >
@@ -110,7 +110,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
             </button>
 
             {/* Full search bar on sm+ */}
-            <div className="hidden sm:flex items-center flex-1 max-w-xl">
+            <div className="hidden sm:flex items-center flex-1 max-w-md">
               <div className="relative flex-1 group">
                 <Search
                   className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110"
@@ -119,8 +119,8 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
                 <input
                   id="global-search-desktop"
                   type="search"
-                  placeholder="ابحث عن طلاب، فواتير، أو حصص..."
-                  className="w-full ps-6 pe-11 py-2.5 text-sm rounded-2xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
+                  placeholder="ابحث..."
+                  className="w-full ps-5 pe-11 py-2 text-sm rounded-xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
                   aria-label="البحث العام"
                 />
               </div>

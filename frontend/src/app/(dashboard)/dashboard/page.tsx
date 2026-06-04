@@ -145,7 +145,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6 md:space-y-8 pb-12 page-enter">
+    <div className="space-y-5 sm:space-y-6 md:space-y-8 pb-6 page-enter">
       {/* Header */}
       <PageHeader
         title="نظرة عامة"
@@ -165,11 +165,10 @@ export default function DashboardPage() {
       {canViewReports && (
         <>
 
-      {/* KPI Grid — 1 col on mobile, 2 on sm, 4 on lg */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {/* KPI Grid — 1 col on xs, 2 on sm, 4 on lg */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatsCard
           loading={kpisLoading}
-          title="الطلاب النشطون"
           label="الطلاب النشطون"
           value={kpis?.students.active ?? 0}
           subtitle={`${kpis?.students.trial ?? 0} تجريبي هذا الشهر`}
@@ -181,7 +180,6 @@ export default function DashboardPage() {
         />
         <StatsCard
           loading={kpisLoading}
-          title="إيرادات الشهر"
           label="إيرادات الشهر"
           value={formatCurrency(kpis?.revenue.this_month ?? 0, kpis?.revenue.currency ?? "SAR")}
           subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2)}`}
@@ -193,7 +191,6 @@ export default function DashboardPage() {
         />
         <StatsCard
           loading={kpisLoading}
-          title="حضور اليوم"
           label="حضور اليوم"
           value={kpis?.attendance.today ?? 0}
           subtitle={`${kpis?.attendance.active_sessions ?? 0} حصص نشطة`}
@@ -203,7 +200,6 @@ export default function DashboardPage() {
         />
         <StatsCard
           loading={kpisLoading}
-          title="مدفوعات متأخرة"
           label="مدفوعات متأخرة"
           value={formatCurrency(kpis?.revenue.overdue ?? 0, kpis?.revenue.currency ?? "SAR")}
           subtitle="تحتاج لمتابعة فورية"
@@ -214,7 +210,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {/* Revenue Chart */}
         <ChartCard
           className="lg:col-span-2"
@@ -224,7 +220,7 @@ export default function DashboardPage() {
           iconColor="bg-emerald-500/10 text-emerald-400"
         >
           {revenueData && revenueData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -239,7 +235,7 @@ export default function DashboardPage() {
                 <Area type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={4} fill="url(#revenueGrad)" animationDuration={2000} />
               </AreaChart>
             </ResponsiveContainer>
-          ) : emptyChart("h-[220px]")}
+          ) : emptyChart("h-[200px]")}
         </ChartCard>
 
         {/* Belt Distribution */}
@@ -251,7 +247,7 @@ export default function DashboardPage() {
         >
           {beltData && beltData.length > 0 ? (
             <div className="relative">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={beltData}
@@ -277,12 +273,12 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
-          ) : emptyChart("h-[220px]")}
+          ) : emptyChart("h-[200px]")}
         </ChartCard>
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {/* Attendance Bar Chart */}
         <ChartCard
           className="lg:col-span-2"

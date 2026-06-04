@@ -30,7 +30,7 @@ function StudentCard({ student }: { student: Student }) {
   return (
     <Link
       href={`/dashboard/students/${student.id}`}
-      className="glass-card group flex items-center gap-6 p-6 hover:border-primary/40 transition-all duration-500 relative overflow-hidden active:scale-[0.98]"
+      className="glass-card group flex items-center gap-4 sm:gap-6 p-4 sm:p-6 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.98]"
     >
       {/* Dynamic Hover Glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -38,15 +38,15 @@ function StudentCard({ student }: { student: Student }) {
 
       {/* Avatar */}
       <div className="relative shrink-0 z-10">
-        <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-primary/40 transition-all duration-500 shadow-2xl group-hover:rotate-3">
+        <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-primary/40 transition-all duration-300 shadow-xl">
           {student.photo_url ? (
             <img
               src={student.photo_url}
               alt={student.full_name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-3xl">
+            <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-2xl sm:text-3xl">
               {student.first_name?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
@@ -54,7 +54,7 @@ function StudentCard({ student }: { student: Student }) {
         {/* Status indicator */}
         <div
           className={cn(
-            "absolute -bottom-1 -end-1 w-6 h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
+            "absolute -bottom-1 -end-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
             student.status === "active" ? "bg-emerald-500 shadow-emerald-500/50" :
               student.status === "trial" ? "bg-blue-500 shadow-blue-500/50" :
                 student.status === "lead" ? "bg-amber-500 shadow-amber-500/50" : "bg-gray-500"
@@ -117,8 +117,8 @@ function StudentCard({ student }: { student: Student }) {
         </div>
       </div>
 
-      <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-500 rtl-flip">
-        <ChevronRight className="w-5 h-5" />
+      <div className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 items-center justify-center group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-300 rtl-flip shrink-0">
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
     </Link>
   );
@@ -126,17 +126,17 @@ function StudentCard({ student }: { student: Student }) {
 
 function StudentCardSkeleton() {
   return (
-    <div className="glass-card p-6 flex items-center gap-6">
-      <div className="shimmer w-20 h-20 rounded-3xl shrink-0" />
-      <div className="flex-1 space-y-4">
+    <div className="glass-card p-4 sm:p-6 flex items-center gap-4 sm:gap-6">
+      <div className="shimmer w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl shrink-0" />
+      <div className="flex-1 space-y-3">
         <div className="flex justify-between">
-          <div className="shimmer h-6 w-48 rounded-xl" />
-          <div className="shimmer h-8 w-20 rounded-xl" />
+          <div className="shimmer h-5 w-36 rounded-xl" />
+          <div className="shimmer h-6 w-16 rounded-xl" />
         </div>
-        <div className="shimmer h-4 w-32 rounded-lg" />
-        <div className="flex gap-4 pt-5 border-t border-white/5">
-          <div className="shimmer h-5 w-24 rounded-lg" />
-          <div className="shimmer h-5 w-32 rounded-lg" />
+        <div className="shimmer h-3.5 w-24 rounded-lg" />
+        <div className="flex gap-4 pt-4 border-t border-white/5">
+          <div className="shimmer h-4 w-20 rounded-lg" />
+          <div className="shimmer h-4 w-28 rounded-lg" />
         </div>
       </div>
     </div>
@@ -180,7 +180,7 @@ export default function StudentsPage() {
 
   return (
     <PermissionGuard permission="can_manage_students">
-      <div className="space-y-10 pb-20">
+      <div className="space-y-6 sm:space-y-8 pb-6 page-enter">
         <PageHeader
           title="الطلاب"
           description="إدارة قاعدة بيانات الطلاب المركزية، تتبع مستويات الأحزمة، ومراقبة حالة الاشتراكات النشطة لجميع الفروع."
@@ -195,8 +195,8 @@ export default function StudentsPage() {
           </button>
         </PageHeader>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Grid — 2 col on mobile, 4 on lg */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           <StatsCard label="إجمالي الطلاب" value={stats?.total ?? 0} icon={Users} color="primary" description="جميع المسجلين" />
           <StatsCard label="طلاب نشطون" value={stats?.active ?? 0} icon={Sparkles} color="emerald" description="اشتراكات جارية" />
           <StatsCard label="تجريبيون" value={stats?.trials ?? 0} icon={Award} color="blue" description="فترة تجربة" />
@@ -204,25 +204,25 @@ export default function StudentsPage() {
         </div>
 
         {/* Filters & Actions */}
-        <div className="flex flex-col lg:flex-row gap-5 p-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           {/* Search */}
           <div className="relative flex-1 group">
-            <Search className="absolute end-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary group-focus-within:scale-110 transition-all" />
+            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="ابحث بالاسم، رقم الطالب، أو رقم الهاتف..."
-              className="w-full pe-14 ps-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:bg-white/[0.07] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold placeholder:text-muted-foreground/40 shadow-inner"
+              className="filter-input pe-12"
             />
           </div>
 
           {/* Location Filter */}
-          <div className="relative min-w-[240px]">
+          <div className="relative sm:min-w-[180px]">
             <Select
               value={locationId}
               onChange={(e) => { setLocationId(e.target.value); setPage(1); }}
-              className="w-full px-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black appearance-none cursor-pointer shadow-inner"
+              className="filter-input w-full appearance-none cursor-pointer"
             >
               <option value="">جميع الفروع</option>
               {locations?.map((loc) => (
@@ -232,11 +232,11 @@ export default function StudentsPage() {
           </div>
 
           {/* Status Filter */}
-          <div className="relative min-w-[240px]">
+          <div className="relative sm:min-w-[160px]">
             <Select
               value={status}
               onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-              className="w-full px-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black appearance-none cursor-pointer shadow-inner"
+              className="filter-input w-full appearance-none cursor-pointer"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -255,8 +255,8 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {/* Student Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Student Grid — 1 col on mobile, 2 on lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {isLoading ? (
             [...Array(6)].map((_, i) => <StudentCardSkeleton key={i} />)
           ) : data?.results.length === 0 ? (

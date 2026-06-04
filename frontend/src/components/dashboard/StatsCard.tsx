@@ -89,11 +89,11 @@ const COLOR_STYLES: Record<ColorKey, {
 // ---------------------------------------------------------------------------
 function StatsCardSkeleton() {
   return (
-    <div className="glass-card p-5 md:p-8 space-y-5">
-      <div className="shimmer h-12 w-12 rounded-2xl" />
+    <div className="glass-card p-4 sm:p-6 md:p-8 space-y-4">
+      <div className="shimmer h-10 w-10 rounded-xl" />
       <div className="space-y-2">
-        <div className="shimmer h-8 w-24" />
-        <div className="shimmer h-4 w-32" />
+        <div className="shimmer h-7 w-20" />
+        <div className="shimmer h-4 w-28" />
       </div>
     </div>
   );
@@ -123,7 +123,7 @@ export function StatsCard({
   const formatted = isCurrency ? formatCurrency(Number(value), currency) : value;
 
   const card = (
-    <div className="glass-card p-5 md:p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-500 hover:-translate-y-0.5">
+    <div className="glass-card p-4 sm:p-6 md:p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-300 hover:-translate-y-0.5">
       {/* Decorative blob */}
       <div
         className={cn(
@@ -137,7 +137,7 @@ export function StatsCard({
       <div className="flex items-start justify-between mb-5 relative z-10">
         <div
           className={cn(
-            "w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border shadow-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+            "w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center border shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
             style.bg, style.border, style.text, style.glow
           )}
         >
@@ -177,7 +177,7 @@ export function StatsCard({
 
       {/* Value + labels */}
       <div className="relative z-10">
-        <p className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1.5 text-gradient">
+        <p className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white mb-1 text-gradient">
           <bdi>{formatted}</bdi>
         </p>
         <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">

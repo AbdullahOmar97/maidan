@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { Calendar, Clock, MapPin, Users, Plus, Filter } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import type { ClassSession } from "@/types";
@@ -132,7 +132,7 @@ export default function SchedulingPage() {
 
   return (
     <PermissionGuard permission="can_manage_schedules">
-      <div className="space-y-10 pb-12">
+      <div className="space-y-6 sm:space-y-8 pb-6 page-enter">
         <PageHeader
           title="الجدول الزمني"
           description="تنظيم حصص التدريب، إدارة المواعيد المتكررة، وتخصيص المدربين والفروع لكل جلسة تدريبية."
@@ -162,71 +162,62 @@ export default function SchedulingPage() {
         </PageHeader>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border">
+      <div className="flex items-center gap-1 border-b border-border">
         <button
           onClick={() => setActiveTab("sessions")}
-          className={cn(
-            "px-4 py-2 text-sm font-medium border-b-2 transition-all",
-            activeTab === "sessions" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
+          className={cn("tab-pill", activeTab === "sessions" && "tab-pill-active")}
         >
           الحصص المجدولة
         </button>
         <button
           onClick={() => setActiveTab("schedules")}
-          className={cn(
-            "px-4 py-2 text-sm font-medium border-b-2 transition-all",
-            activeTab === "schedules" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
+          className={cn("tab-pill", activeTab === "schedules" && "tab-pill-active")}
         >
           القوالب الأسبوعية
         </button>
       </div>
 
       {/* Content */}
-      <div className="glass-card p-6 min-h-[400px]">
+      <div className="glass-card p-4 sm:p-6 min-h-[400px]">
         {activeTab === "sessions" ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">الحصص القادمة والسابقة</h2>
-              <button className="p-2 rounded-lg border bg-secondary/30 text-muted-foreground hover:text-foreground">
-                <Filter className="w-4 h-4" />
-              </button>
+              <h2 className="section-title">الحصص القادمة والسابقة</h2>
             </div>
 
             {sessionsLoading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="shimmer h-16 rounded-xl" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="shimmer h-28 rounded-xl" />
                 ))}
               </div>
             ) : sessions?.results?.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
-                <Calendar className="w-12 h-12 mb-3 opacity-20" />
-                <p>لا توجد حصص مجدولة</p>
+              <div className="empty-state">
+                <Calendar className="w-10 h-10 mb-3 opacity-20" />
+                <p className="text-muted-foreground text-sm">لا توجد حصص مجدولة</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {sessions?.results.map((session) => (
-                  <div key={session.id} className="p-4 rounded-xl border bg-secondary/20 hover:border-primary/30 transition-all group cursor-pointer">
+                  <div key={session.id} className="glass-card glass-card-hover p-4 group cursor-pointer">
                     <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold group-hover:text-primary transition-colors">{session.class_name}</h3>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm text-white group-hover:text-primary transition-colors truncate">{session.class_name}</h3>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                          <MapPin className="w-3 h-3" />
-                          {session.location_name}
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{session.location_name}</span>
                         </div>
                       </div>
                       <StatusBadge status={session.status} />
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground pt-3 border-t border-border/50">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-white/[0.06]">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4" />
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{new Date(session.date).toLocaleDateString('ar-SA')}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4" />
-                        <span>{session.attendance_count}</span>
+                        <Users className="w-3.5 h-3.5" />
+                        <span className="font-bold">{session.attendance_count}</span>
                       </div>
                     </div>
                   </div>
@@ -236,10 +227,8 @@ export default function SchedulingPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">القوالب الأسبوعية المتكررة</h2>
-            </div>
-            
+            <h2 className="section-title mb-4">القوالب الأسبوعية المتكررة</h2>
+
             {schedulesLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -247,33 +236,34 @@ export default function SchedulingPage() {
                 ))}
               </div>
             ) : schedules?.length === 0 ? (
-               <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
-                <Calendar className="w-12 h-12 mb-3 opacity-20" />
-                <p>لا توجد قوالب أسبوعية</p>
+              <div className="empty-state">
+                <Calendar className="w-10 h-10 mb-3 opacity-20" />
+                <p className="text-muted-foreground text-sm">لا توجد قوالب أسبوعية</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                 {schedules?.map((schedule: any) => (
-                    <div key={schedule.id} className="p-4 rounded-xl border bg-secondary/20 flex items-center justify-between">
-                       <div>
-                          <h3 className="font-semibold">{schedule.class_type_name}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                             <Clock className="w-3 h-3" />
-                             <span>{schedule.start_time.substring(0,5)} - {schedule.end_time.substring(0,5)}</span>
-                             <span className="mx-2">•</span>
-                             <span>يوم {schedule.day_of_week}</span>
-                          </div>
-                       </div>
-                       {canManage && (
-                         <button
-                           onClick={() => handleEditClick(schedule)}
-                           className="text-sm text-primary hover:underline"
-                         >
-                           تعديل
-                         </button>
-                       )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {schedules?.map((schedule: any) => (
+                  <div key={schedule.id} className="glass-card glass-card-hover p-4 flex items-center justify-between group">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-white text-sm group-hover:text-primary transition-colors">{schedule.class_type_name}</h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1.5">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{schedule.start_time.substring(0,5)} – {schedule.end_time.substring(0,5)}</span>
+                        </div>
+                        <span>{DAYS_OF_WEEK.find(d => d.value === schedule.day_of_week)?.label ?? `يوم ${schedule.day_of_week}`}</span>
+                      </div>
                     </div>
-                 ))}
+                    {canManage && (
+                      <button
+                        onClick={() => handleEditClick(schedule)}
+                        className="shrink-0 ms-3 px-3 py-1.5 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white transition-all"
+                      >
+                        تعديل
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
