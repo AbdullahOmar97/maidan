@@ -699,8 +699,17 @@ export default function SettingsPage() {
 
                           <div className="text-start md:text-end shrink-0">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">قيمة الاشتراك</span>
-                            <span className="text-3xl font-black text-primary"><bdi>{currentPlan?.price_monthly ?? 0} {currentPlan?.currency ?? "JOD"}</bdi></span>
-                            <span className="text-xs font-bold text-muted-foreground block mt-1">شهرياً</span>
+                            {currentPlan?.price_yearly && parseFloat(currentPlan.price_yearly) > 0 ? (
+                              <>
+                                <span className="text-3xl font-black text-primary"><bdi>{currentPlan.price_yearly} {currentPlan.currency}</bdi></span>
+                                <span className="text-xs font-bold text-muted-foreground block mt-1">سنوياً</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-3xl font-black text-primary"><bdi>{currentPlan?.price_monthly ?? 0} {currentPlan?.currency ?? "JOD"}</bdi></span>
+                                <span className="text-xs font-bold text-muted-foreground block mt-1">شهرياً</span>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -821,9 +830,18 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground mt-1 min-h-[2.5rem]">{p.description || "باقة مرنة وسريعة للأندية الناشئة."}</p>
                           </div>
 
-                          <div className="py-4 border-y border-white/5 flex items-baseline justify-between gap-2">
-                            <span className="text-2xl font-black text-primary"><bdi>{p.price_monthly} {p.currency ?? "SAR"}</bdi></span>
-                            <span className="text-xs font-bold text-muted-foreground">شهرياً</span>
+                          <div className="py-4 border-y border-white/5 flex flex-col gap-1 text-start">
+                            {p.price_yearly && parseFloat(p.price_yearly) > 0 ? (
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-2xl font-black text-primary"><bdi>{p.price_yearly} {p.currency ?? "SAR"}</bdi></span>
+                                <span className="text-xs font-bold text-muted-foreground">سنوياً</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-2xl font-black text-primary"><bdi>{p.price_monthly} {p.currency ?? "SAR"}</bdi></span>
+                                <span className="text-xs font-bold text-muted-foreground">شهرياً</span>
+                              </div>
+                            )}
                           </div>
 
                           <ul className="space-y-3 text-xs text-muted-foreground font-medium">
@@ -938,7 +956,14 @@ export default function SettingsPage() {
 
                     <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
                       <p className="text-muted-foreground">الباقة المستهدفة: <strong className="text-white font-bold">{selectedNewPlan.name}</strong></p>
-                      <p className="text-muted-foreground">قيمة الاشتراك: <strong className="text-white font-bold">{selectedNewPlan.price_monthly} {selectedNewPlan.currency ?? "SAR"}</strong> شهرياً</p>
+                      <p className="text-muted-foreground">
+                        قيمة الاشتراك:{" "}
+                        {selectedNewPlan.price_yearly && parseFloat(selectedNewPlan.price_yearly) > 0 ? (
+                          <strong className="text-white font-bold">{selectedNewPlan.price_yearly} {selectedNewPlan.currency ?? "SAR"} سنوياً</strong>
+                        ) : (
+                          <strong className="text-white font-bold">{selectedNewPlan.price_monthly} {selectedNewPlan.currency ?? "SAR"} شهرياً</strong>
+                        )}
+                      </p>
                     </div>
 
                     <div className="space-y-2 text-start">
