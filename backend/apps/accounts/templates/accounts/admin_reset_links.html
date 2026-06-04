@@ -1,0 +1,132 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .links-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .links-table th, .links-table td {
+        padding: 14px 16px;
+        text-align: right;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .links-table th {
+        background: #f7f9fa;
+        font-weight: 600;
+        color: #333;
+    }
+    .copy-input {
+        width: 85%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #374151;
+        background-color: #f9fafb;
+    }
+    .copy-btn {
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .copy-btn:hover {
+        background-color: #2563eb;
+    }
+    .alert-copy {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        z-index: 1000;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='accounts' %}">Accounts</a>
+&rsaquo; <a href="{% url 'admin:accounts_user_changelist' %}">Users</a>
+&rsaquo; روابط إعادة تعيين كلمة المرور
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" style="direction: rtl;">
+    <h1 style="margin-bottom: 10px;">روابط إعادة تعيين كلمة المرور التي تم توليدها</h1>
+    <p style="color: #666; margin-bottom: 25px;">يمكنك نسخ الروابط أدناه ومشاركتها مع المستخدمين مباشرة (مثال: عبر واتساب أو الرسائل النصية). هذه الروابط صالحة لمدة 24 ساعة.</p>
+    
+    <table class="links-table">
+        <thead>
+            <tr>
+                <th>المستخدم</th>
+                <th>الدور</th>
+                <th>البريد الإلكتروني</th>
+                <th>رابط إعادة التعيين</th>
+                <th>إجراء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in results %}
+            <tr>
+                <td><strong>{{ item.user.get_full_name }}</strong></td>
+                <td>{{ item.user.get_role_display }}</td>
+                <td><code>{{ item.user.email }}</code></td>
+                <td>
+                    <input type="text" value="{{ item.reset_url }}" id="url-{{ forloop.counter }}" class="copy-input" readonly>
+                </td>
+                <td>
+                    <button onclick="copyLink('url-{{ forloop.counter }}')" class="copy-btn">نسخ الرابط</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #999;">لم يتم تحديد أي مستخدمين.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px;">
+        <a href="{% url 'admin:accounts_user_changelist' %}" class="button" style="background: #6b7280; padding: 10px 20px; text-decoration: none; color: white; border-radius: 6px; font-weight: bold;">العودة لقائمة المستخدمين</a>
+    </div>
+</div>
+
+<div id="copy-toast" class="alert-copy">تم نسخ الرابط بنجاح!</div>
+
+<script>
+function copyLink(inputId) {
+    var copyText = document.getElementById(inputId);
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(function() {
+        var toast = document.getElementById("copy-toast");
+        toast.style.display = "block";
+        setTimeout(function() {
+            toast.style.display = "none";
+        }, 3000);
+    }).catch(function(err) {
+        alert("فشل نسخ الرابط: " + err);
+    });
+}
+</script>
+{% endblock %}

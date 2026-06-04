@@ -5,8 +5,14 @@ Manages all platform users (staff, academy owners, students, etc.)
 with a bulk action to force password reset on next login.
 """
 
+from datetime import timedelta
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.shortcuts import get_object_or_404, render
+from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.html import format_html
 
 from .models import PasswordResetToken, User
 
@@ -29,8 +35,8 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ("role", "is_active", "is_staff", "force_password_reset")
     search_fields = ("email", "first_name", "last_name", "phone")
     ordering = ("-created_at",)
-    readonly_fields = ("id", "created_at", "updated_at", "last_login", "last_login_ip")
-    actions = ["force_reset_password", "clear_force_reset_password"]
+    readonly_fields = ("id", "created_at", "updated_at", "last_login", "last_login_ip", "reset_password_link_button")
+    actions = ["force_reset_password", "clear_force_reset_password", "generate_reset_links_action"]
 
     fieldsets = (
         ("Identity (الهوية)", {
@@ -40,7 +46,7 @@ class UserAdmin(BaseUserAdmin):
             "fields": ("role", "is_active", "is_staff", "is_superuser"),
         }),
         ("Password & Security (كلمة المرور والأمان)", {
-            "fields": ("force_password_reset", "is_initial_password_set"),
+            "fields": ("force_password_reset", "is_initial_password_set", "reset_password_link_button"),
         }),
         ("Preferences (التفضيلات)", {
             "fields": ("language_pref", "assigned_location_ids", "permissions"),
@@ -80,6 +86,112 @@ class UserAdmin(BaseUserAdmin):
             request,
             f"تم إلغاء إعادة تعيين كلمة المرور الإجبارية لـ {updated} مستخدم(ين).",
         )
+
+    @admin.action(description="توليد روابط إعادة تعيين كلمة المرور للمستخدمين المحددين")
+    def generate_reset_links_action(self, request, queryset):
+        results = []
+        for user in queryset:
+            token_obj = PasswordResetToken.objects.create(
+                user=user,
+                expires_at=timezone.now() + timedelta(hours=24),
+            )
+            reset_url = self._get_reset_url(request, user, token_obj.token)
+            results.append({
+                "user": user,
+                "reset_url": reset_url,
+            })
+            
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "روابط إعادة تعيين كلمة المرور",
+            "results": results,
+            "opts": self.model._meta,
+        }
+        return render(request, "accounts/admin_reset_links.html", context)
+
+    # ---------- URL Routing & Custom Views ----------
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<uuid:user_id>/generate-reset-link/",
+                self.admin_site.admin_view(self.generate_reset_link_view),
+                name="generate-reset-link",
+            ),
+        ]
+        return custom_urls + urls
+
+    def generate_reset_link_view(self, request, user_id):
+        user = get_object_or_404(User, pk=user_id)
+        token_obj = PasswordResetToken.objects.create(
+            user=user,
+            expires_at=timezone.now() + timedelta(hours=24),
+        )
+        reset_url = self._get_reset_url(request, user, token_obj.token)
+        
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "روابط إعادة تعيين كلمة المرور",
+            "results": [
+                {
+                    "user": user,
+                    "reset_url": reset_url,
+                }
+            ],
+            "opts": self.model._meta,
+        }
+        return render(request, "accounts/admin_reset_links.html", context)
+
+    def reset_password_link_button(self, obj):
+        if not obj.pk:
+            return "يجب حفظ المستخدم أولاً لتوليد الرابط."
+        url = reverse("admin:generate-reset-link", args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}">توليد رابط إعادة تعيين كلمة المرور</a>',
+            url
+        )
+    reset_password_link_button.short_description = "رابط إعادة تعيين كلمة المرور (يدوي)"
+
+    def _get_reset_url(self, request, user, token):
+        from apps.tenants.models import Tenant
+        from django_tenants.utils import schema_context
+        
+        tenant = None
+        candidates = Tenant.objects.exclude(schema_name="public").order_by("id")
+        for cand in candidates:
+            try:
+                with schema_context(cand.schema_name):
+                    from apps.staff.models import StaffMember
+                    if StaffMember.objects.filter(user_id=user.id).exists():
+                        tenant = cand
+                        break
+            except Exception:
+                pass
+        
+        if not tenant:
+            tenant = candidates.filter(email__iexact=user.email).order_by("id").first()
+            
+        from apps.tenants.models import Domain
+        if tenant:
+            domain_obj = Domain.objects.filter(tenant=tenant).order_by("-is_primary", "id").first()
+            host = domain_obj.domain if domain_obj else getattr(settings, "PLATFORM_DOMAIN", "localhost")
+        else:
+            host = getattr(settings, "PLATFORM_DOMAIN", "localhost")
+            
+        request_host = request.get_host().lower()
+        is_local = "localhost" in request_host or "127.0.0.1" in request_host
+        
+        scheme = "http" if is_local else "https"
+        host_clean = host.split(":")[0]
+        
+        if is_local:
+            host_with_port = f"{host_clean}:3000"
+        else:
+            host_with_port = host_clean
+            
+        return f"{scheme}://{host_with_port}/reset-password?token={token}"
+
 
 
 @admin.register(PasswordResetToken)
