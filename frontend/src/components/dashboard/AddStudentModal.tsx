@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Loader2, AlertCircle, Sparkles, MapPin,
   Phone, Mail, User, Info, CheckCircle2
@@ -24,6 +24,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
   const [locations, setLocations] = useState<Location[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -59,6 +60,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
     e.preventDefault();
     if (!formData.location_id) {
       setError("يرجى اختيار الفرع");
+      setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
       return;
     }
 
@@ -71,6 +73,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
       onClose();
     } catch (err: any) {
       setError(parseApiError(err, "حدث خطأ أثناء إضافة الطالب. يرجى التحقق من البيانات."));
+      setTimeout(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
     } finally {
       setIsSubmitting(false);
     }
@@ -95,6 +98,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <ModalBody className="space-y-4">
+          <div ref={topRef} />
           <ErrorBanner message={error} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

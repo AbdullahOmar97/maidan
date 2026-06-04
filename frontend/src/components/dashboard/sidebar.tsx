@@ -199,9 +199,11 @@ function LogoHeader() {
           className="w-10 h-10 rounded-xl object-cover shadow-lg hover:scale-105 transition-transform duration-500"
         />
       ) : (
-        <div className="w-10 h-10 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform duration-500" aria-hidden="true">
-          <Shield className="w-5 h-5 text-white" />
-        </div>
+        <img
+          src="/logo.png"
+          alt="MAIDAN Logo"
+          className="w-10 h-10 rounded-xl object-cover shadow-lg hover:scale-105 transition-transform duration-500"
+        />
       )}
       <div className="flex-1 min-w-0">
         <p className="font-black text-lg tracking-tighter text-gradient leading-none truncate">
@@ -256,6 +258,7 @@ export function MobileSidebarContent({
     <div className="flex flex-col h-full bg-card/95 backdrop-blur-2xl relative overflow-hidden">
       {/* Decorative Glow */}
       <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-[60px] -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
+      <LogoHeader />
       <NavList user={user} onLinkClick={onClose} />
       <BottomSection user={user} onLinkClick={onClose} />
     </div>

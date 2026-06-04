@@ -32,6 +32,10 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "MAIDAN Dojo Management",
   },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -174,8 +174,8 @@ export default function LoginPage() {
         <div className="text-center mb-10 group cursor-default">
           <div className="relative inline-flex mb-6">
             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
-            <div className="relative w-20 h-20 rounded-[2rem] gradient-brand flex items-center justify-center shadow-2xl shadow-primary/40 rotate-12 group-hover:rotate-0 transition-all duration-500">
-              <Shield className="w-10 h-10 text-white" />
+            <div className="relative w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-105 transition-all duration-500 overflow-hidden bg-white">
+              <img src="/logo.png" alt="MAIDAN Logo" className="w-full h-full object-cover" />
             </div>
             <div className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
               <Sparkles className="w-4 h-4 text-primary" />
