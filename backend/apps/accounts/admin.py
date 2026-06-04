@@ -27,16 +27,15 @@ class UserAdmin(BaseUserAdmin):
         "last_name",
         "role",
         "is_active",
-        "force_password_reset",
         "is_staff",
         "last_login",
         "created_at",
     )
-    list_filter = ("role", "is_active", "is_staff", "force_password_reset")
+    list_filter = ("role", "is_active", "is_staff")
     search_fields = ("email", "first_name", "last_name", "phone")
     ordering = ("-created_at",)
-    readonly_fields = ("id", "created_at", "updated_at", "last_login", "last_login_ip", "reset_password_link_button")
-    actions = ["force_reset_password", "clear_force_reset_password", "generate_reset_links_action"]
+    readonly_fields = ("id", "created_at", "updated_at", "last_login", "last_login_ip", "generate_reset_link_button")
+    actions = ["generate_reset_links_action"]
 
     fieldsets = (
         ("Identity (الهوية)", {
@@ -46,7 +45,7 @@ class UserAdmin(BaseUserAdmin):
             "fields": ("role", "is_active", "is_staff", "is_superuser"),
         }),
         ("Password & Security (كلمة المرور والأمان)", {
-            "fields": ("force_password_reset", "is_initial_password_set", "reset_password_link_button"),
+            "fields": ("generate_reset_link_button",),
         }),
         ("Preferences (التفضيلات)", {
             "fields": ("language_pref", "assigned_location_ids", "permissions"),
@@ -71,21 +70,6 @@ class UserAdmin(BaseUserAdmin):
 
     # ---------- Bulk actions ----------
 
-    @admin.action(description="إعادة تعيين كلمة المرور عند تسجيل الدخول التالي")
-    def force_reset_password(self, request, queryset):
-        updated = queryset.update(force_password_reset=True)
-        self.message_user(
-            request,
-            f"تم تفعيل إعادة تعيين كلمة المرور لـ {updated} مستخدم(ين).",
-        )
-
-    @admin.action(description="إلغاء إعادة تعيين كلمة المرور الإجبارية")
-    def clear_force_reset_password(self, request, queryset):
-        updated = queryset.update(force_password_reset=False)
-        self.message_user(
-            request,
-            f"تم إلغاء إعادة تعيين كلمة المرور الإجبارية لـ {updated} مستخدم(ين).",
-        )
 
     @admin.action(description="توليد روابط إعادة تعيين كلمة المرور للمستخدمين المحددين")
     def generate_reset_links_action(self, request, queryset):
@@ -143,57 +127,16 @@ class UserAdmin(BaseUserAdmin):
         }
         return render(request, "accounts/admin_reset_links.html", context)
 
-    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
-        self._current_request = request
-        try:
-            return super().changeform_view(request, object_id, form_url, extra_context)
-        finally:
-            if hasattr(self, "_current_request"):
-                del self._current_request
-
-    def reset_password_link_button(self, obj):
+    def generate_reset_link_button(self, obj):
         if not obj.pk:
             return "يجب حفظ المستخدم أولاً لتوليد الرابط."
         
-        request = getattr(self, "_current_request", None)
-        if not request:
-            return "يجب فتح صفحة تعديل المستخدم مباشرة لتوليد الرابط."
-            
-        token_obj = PasswordResetToken.objects.create(
-            user=obj,
-            expires_at=timezone.now() + timedelta(hours=24),
-        )
-        reset_url = self._get_reset_url(request, obj, token_obj.token)
-        
+        url = reverse("admin:generate-reset-link", args=[obj.id])
         return format_html(
-            '<div class="reset-link-container" style="display: flex; align-items: center; gap: 8px; max-width: 600px;">'
-            '    <input type="text" id="reset-url-input" value="{}" readonly class="vTextField" style="flex: 1; font-family: monospace; background: #f8fafc; font-size: 12px; padding: 6px 10px;" onclick="this.select();" />'
-            '    <button type="button" id="copy-reset-btn" class="button" onclick="copyResetUrl()" style="margin: 0; background: #2563eb; color: white; padding: 6px 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">نسخ الرابط</button>'
-            '</div>'
-            '<span class="help" style="display: block; margin-top: 6px; color: #64748b; font-size: 11px;">'
-            '    تم توليد رابط جديد تلقائياً عند فتح هذه الصفحة. هذا الرابط صالح لمدة 24 ساعة.'
-            '</span>'
-            '<script>'
-            'function copyResetUrl() {{'
-            '    var copyText = document.getElementById("reset-url-input");'
-            '    copyText.select();'
-            '    navigator.clipboard.writeText(copyText.value).then(function() {{'
-            '        var btn = document.getElementById("copy-reset-btn");'
-            '        var originalText = btn.innerText;'
-            '        btn.innerText = "تم النسخ!";'
-            '        btn.style.background = "#10b981";'
-            '        setTimeout(function() {{'
-            '            btn.innerText = originalText;'
-            '            btn.style.background = "#2563eb";'
-            '        }}, 2000);'
-            '    }}).catch(function(err) {{'
-            '        alert("فشل نسخ الرابط: " + err);'
-            '    }});'
-            '}}'
-            '</script>',
-            reset_url
+            '<a href="{}" class="button" style="background: #2563eb; color: white; padding: 6px 14px; font-weight: bold; text-decoration: none; border-radius: 4px; display: inline-block;">توليد رابط إعادة تعيين كلمة المرور</a>',
+            url
         )
-    reset_password_link_button.short_description = "رابط إعادة تعيين كلمة المرور (جديد تلقائياً)"
+    generate_reset_link_button.short_description = "رابط إعادة تعيين كلمة المرور"
 
     def _get_reset_url(self, request, user, token):
         from apps.tenants.models import Tenant

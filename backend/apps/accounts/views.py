@@ -74,42 +74,8 @@ class LoginView(APIView):
                 )
 
         serializer = LoginSerializer(data=request.data, context={"request": request})
-        try:
-            serializer.is_valid(raise_exception=True)
-        except serializers.ValidationError as e:
-            # Check if this is a "setup required" case
-            email = request.data.get("email")
-            if email:
-                user = User.objects.filter(email__iexact=email, is_active=True).first()
-                if user and not user.is_initial_password_set:
-                    return Response(
-                        {
-                            "code": "setup_required",
-                            "message": "First-time setup required.",
-                            "email": user.email
-                        },
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-            raise e
-
+        serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-
-        # Force password reset — generate a token and redirect user
-        if user.force_password_reset:
-            from datetime import timedelta
-
-            token_obj = PasswordResetToken.objects.create(
-                user=user,
-                expires_at=timezone.now() + timedelta(hours=2),
-            )
-            return Response(
-                {
-                    "code": "force_password_reset",
-                    "message": "يجب إعادة تعيين كلمة المرور.",
-                    "token": str(token_obj.token),
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         refresh = RefreshToken.for_user(user)
 
