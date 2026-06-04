@@ -192,7 +192,7 @@ export default function LoginPage() {
         </div>
 
         {/* Main Card */}
-        <div className={cn(isTenantLogin && "light")}>
+        <div>
           <div className="glass-card relative p-10 overflow-hidden group/card border-white/10">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
 
