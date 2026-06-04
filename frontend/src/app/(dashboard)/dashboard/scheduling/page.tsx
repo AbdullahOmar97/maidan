@@ -30,6 +30,7 @@ export default function SchedulingPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"schedules" | "sessions">("sessions");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingScheduleId, setEditingScheduleId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     class_type_id: "",
     location_id: "",
@@ -67,24 +68,65 @@ export default function SchedulingPage() {
     queryFn: () => api.staff.list({ role: "instructor" }).then((r) => r.data.results || r.data),
   });
 
+  const handleEditClick = (schedule: any) => {
+    setEditingScheduleId(schedule.id);
+    setFormData({
+      class_type_id: schedule.class_type_id.toString(),
+      location_id: schedule.location_id.toString(),
+      instructor_id: schedule.instructor_id ? schedule.instructor_id.toString() : "",
+      day_of_week: schedule.day_of_week.toString(),
+      start_time: schedule.start_time.substring(0, 5),
+      end_time: schedule.end_time.substring(0, 5),
+      capacity: schedule.capacity,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingScheduleId(null);
+  };
+
+  const handleDelete = async () => {
+    if (editingScheduleId === null) return;
+    if (!confirm("هل أنت متأكد من حذف قالب الحصة هذا؟")) return;
+    try {
+      await api.attendance.schedules.delete(editingScheduleId);
+      setIsModalOpen(false);
+      setEditingScheduleId(null);
+      queryClient.invalidateQueries({ queryKey: ["attendance", "schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["attendance", "sessions"] });
+    } catch (error) {
+      console.error("Error deleting schedule", error);
+      alert("حدث خطأ أثناء حذف الحصة");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.attendance.schedules.create({
+      const payload = {
         ...formData,
         class_type_id: parseInt(formData.class_type_id),
         location_id: parseInt(formData.location_id),
         instructor_id: formData.instructor_id || null,
         day_of_week: parseInt(formData.day_of_week),
         capacity: parseInt(formData.capacity.toString()),
-      });
+      };
+
+      if (editingScheduleId !== null) {
+        await api.attendance.schedules.update(editingScheduleId, payload);
+      } else {
+        await api.attendance.schedules.create(payload);
+      }
       setIsModalOpen(false);
+      setEditingScheduleId(null);
       setActiveTab("schedules");
       queryClient.invalidateQueries({ queryKey: ["attendance", "schedules"] });
       queryClient.invalidateQueries({ queryKey: ["attendance", "sessions"] });
     } catch (error) {
-      console.error("Error creating schedule", error);
-      alert("حدث خطأ أثناء إضافة الحصة");
+      console.error("Error saving schedule", error);
+      alert(editingScheduleId !== null ? "حدث خطأ أثناء تعديل الحصة" : "حدث خطأ أثناء إضافة الحصة");
     }
   };
 
@@ -98,7 +140,19 @@ export default function SchedulingPage() {
         >
           {canManage && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setEditingScheduleId(null);
+                setFormData({
+                  class_type_id: "",
+                  location_id: "",
+                  instructor_id: "",
+                  day_of_week: "0",
+                  start_time: "18:00",
+                  end_time: "19:00",
+                  capacity: 20,
+                });
+                setIsModalOpen(true);
+              }}
               className="flex items-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -210,7 +264,14 @@ export default function SchedulingPage() {
                              <span>يوم {schedule.day_of_week}</span>
                           </div>
                        </div>
-                       {canManage && <button className="text-sm text-primary hover:underline">تعديل</button>}
+                       {canManage && (
+                         <button
+                           onClick={() => handleEditClick(schedule)}
+                           className="text-sm text-primary hover:underline"
+                         >
+                           تعديل
+                         </button>
+                       )}
                     </div>
                  ))}
               </div>
@@ -224,8 +285,10 @@ export default function SchedulingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card w-full max-w-lg rounded-2xl border shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-xl font-bold">إضافة قالب حصة جديد</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <h2 className="text-xl font-bold">
+                {editingScheduleId !== null ? "تعديل قالب الحصة" : "إضافة قالب حصة جديد"}
+              </h2>
+              <button onClick={handleCloseModal} className="text-muted-foreground hover:text-foreground">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -324,21 +387,34 @@ export default function SchedulingPage() {
               </form>
             </div>
             
-            <div className="p-6 border-t bg-secondary/20 flex items-center justify-end gap-3 mt-auto">
-              <button 
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
-              >
-                إلغاء
-              </button>
-              <button 
-                type="submit"
-                form="add-schedule-form"
-                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-              >
-                حفظ الحصة
-              </button>
+            <div className="p-6 border-t bg-secondary/20 flex items-center justify-between mt-auto">
+              {editingScheduleId !== null ? (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-4 py-2 rounded-lg font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  حذف
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  type="submit"
+                  form="add-schedule-form"
+                  className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                >
+                  {editingScheduleId !== null ? "حفظ التعديلات" : "حفظ الحصة"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

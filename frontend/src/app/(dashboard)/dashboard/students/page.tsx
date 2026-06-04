@@ -10,7 +10,7 @@ import {
   Users, Search, Plus, ChevronRight, Phone,
   Mail, Award, Sparkles, Filter, Inbox, ArrowLeft, ArrowRight
 } from "lucide-react";
-import type { PaginatedResponse, Student } from "@/types";
+import type { PaginatedResponse, Student, Location } from "@/types";
 import Link from "next/link";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
@@ -147,6 +147,7 @@ function StudentCardSkeleton() {
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -154,11 +155,21 @@ export default function StudentsPage() {
 
   const debouncedSearch = useDebounce(search, 400);
 
+  const { data: locations } = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: () => api.locations.list().then((r: any) => r.data.results || r.data),
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<Student>>({
-    queryKey: ["students", { search: debouncedSearch, status, page }],
+    queryKey: ["students", { search: debouncedSearch, status, location: locationId, page }],
     queryFn: () =>
       api.students
-        .list({ search: debouncedSearch, status: status || undefined, page })
+        .list({
+          search: debouncedSearch,
+          status: status || undefined,
+          location: locationId || undefined,
+          page
+        })
         .then((r) => r.data),
   });
 
@@ -206,6 +217,20 @@ export default function StudentsPage() {
             />
           </div>
 
+          {/* Location Filter */}
+          <div className="relative min-w-[240px]">
+            <Select
+              value={locationId}
+              onChange={(e) => { setLocationId(e.target.value); setPage(1); }}
+              className="w-full px-8 py-5 rounded-3xl bg-white/[0.03] border border-white/5 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black appearance-none cursor-pointer shadow-inner"
+            >
+              <option value="">جميع الفروع</option>
+              {locations?.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </Select>
+          </div>
+
           {/* Status Filter */}
           <div className="relative min-w-[240px]">
             <Select
@@ -248,7 +273,7 @@ export default function StudentsPage() {
                 لم نتمكن من العثور على أي طالب يطابق معايير البحث الحالية. جرب تغيير كلمات البحث أو إعادة ضبط الفلاتر.
               </p>
               <button
-                onClick={() => { setSearch(""); setStatus(""); }}
+                onClick={() => { setSearch(""); setStatus(""); setLocationId(""); }}
                 className="mt-10 px-8 py-3 rounded-2xl bg-primary/10 text-primary font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all relative z-10"
               >
                 إعادة ضبط البحث

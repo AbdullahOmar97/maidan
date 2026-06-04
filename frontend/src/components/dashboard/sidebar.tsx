@@ -39,7 +39,6 @@ const navItems = [
   { label: "التقارير",     labelEn: "Reports",    href: "/dashboard/reporting",  icon: BarChart3,       permission: "can_view_reports" },
   { label: "الموظفون",     labelEn: "Staff",      href: "/dashboard/staff",      icon: UserCheck,       permission: "can_manage_staff" },
   { label: "الفروع",       labelEn: "Locations",  href: "/dashboard/locations",  icon: Building2,       permission: "can_manage_locations" },
-  { label: "الأكاديميات",  labelEn: "Academies",  href: "/dashboard/tenants",    icon: Shield,          role: "platform_admin" },
   { label: "الإعدادات",    labelEn: "Settings",   href: "/dashboard/settings",   icon: Settings },
 ] as const;
 

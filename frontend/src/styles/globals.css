@@ -94,7 +94,7 @@
     background-attachment: fixed;
   }
 
-  [] body {
+  [dir="rtl"] body {
     @apply font-arabic;
   }
 }
@@ -135,11 +135,11 @@
   }
 
   .glow-primary {
-    @apply shadow-[0_0_25px_rgba(99, 102, 241, 0.25)];
+    @apply shadow-[0_0_25px_rgba(99,102,241,0.25)];
   }
 
   .glow-accent {
-    @apply shadow-[0_0_25px_rgba(236, 72, 153, 0.25)];
+    @apply shadow-[0_0_25px_rgba(236,72,153,0.25)];
   }
 
   /* Shimmer loading effect */
@@ -160,7 +160,7 @@
     }
   }
 
-  [] {
+  [dir="rtl"] {
     @keyframes shimmer {
       100% {
         transform: translateX(-100%);
@@ -221,7 +221,7 @@
   }
 
   .sidebar-item-active {
-    @apply bg-primary/10 text-primary border-primary/20 shadow-[0_0_18px_rgba(99, 102, 241, 0.12)];
+    @apply bg-primary/10 text-primary border-primary/20 shadow-[0_0_18px_rgba(99,102,241,0.12)];
   }
 
   /* Sleek modern inputs styling */
@@ -243,7 +243,7 @@
   }
 
   /* RTL flip helpers */
-  [] .rtl-flip {
+  [dir="rtl"] .rtl-flip {
     transform: scaleX(-1);
   }
 
@@ -432,7 +432,7 @@
   }
 
   .drawer-panel {
-    @apply fixed inset-y-0 start-0 z-50 flex flex-col w-[min(20rem, 90vw)] h-full bg-card border-e border-white/[0.06] shadow-2xl shadow-black/50 overflow-hidden;
+    @apply fixed inset-y-0 start-0 z-50 flex flex-col w-[min(20rem,90vw)] h-full bg-card border-e border-white/[0.06] shadow-2xl shadow-black/50 overflow-hidden;
     animation: slide-in-from-start 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
@@ -471,7 +471,7 @@
   }
 }
 
-[] {
+[dir="rtl"] {
   @keyframes slide-in-from-start {
     from {
       transform: translateX(100%);

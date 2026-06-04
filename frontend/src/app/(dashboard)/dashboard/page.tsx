@@ -9,7 +9,6 @@ import {
   CreditCard,
   CalendarCheck,
   Award,
-  Clock,
   AlertTriangle,
   ArrowUpRight,
   RefreshCw,
@@ -33,7 +32,7 @@ import { api } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils";
 import type { DashboardKPIs } from "@/types";
 import Link from "next/link";
-import { useBillingPermissions, useReportingPermissions, useStudentPermissions } from "@/lib/hooks/use-permission";
+import { useReportingPermissions } from "@/lib/hooks/use-permission";
 
 // ---------------------------------------------------------------------------
 // Shared chart tooltip style
@@ -123,9 +122,7 @@ function ChartCard({
 // Main Dashboard Page
 // ---------------------------------------------------------------------------
 export default function DashboardPage() {
-  const { canCreateInvoice } = useBillingPermissions();
   const { canViewReports }   = useReportingPermissions();
-  const { canManageStudents } = useStudentPermissions();
 
   const { data: kpis, isLoading: kpisLoading, refetch } = useQuery<DashboardKPIs>({
     queryKey: ["dashboard", "kpi"],
@@ -138,13 +135,6 @@ export default function DashboardPage() {
   const { data: beltData }       = useQuery({ queryKey: ["dashboard", "belts"],      queryFn: () => api.dashboard.belts().then((r) => r.data), enabled: canViewReports });
   const { data: attendanceData } = useQuery({ queryKey: ["dashboard", "attendance"], queryFn: () => api.dashboard.attendance("weekly").then((r) => r.data), enabled: canViewReports });
   const { data: retentionData }  = useQuery({ queryKey: ["dashboard", "retention"],  queryFn: () => api.dashboard.retention().then((r) => r.data), enabled: canViewReports });
-
-  const quickActions = [
-    { label: "إضافة طالب",   href: "/dashboard/students/new",  icon: Users,         color: "from-primary/20 to-primary/5 border-primary/20 text-primary shadow-primary/10",          show: canManageStudents },
-    { label: "تسجيل حضور",  href: "/dashboard/attendance",    icon: CalendarCheck,  color: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10", show: true },
-    { label: "إنشاء فاتورة", href: "/dashboard/billing/new",   icon: CreditCard,    color: "from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-400 shadow-amber-500/10",   show: canCreateInvoice },
-    { label: "إرسال تنبيه",  href: "/dashboard/messaging",     icon: Clock,         color: "from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-400 shadow-purple-500/10", show: true },
-  ].filter((a) => a.show);
 
   const emptyChart = (height: string) => (
     <div
@@ -353,25 +343,7 @@ export default function DashboardPage() {
       </>
       )}
 
-      {/* Quick Actions */}
-      <div className="glass-card p-5 md:p-8 relative overflow-hidden">
-        <div className="absolute top-0 end-0 w-64 h-64 bg-primary/5 blur-[80px] -me-32 -mt-32 pointer-events-none" aria-hidden="true" />
-        <h2 className="text-lg md:text-xl font-black tracking-tight mb-5 md:mb-6 relative z-10">إجراءات سريعة</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 relative z-10">
-          {quickActions.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className={`flex flex-col items-center gap-3 md:gap-4 p-4 md:p-6 rounded-3xl bg-gradient-to-br border shadow-xl ${action.color} hover:-translate-y-1 hover:opacity-90 active:scale-95 transition-all text-center group`}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                <action.icon className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
-              </div>
-              <span className="text-xs md:text-sm font-black tracking-tight">{action.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 }
