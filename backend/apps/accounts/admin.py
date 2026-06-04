@@ -143,15 +143,57 @@ class UserAdmin(BaseUserAdmin):
         }
         return render(request, "accounts/admin_reset_links.html", context)
 
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        self._current_request = request
+        try:
+            return super().changeform_view(request, object_id, form_url, extra_context)
+        finally:
+            if hasattr(self, "_current_request"):
+                del self._current_request
+
     def reset_password_link_button(self, obj):
         if not obj.pk:
             return "يجب حفظ المستخدم أولاً لتوليد الرابط."
-        url = reverse("admin:generate-reset-link", args=[obj.pk])
-        return format_html(
-            '<a class="button" href="{}">توليد رابط إعادة تعيين كلمة المرور</a>',
-            url
+        
+        request = getattr(self, "_current_request", None)
+        if not request:
+            return "يجب فتح صفحة تعديل المستخدم مباشرة لتوليد الرابط."
+            
+        token_obj = PasswordResetToken.objects.create(
+            user=obj,
+            expires_at=timezone.now() + timedelta(hours=24),
         )
-    reset_password_link_button.short_description = "رابط إعادة تعيين كلمة المرور (يدوي)"
+        reset_url = self._get_reset_url(request, obj, token_obj.token)
+        
+        return format_html(
+            '<div class="reset-link-container" style="display: flex; align-items: center; gap: 8px; max-width: 600px;">'
+            '    <input type="text" id="reset-url-input" value="{}" readonly class="vTextField" style="flex: 1; font-family: monospace; background: #f8fafc; font-size: 12px; padding: 6px 10px;" onclick="this.select();" />'
+            '    <button type="button" id="copy-reset-btn" class="button" onclick="copyResetUrl()" style="margin: 0; background: #2563eb; color: white; padding: 6px 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">نسخ الرابط</button>'
+            '</div>'
+            '<span class="help" style="display: block; margin-top: 6px; color: #64748b; font-size: 11px;">'
+            '    تم توليد رابط جديد تلقائياً عند فتح هذه الصفحة. هذا الرابط صالح لمدة 24 ساعة.'
+            '</span>'
+            '<script>'
+            'function copyResetUrl() {{'
+            '    var copyText = document.getElementById("reset-url-input");'
+            '    copyText.select();'
+            '    navigator.clipboard.writeText(copyText.value).then(function() {{'
+            '        var btn = document.getElementById("copy-reset-btn");'
+            '        var originalText = btn.innerText;'
+            '        btn.innerText = "تم النسخ!";'
+            '        btn.style.background = "#10b981";'
+            '        setTimeout(function() {{'
+            '            btn.innerText = originalText;'
+            '            btn.style.background = "#2563eb";'
+            '        }}, 2000);'
+            '    }}).catch(function(err) {{'
+            '        alert("فشل نسخ الرابط: " + err);'
+            '    }});'
+            '}}'
+            '</script>',
+            reset_url
+        )
+    reset_password_link_button.short_description = "رابط إعادة تعيين كلمة المرور (جديد تلقائياً)"
 
     def _get_reset_url(self, request, user, token):
         from apps.tenants.models import Tenant
