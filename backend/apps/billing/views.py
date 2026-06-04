@@ -348,7 +348,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         invoice.status = Invoice.Status.VOID
-        invoice.notes = (invoice.notes + f"\n[ملغاة بواسطة {request.user.get_full_name()} في {timezone.now().date()}]").strip()
+        invoice.notes = ((invoice.notes or "") + f"\n[ملغاة بواسطة {request.user.get_full_name()} في {timezone.now().date()}]").strip()
         invoice.save(update_fields=["status", "notes"])
         return Response({"message": "تم إلغاء الفاتورة."})
 
@@ -364,7 +364,14 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
         UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
         with transaction.atomic():
-            invoice = self.get_queryset().select_for_update().get(pk=self.kwargs["pk"])
+            # Clear outer join relationships (select_related) before select_for_update
+            # to avoid PostgreSQL 'FOR UPDATE cannot be applied to the nullable side of an outer join' error.
+            invoice = (
+                self.get_queryset()
+                .select_related(None)
+                .select_for_update()
+                .get(pk=self.kwargs["pk"])
+            )
             if invoice.status in UNPAYABLE_STATUSES:
                 return Response(
                     {"error": f"لا يمكن تأكيد سداد فاتورة بحالة: {invoice.get_status_display()}."},
@@ -379,7 +386,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             audit_note = f"[سداد يدوي — {payment_method} — بواسطة {request.user.get_full_name()} في {now.date()}"
             if note:
                 audit_note += f" {note}"
-            invoice.notes = (invoice.notes + f"\n{audit_note}").strip()
+            invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
             invoice.save(
                 update_fields=["status", "amount_paid", "paid_at", "paid_by_id", "notes", "updated_at"]
             )
