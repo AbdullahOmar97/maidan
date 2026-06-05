@@ -106,71 +106,125 @@ export default function PlansPage() {
               </button>
             </div>
           ) : (
-            plans.map((plan: MembershipPlan) => (
-              <div key={plan.id} className="glass-card group relative overflow-hidden flex flex-col">
-                {/* Status Badge */}
-                <div className="absolute top-6 start-6 flex items-center gap-2">
-                  {plan.is_active ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-                      <CheckCircle2 className="w-3 h-3" />
-                      نشطة
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest">
-                      <XCircle className="w-3 h-3" />
-                      متوقفة
-                    </span>
-                  )}
-                  {plan.is_public && (
-                    <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
-                      عامة
-                    </span>
-                  )}
-                </div>
+            plans.map((plan: MembershipPlan) => {
+              const billingCycleText = {
+                weekly: "أسبوعي",
+                monthly: "شهري",
+                quarterly: "ربع سنوي",
+                semi_annual: "نصف سنوي",
+                annual: "سنوي",
+                one_time: "مرة واحدة",
+              }[plan.billing_cycle] || plan.billing_cycle;
 
-                {/* Decorative Icon */}
-                <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 group-hover:bg-primary/10 transition-colors pointer-events-none" />
-
-                <div className="p-8 pt-16 flex-1 space-y-6">
-                  <div className="space-y-1 text-start">
-                    <h3 className="text-xl font-black text-white tracking-tight">{plan.name}</h3>
+              return (
+                <div 
+                  key={plan.id} 
+                  className={cn(
+                    "glass-card group relative overflow-hidden flex flex-col transition-all duration-300",
+                    "border border-white/[0.06] hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
+                  )}
+                >
+                  {/* Status Badge */}
+                  <div className="absolute top-6 start-6 flex items-center gap-2 z-10">
+                    {plan.is_active ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        نشطة
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                        متوقفة
+                      </span>
+                    )}
+                    {plan.is_public && (
+                      <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
+                        عامة
+                      </span>
+                    )}
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">دورة الدفع</span>
-                      <span className="text-xs font-black text-white">{plan.billing_cycle === 'monthly' ? 'شهري' : plan.billing_cycle}</span>
+                  {/* Decorative Glow */}
+                  <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-3xl -me-16 -mt-16 group-hover:bg-primary/10 transition-colors pointer-events-none" />
+
+                  <div className="p-8 pt-16 flex-1 space-y-6">
+                    <div className="space-y-1 text-start">
+                      <h3 className="text-xl font-black text-white tracking-tight group-hover:text-primary transition-colors">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-2 h-8">
+                        {plan.description || "لا يوجد وصف تفصيلي لهذه الباقة."}
+                      </p>
                     </div>
-                    <div className="text-end">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">السعر</span>
-                      <span className="text-lg font-black text-primary"><bdi>{formatCurrency(plan.price, plan.currency)}</bdi></span>
+
+                    <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">دورة الدفع</span>
+                        <span className="text-xs font-black text-white">{billingCycleText}</span>
+                      </div>
+                      <div className="text-end">
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">السعر</span>
+                        <span className="text-lg font-black text-primary"><bdi>{formatCurrency(plan.price, plan.currency)}</bdi></span>
+                      </div>
+                    </div>
+
+                    {/* Features list */}
+                    <div className="space-y-3 pt-2 text-start flex-1">
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          {plan.is_unlimited ? (
+                            <span className="text-white font-bold">حضور غير محدود للحصص</span>
+                          ) : plan.max_classes_per_week ? (
+                            <span>الحد الأقصى للحصص: <strong className="text-white font-bold">{plan.max_classes_per_week} حصص/أسبوع</strong></span>
+                          ) : (
+                            <span className="text-muted-foreground/60">لم يتم تحديد حد الحصص الأسبوعية</span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className={cn("w-4 h-4 shrink-0", plan.setup_fee > 0 ? "text-primary" : "text-emerald-400")} />
+                        <span>
+                          {plan.setup_fee > 0 ? (
+                            <span>رسوم تأسيس إضافية: <strong className="text-white font-bold"><bdi>{formatCurrency(plan.setup_fee, plan.currency)}</bdi></strong></span>
+                          ) : (
+                            <span className="text-white font-bold">بدون رسوم تأسيس</span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className={cn("w-4 h-4 shrink-0", plan.tax_rate > 0 ? "text-primary" : "text-emerald-400")} />
+                        <span>
+                          {plan.tax_rate > 0 ? (
+                            <span>معدل الضريبة: <strong className="text-white font-bold">{plan.tax_rate}%</strong></span>
+                          ) : (
+                            <span className="text-white font-bold">شامل كافة الضرائب</span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed text-start line-clamp-3 min-h-[4.5rem]">
-                    {plan.description || "لا يوجد وصف لهذه الباقة."}
-                  </p>
+                  {/* Footer Actions */}
+                  <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center gap-3">
+                    <button
+                      onClick={() => handleEdit(plan)}
+                      className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      تعديل الباقة
+                    </button>
+                    <button
+                      onClick={() => handleDelete(plan.id)}
+                      disabled={deleteMutation.isPending}
+                      className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:bg-red-500 hover:text-white transition-all flex items-center justify-center active:scale-90"
+                    >
+                      {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-
-                {/* Footer Actions */}
-                <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center gap-3">
-                  <button
-                    onClick={() => handleEdit(plan)}
-                    className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    تعديل
-                  </button>
-                  <button
-                    onClick={() => handleDelete(plan.id)}
-                    disabled={deleteMutation.isPending}
-                    className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:bg-red-500 hover:text-white transition-all flex items-center justify-center active:scale-90"
-                  >
-                    {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

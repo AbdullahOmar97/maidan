@@ -331,67 +331,64 @@ export default function RegisterPage() {
                   className={cn(
                     "glass-card p-6 cursor-pointer transition-all duration-300 relative border-2 group",
                     selectedPlan === plan.id
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                      : "border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
+                      ? "border-primary bg-primary/[0.04] shadow-xl shadow-primary/10 scale-[1.02]"
+                      : "border-white/5 hover:border-white/10 hover:bg-white/[0.01] hover:scale-[1.01]"
                   )}
                 >
                   {selectedPlan === plan.id && (
-                    <div className="absolute -start-2 -top-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
-                      <Check className="w-4 h-4 stroke-[3]" />
+                    <div className="absolute top-4 end-4 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 border border-white/10 z-10 animate-in zoom-in-50 duration-200">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </div>
                   )}
-                  <div className="flex justify-between items-start mb-4">
+
+                  {/* Decorative Subtle glow */}
+                  <div className="absolute top-0 end-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                  <div className="flex justify-between items-start mb-4 pe-8 text-start">
                     <div>
-                      <h3 className="font-black text-white text-xl">{plan.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1 font-bold">{plan.description || "باقة مرنة تلبي احتياجاتك"}</p>
+                      <h3 className={cn(
+                        "font-black text-lg transition-colors",
+                        selectedPlan === plan.id ? "text-primary" : "text-white group-hover:text-primary"
+                      )}>{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-1 font-semibold leading-relaxed">
+                        {plan.description || "باقة مرنة تلبي متطلبات نمو أكاديميتك."}
+                      </p>
                     </div>
-                    <div className="text-start flex flex-col items-end">
-                      {plan.price_yearly && parseFloat(plan.price_yearly) > 0 && (
-                        <div>
-                          <span className="text-2xl font-black text-white">{plan.price_yearly}</span>
-                          <span className="text-xs text-muted-foreground me-1 font-black uppercase">{plan.currency} / سنوياً</span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-white/[0.02] border border-white/5">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">تكلفة الباقة</span>
+                    <div className="text-start">
+                      {plan.price_yearly && parseFloat(plan.price_yearly) > 0 ? (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-black text-primary"><bdi>{plan.price_yearly}</bdi></span>
+                          <span className="text-[10px] text-muted-foreground font-black uppercase">{plan.currency} / سنوي</span>
                         </div>
+                      ) : plan.price_monthly && parseFloat(plan.price_monthly) > 0 ? (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-black text-primary"><bdi>{plan.price_monthly}</bdi></span>
+                          <span className="text-[10px] text-muted-foreground font-black uppercase">{plan.currency} / شهري</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-black text-emerald-400">مجانًا</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-y-2 mt-4 pt-4 border-t border-white/5">
-                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                      {plan.max_students} طالب
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/5">
+                    <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                      <p className="text-[10px] font-black text-muted-foreground mb-0.5">الطلاب</p>
+                      <p className="text-xs font-black text-white">{plan.max_students}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                      {plan.max_locations} فرع
+                    <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                      <p className="text-[10px] font-black text-muted-foreground mb-0.5">الفروع</p>
+                      <p className="text-xs font-black text-white">{plan.max_locations}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                      {plan.max_staff} موظف
+                    <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                      <p className="text-[10px] font-black text-muted-foreground mb-0.5">الموظفين</p>
+                      <p className="text-xs font-black text-white">{plan.max_staff}</p>
                     </div>
                   </div>
-
-                  {/* Dynamic Features (Hidden for now) */}
-                  {/* <div className="mt-4 space-y-2">
-                    {Object.entries(plan.features || {}).map(([key, enabled]) => {
-                      if (!enabled) return null;
-                      const labelMap: Record<string, string> = {
-                        whatsapp: "تنبيهات واتساب",
-                        kiosk: "جهاز الحضور والبحث",
-                        reports: "التقارير المتقدمة",
-                        billing: "الفواتير والاشتراكات",
-                        staff: "إدارة المدربين",
-                        documents: "وثائق الطلاب",
-                      };
-                      return (
-                        <div key={key} className="flex items-center gap-2 text-white/50 text-xs font-bold">
-                          <Check className="w-3 h-3 text-primary" />
-                          <span>
-                            {labelMap[key] || key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div> */}
                 </div>
               ))}
 

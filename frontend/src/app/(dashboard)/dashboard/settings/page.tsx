@@ -816,53 +816,69 @@ export default function SettingsPage() {
                     return (
                       <div key={p.id} className={cn(
                         "glass-card p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:scale-[1.02]",
-                        isCurrent ? "border-primary bg-primary/5" : "border-white/5"
+                        isCurrent 
+                          ? "border-primary bg-primary/[0.04] shadow-xl shadow-primary/10" 
+                          : "border-white/5 hover:border-white/10 hover:bg-white/[0.01]"
                       )}>
                         {isCurrent && (
-                          <span className="absolute top-4 end-4 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest">
+                          <span className="absolute top-4 end-4 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest z-10">
                             الباقة النشطة
                           </span>
                         )}
 
+                        {/* Subtle decorative glow */}
+                        <div className="absolute top-0 end-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full pointer-events-none" />
+
                         <div className="space-y-5 pt-4 text-start">
                           <div>
-                            <h4 className="text-lg font-black text-white">{p.name}</h4>
-                            <p className="text-xs text-muted-foreground mt-1 min-h-[2.5rem]">{p.description || "باقة مرنة وسريعة للأندية الناشئة."}</p>
+                            <h4 className={cn(
+                              "text-lg font-black transition-colors",
+                              isCurrent ? "text-primary" : "text-white"
+                            )}>{p.name}</h4>
+                            <p className="text-xs text-muted-foreground mt-1.5 min-h-[2.5rem] leading-relaxed">
+                              {p.description || "باقة مرنة وسريعة للأندية الناشئة."}
+                            </p>
                           </div>
 
-                          <div className="py-4 border-y border-white/5 flex flex-col gap-1 text-start">
+                          <div className="py-4 px-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 text-start">
                             {p.price_yearly && parseFloat(p.price_yearly) > 0 ? (
                               <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-2xl font-black text-primary"><bdi>{p.price_yearly} {p.currency ?? "SAR"}</bdi></span>
-                                <span className="text-xs font-bold text-muted-foreground">سنوياً</span>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">التكلفة السنوية</span>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-xl font-black text-primary"><bdi>{p.price_yearly}</bdi></span>
+                                  <span className="text-[10px] text-muted-foreground font-black uppercase">{p.currency ?? "SAR"}</span>
+                                </div>
                               </div>
                             ) : (
                               <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-2xl font-black text-primary"><bdi>{p.price_monthly} {p.currency ?? "SAR"}</bdi></span>
-                                <span className="text-xs font-bold text-muted-foreground">شهرياً</span>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">التكلفة الشهرية</span>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-xl font-black text-primary"><bdi>{p.price_monthly}</bdi></span>
+                                  <span className="text-[10px] text-muted-foreground font-black uppercase">{p.currency ?? "SAR"}</span>
+                                </div>
                               </div>
                             )}
                           </div>
 
-                          <ul className="space-y-3 text-xs text-muted-foreground font-medium">
-                            <li className="flex items-center gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span>الحد الأقصى للفروع: <strong className="text-white font-bold">{p.max_locations}</strong></span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span>الحد الأقصى للطلاب: <strong className="text-white font-bold">{p.max_students}</strong></span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span>الحد الأقصى للموظفين: <strong className="text-white font-bold">{p.max_staff}</strong></span>
-                            </li>
-                          </ul>
+                          <div className="grid grid-cols-3 gap-2 py-1">
+                            <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                              <p className="text-[9px] font-black text-muted-foreground mb-0.5">الطلاب</p>
+                              <p className="text-xs font-black text-white">{p.max_students}</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                              <p className="text-[9px] font-black text-muted-foreground mb-0.5">الفروع</p>
+                              <p className="text-xs font-black text-white">{p.max_locations}</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl py-2 px-1 text-center">
+                              <p className="text-[9px] font-black text-muted-foreground mb-0.5">الموظفين</p>
+                              <p className="text-xs font-black text-white">{p.max_staff}</p>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="pt-6 mt-6 border-t border-white/5">
                           {isCurrent ? (
-                            <button disabled className="w-full py-3 rounded-xl bg-white/5 text-muted-foreground text-xs font-black cursor-not-allowed">
+                            <button disabled className="w-full py-3 rounded-xl bg-white/5 border border-white/5 text-muted-foreground text-xs font-black cursor-not-allowed">
                               أنت مشترك في هذه الباقة
                             </button>
                           ) : (
