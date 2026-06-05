@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -9,11 +10,12 @@ import {
   ArrowRight, 
   MessageCircle,
   ShieldCheck,
-  ChevronLeft
+  ChevronLeft,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function StatusPage() {
+function StatusContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "inactive";
   const message = searchParams.get("message");
@@ -138,5 +140,17 @@ export default function StatusPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StatusPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <StatusContent />
+    </Suspense>
   );
 }

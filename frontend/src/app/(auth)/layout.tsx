@@ -9,5 +9,5 @@ export default async function AuthLayout({
   const session = await auth();
   if (session) redirect("/dashboard");
 
-  return <>{children}</>;
+  return <div className="auth-page">{children}</div>;
 }

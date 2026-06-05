@@ -1,7 +1,6 @@
 "use client";
 import { Select } from "@/components/ui/select";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api/client";
 import {
@@ -18,7 +17,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
-export default function NewInvoicePage() {
+function NewInvoiceContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -453,5 +452,17 @@ export default function NewInvoicePage() {
         </form>
       </div>
     </PermissionGuard>
+  );
+}
+
+export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={
+      <div className="h-[60vh] flex items-center justify-center" aria-busy="true">
+        <Loader2 className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+      </div>
+    }>
+      <NewInvoiceContent />
+    </Suspense>
   );
 }

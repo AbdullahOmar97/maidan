@@ -168,7 +168,6 @@ export default function StudentDetailPage() {
             <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
               <ArrowRight className="w-4 h-4" />
             </div>
-            العودة
           </button>
 
           <div className="flex items-center gap-2">

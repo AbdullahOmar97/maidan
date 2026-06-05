@@ -70,6 +70,24 @@
     --ring: 0 72% 51%;
   }
 
+  .auth-page,
+  .light .auth-page {
+    --background: 222 47% 4%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 6%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 6%;
+    --popover-foreground: 213 31% 91%;
+    --secondary: 222 25% 12%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 222 25% 10%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222 25% 12%;
+    --accent-foreground: 213 31% 91%;
+    --border: 222 20% 12%;
+    --input: 222 20% 12%;
+  }
+
   .light body { color-scheme: light; }
 }
 
@@ -253,6 +271,22 @@
     @apply bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400
            focus:bg-white focus:border-primary/60;
   }
+
+  .light .auth-page .glass-card {
+    background-color: hsl(var(--card) / 0.45);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  .light .auth-page .glass-card-hover {
+    background-color: hsl(var(--card) / 0.65);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .light .auth-page .text-gradient {
+    background-image: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -266,6 +300,13 @@
   .light [class*="border-white/"] { border-color: hsl(var(--border) / 0.85); }
   .light [class*="hover:text-white"]:hover { color: hsl(var(--foreground)); }
   .light [class*="hover:bg-white/"]:hover { background-color: hsl(var(--secondary) / 0.75); }
+
+  .light .auth-page .gradient-brand { color: #fff; }
+  .light .auth-page [class*="text-white"]:not([class*="gradient-brand"]) { color: #fff !important; }
+  .light .auth-page [class*="bg-white/"] { background-color: rgba(255, 255, 255, 0.05) !important; }
+  .light .auth-page [class*="border-white/"] { border-color: rgba(255, 255, 255, 0.1) !important; }
+  .light .auth-page [class*="hover:text-white"]:hover { color: #fff !important; }
+  .light .auth-page [class*="hover:bg-white/"]:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   Clock, 
@@ -8,12 +8,13 @@ import {
   XCircle, 
   ShieldAlert, 
   ArrowRight,
-  Mail
+  Mail,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export default function StatusPage() {
+function StatusContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "pending";
 
@@ -99,5 +100,17 @@ export default function StatusPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StatusPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+      </div>
+    }>
+      <StatusContent />
+    </Suspense>
   );
 }
