@@ -25,6 +25,7 @@ function LoginContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTenantLogin, setIsTenantLogin] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [trialInfo, setTrialInfo] = useState<{ isTrial: boolean; daysRemaining: number | null } | null>(null);
 
   const prefilledEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
 
@@ -41,7 +42,7 @@ function LoginContent() {
   const checkTenantStatus = async () => {
     try {
       // Use nginx-proxied path directly — /api/ is routed to Django by nginx
-      const res = await fetch("/api/v1/academy/me/");
+      const res = await fetch("/api/v1/academy/public-info/");
 
       if (res.status === 403) {
         const data = await res.json();
@@ -49,6 +50,14 @@ function LoginContent() {
           const statusType = data.error.status === "pending" ? "pending" :
             data.error.status === "expired" ? "expired" : "inactive";
           router.replace(`/status?type=${statusType}&message=${encodeURIComponent(data.error.message)}`);
+        }
+      } else if (res.ok) {
+        const data = await res.json();
+        if (data.status === "trial" || data.on_trial) {
+          setTrialInfo({
+            isTrial: true,
+            daysRemaining: data.trial_days_remaining !== undefined ? data.trial_days_remaining : null,
+          });
         }
       }
     } catch (err) {
@@ -203,6 +212,17 @@ function LoginContent() {
             <h2 className="text-2xl font-black text-white text-center mb-8 tracking-tight">
               {isTenantLogin ? "تسجيل الدخول" : "الدخول إلى النادي"}
             </h2>
+
+            {trialInfo && trialInfo.isTrial && (
+              <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-center animate-in fade-in slide-in-from-top-2 duration-500">
+                <p className="text-xs font-bold text-amber-400">
+                  ⚠️ اشتراك هذا النادي تجريبي.
+                  {trialInfo.daysRemaining !== null && (
+                    <span> متبقي {trialInfo.daysRemaining} يوم على انتهاء الفترة.</span>
+                  )}
+                </p>
+              </div>
+            )}
 
             <form onSubmit={isTenantLogin ? onTenantLogin : onDiscoverTenant} className="space-y-6">
               {/* Email Input */}

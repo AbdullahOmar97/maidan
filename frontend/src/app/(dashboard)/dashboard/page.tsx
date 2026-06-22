@@ -136,6 +136,11 @@ export default function DashboardPage() {
   const { data: attendanceData } = useQuery({ queryKey: ["dashboard", "attendance"], queryFn: () => api.dashboard.attendance("weekly").then((r) => r.data), enabled: canViewReports });
   const { data: retentionData }  = useQuery({ queryKey: ["dashboard", "retention"],  queryFn: () => api.dashboard.retention().then((r) => r.data), enabled: canViewReports });
 
+  const { data: academy } = useQuery({
+    queryKey: ["academy", "me"],
+    queryFn:  () => api.tenants.me().then((r) => r.data),
+  });
+
   const emptyChart = (height: string) => (
     <div
       className={`${height} flex items-center justify-center text-muted-foreground text-sm font-medium border border-dashed border-white/5 rounded-2xl bg-white/[0.01]`}
@@ -161,6 +166,30 @@ export default function DashboardPage() {
           <span className="hidden xs:inline">تحديث البيانات</span>
         </button>
       </PageHeader>
+
+      {academy && (academy.status === "trial" || academy.on_trial) && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center gap-3">
+             <span className="text-xl shrink-0">⚠️</span>
+             <div>
+                <p className="text-sm font-bold text-white">الاشتراك تجريبي</p>
+                <p className="text-xs text-amber-400 mt-0.5 font-bold">
+                   {academy.trial_days_remaining !== null && academy.trial_days_remaining !== undefined ? (
+                      <span>متبقي {academy.trial_days_remaining} يوم على انتهاء الفترة التجريبية للنادي. يرجى الاشتراك لتجنب انقطاع الخدمة.</span>
+                   ) : (
+                      <span>حساب النادي في الفترة التجريبية. يرجى الاشتراك لتجنب انقطاع الخدمة.</span>
+                   )}
+                </p>
+             </div>
+          </div>
+          <Link
+             href="/dashboard/billing"
+             className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+          >
+             اشترك الآن
+          </Link>
+        </div>
+      )}
 
       {canViewReports && (
         <>

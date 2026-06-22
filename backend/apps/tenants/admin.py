@@ -113,7 +113,7 @@ class TenantAdmin(admin.ModelAdmin):
     list_display = ("name", "schema_name", "status", "is_active", "subscription_end_date", "plan", "email")
     list_filter = ("status", "is_active", "plan", "default_language")
     search_fields = ("name", "slug", "schema_name", "email")
-    actions = ["activate_tenants", "deactivate_tenants"]
+    actions = ["activate_tenants", "start_trial_tenants", "deactivate_tenants"]
     readonly_fields = ("created_at", "updated_at")
     inlines = [DomainInline]
     fieldsets = (
@@ -132,6 +132,21 @@ class TenantAdmin(admin.ModelAdmin):
     def activate_tenants(self, request, queryset):
         queryset.update(status=Tenant.SubscriptionStatus.ACTIVE, is_active=True)
         self.message_user(request, "تم تفعيل الأكاديميات المختارة بنجاح.")
+
+    @admin.action(description="تفعيل كفترة تجريبية للأكاديميات المختارة (14 يوم)")
+    def start_trial_tenants(self, request, queryset):
+        from django.utils import timezone
+        from datetime import timedelta
+        count = 0
+        for tenant in queryset:
+            tenant.status = Tenant.SubscriptionStatus.TRIAL
+            tenant.is_active = True
+            tenant.on_trial = True
+            if not tenant.trial_ends_at:
+                tenant.trial_ends_at = timezone.now() + timedelta(days=14)
+            tenant.save()
+            count += 1
+        self.message_user(request, f"تم تفعيل الفترة التجريبية لـ {count} أكاديمية بنجاح.")
 
     @admin.action(description="تعطيل الأكاديميات المختارة")
     def deactivate_tenants(self, request, queryset):

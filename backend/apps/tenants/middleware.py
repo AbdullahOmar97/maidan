@@ -38,7 +38,7 @@ class TenantStatusMiddleware:
         if tenant and tenant.schema_name != get_public_schema_name():
             
             # Check if tenant is active
-            if not tenant.is_active or tenant.status != Tenant.SubscriptionStatus.ACTIVE:
+            if not tenant.is_active or tenant.status not in [Tenant.SubscriptionStatus.ACTIVE, Tenant.SubscriptionStatus.TRIAL]:
                 message = "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة."
                 if tenant.status == Tenant.SubscriptionStatus.PENDING:
                     message = "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً."

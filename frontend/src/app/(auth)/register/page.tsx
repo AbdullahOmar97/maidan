@@ -297,7 +297,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-black text-muted-foreground uppercase tracking-widest px-1">رابط الأكاديمية (Slug)</label>
-                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-4 sm:px-5 py-4 focus-within:border-primary/50 transition-all group overflow-hidden">
+                  <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-4 sm:px-5 py-4 focus-within:border-primary/50 transition-all group overflow-hidden" dir="ltr">
                     <input
                       type="text"
                       name="slug"
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                       value={formData.slug}
                       onChange={handleChange}
                       placeholder="elite-academy"
-                      className="flex-1 min-w-0 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-base sm:text-lg text-right"
+                      className="flex-1 min-w-0 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-base sm:text-lg text-left"
                     />
                     <span className="text-xs sm:text-sm font-black text-muted-foreground whitespace-nowrap shrink-0 select-none ps-3 ms-3 border-s border-white/10" dir="ltr">
                       .{mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "maidan.app")}
@@ -320,7 +320,7 @@ export default function RegisterPage() {
           <div className="space-y-8">
             <h2 className="text-base font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
               <Sparkles className="w-5 h-5" />
-              اختر باقة الاشتراك
+              اختر باقة الاشتراك (مع 14 يوم فترة تجريبية مجانية)
             </h2>
 
             <div className="space-y-4">

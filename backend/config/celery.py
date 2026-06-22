@@ -38,6 +38,11 @@ app.conf.beat_schedule = {
         "task": "apps.belts.tasks.check_all_promotion_eligibility",
         "schedule": crontab(day_of_week=1, hour=10, minute=0),
     },
+    # Tenants: Check expired trials daily at 1am
+    "check-expired-trials": {
+        "task": "apps.tenants.tasks.check_expired_trials",
+        "schedule": crontab(hour=1, minute=0),
+    },
 }
 
 app.conf.task_routes = {

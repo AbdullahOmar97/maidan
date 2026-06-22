@@ -24,18 +24,26 @@ class TenantSerializer(serializers.ModelSerializer):
     active_students_count = serializers.SerializerMethodField()
     active_locations_count = serializers.SerializerMethodField()
     active_staff_count = serializers.SerializerMethodField()
+    trial_days_remaining = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenant
         fields = [
             "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
-            "is_active", "plan", "on_trial", "trial_ends_at",
+            "is_active", "status", "plan", "on_trial", "trial_ends_at", "trial_days_remaining",
             "logo", "favicon", "default_language",
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input",
             "active_students_count", "active_locations_count", "active_staff_count"
         ]
         read_only_fields = ["id", "slug", "schema_name", "created_at"]
+
+    def get_trial_days_remaining(self, obj):
+        if obj.status == Tenant.SubscriptionStatus.TRIAL and obj.trial_ends_at:
+            from django.utils import timezone
+            delta = obj.trial_ends_at - timezone.now()
+            return max(0, delta.days)
+        return None
 
     def get_active_students_count(self, obj):
         from django_tenants.utils import schema_context

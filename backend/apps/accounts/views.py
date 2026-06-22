@@ -53,7 +53,7 @@ class LoginView(APIView):
                 tenant = Tenant.objects.filter(slug__iexact=subdomain).first()
 
         if tenant and tenant.schema_name != "public":
-            if not tenant.is_active or tenant.status != Tenant.SubscriptionStatus.ACTIVE:
+            if not tenant.is_active or tenant.status not in [Tenant.SubscriptionStatus.ACTIVE, Tenant.SubscriptionStatus.TRIAL]:
                 message = "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة."
                 if tenant.status == Tenant.SubscriptionStatus.PENDING:
                     message = "حسابك قيد المراجعة حالياً. سيتم تفعيله قريباً."

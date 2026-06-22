@@ -38,6 +38,38 @@ class TenantViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), CanUpdateTenantSettings()]
         return [permissions.IsAuthenticated(), IsPlatformAdmin()]
 
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    def public_info(self, request):
+        """Get public details of the current resolved tenant."""
+        tenant_attr = getattr(request, "tenant", None)
+        if not tenant_attr or tenant_attr.schema_name == get_public_schema_name():
+            return Response(
+                {"error": "لم يتم التعرف على النادي."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            with schema_context(get_public_schema_name()):
+                tenant = Tenant.objects.get(pk=tenant_attr.pk)
+                serializer = TenantSerializer(tenant, context={"request": request})
+                # Build custom representation with only public fields
+                data = {
+                    "name": tenant.name,
+                    "business_name": tenant.business_name,
+                    "slug": tenant.slug,
+                    "status": tenant.status,
+                    "on_trial": tenant.on_trial,
+                    "trial_ends_at": tenant.trial_ends_at,
+                    "trial_days_remaining": serializer.data.get("trial_days_remaining"),
+                    "logo": serializer.data.get("logo"),
+                    "favicon": serializer.data.get("favicon"),
+                }
+                return Response(data)
+        except Tenant.DoesNotExist:
+            return Response(
+                {"error": "سجل النادي غير موجود."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     @action(detail=False, methods=["get", "patch"])
     def me(self, request):
         """Get or update current tenant settings."""

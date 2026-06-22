@@ -67,6 +67,7 @@ class Tenant(TenantMixin):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
         EXPIRED = "expired", "Expired"
+        TRIAL = "trial", "Trial Period"
 
     status = models.CharField(
         max_length=20, 
@@ -98,11 +99,26 @@ class Tenant(TenantMixin):
     # Required by django-tenants
     auto_create_schema = True
 
+    def save(self, *args, **kwargs):
+        if self.status == self.SubscriptionStatus.TRIAL:
+            self.on_trial = True
+            self.is_active = True
+            if not self.trial_ends_at:
+                from django.utils import timezone
+                from datetime import timedelta
+                self.trial_ends_at = timezone.now() + timedelta(days=14)
+        elif self.status == self.SubscriptionStatus.ACTIVE:
+            self.on_trial = False
+            self.trial_ends_at = None
+
+        super().save(*args, **kwargs)
+
     class Meta:
         app_label = "tenants"
 
     def __str__(self):
         return f"{self.name} ({self.schema_name})"
+
 
 
 class Domain(DomainMixin):
