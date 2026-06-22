@@ -26,6 +26,8 @@ function LoginContent() {
   const [isTenantLogin, setIsTenantLogin] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [trialInfo, setTrialInfo] = useState<{ isTrial: boolean; daysRemaining: number | null } | null>(null);
+  const [tenantName, setTenantName] = useState<string>("");
+  const [tenantStatus, setTenantStatus] = useState<string>("");
 
   const prefilledEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
 
@@ -53,6 +55,8 @@ function LoginContent() {
         }
       } else if (res.ok) {
         const data = await res.json();
+        setTenantName(data.business_name || data.name || "");
+        setTenantStatus(data.status || "");
         if (data.status === "trial" || data.on_trial) {
           setTrialInfo({
             isTrial: true,
@@ -209,9 +213,23 @@ function LoginContent() {
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
 
           <div className="relative z-10">
-            <h2 className="text-2xl font-black text-white text-center mb-8 tracking-tight">
-              {isTenantLogin ? "تسجيل الدخول" : "الدخول إلى النادي"}
-            </h2>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                {isTenantLogin && tenantName ? `تسجيل الدخول إلى ${tenantName}` : "الدخول إلى النادي"}
+              </h2>
+              {isTenantLogin && tenantStatus && (
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                    tenantStatus === "trial"
+                      ? "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                      : "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                  )}>
+                    {tenantStatus === "trial" ? "فترة تجريبية" : "اشتراك نشط"}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {trialInfo && trialInfo.isTrial && (
               <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-center animate-in fade-in slide-in-from-top-2 duration-500">
@@ -237,7 +255,7 @@ function LoginContent() {
                     autoComplete="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                    className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold text-white placeholder:text-muted-foreground/30"
                     placeholder="name@example.com"
 
                   />
@@ -262,7 +280,7 @@ function LoginContent() {
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 pe-12"
+                      className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold text-white placeholder:text-muted-foreground/30 pe-12"
                       placeholder="••••••••"
 
                     />

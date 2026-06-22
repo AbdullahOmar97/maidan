@@ -183,7 +183,7 @@ export default function DashboardPage() {
              </div>
           </div>
           <Link
-             href="/dashboard/billing"
+             href="/dashboard/settings?tab=billing"
              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
           >
              اشترك الآن

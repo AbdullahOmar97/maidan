@@ -305,7 +305,7 @@ export default function RegisterPage() {
                       value={formData.slug}
                       onChange={handleChange}
                       placeholder="elite-academy"
-                      className="flex-1 min-w-0 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-base sm:text-lg text-left"
+                      className="flex-1 min-w-0 bg-transparent border-none p-0 text-white focus:outline-none focus:ring-0 font-mono text-base sm:text-lg text-right"
                     />
                     <span className="text-xs sm:text-sm font-black text-muted-foreground whitespace-nowrap shrink-0 select-none ps-3 ms-3 border-s border-white/10" dir="ltr">
                       .{mounted ? window.location.hostname : (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || "maidan.app")}

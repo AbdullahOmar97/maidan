@@ -81,6 +81,16 @@ export default function SettingsPage() {
   const canEditAcademy = perms.canManageAcademy;
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
@@ -692,9 +702,20 @@ export default function SettingsPage() {
                         
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                           <div className="space-y-2">
-                            <span className="px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">الباقة الحالية النشطة</span>
+                            <span className={cn(
+                              "px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                              tenantFullData.status === "trial"
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                : "bg-primary/10 border-primary/20 text-primary"
+                            )}>
+                              {tenantFullData.status === "trial" ? "الباقة المختارة (قيد التجربة)" : "الباقة الحالية النشطة"}
+                            </span>
                             <h3 className="text-2xl font-black mt-2 text-white">{currentPlan?.name || "الباقة الافتراضية"}</h3>
-                            <p className="text-sm text-muted-foreground max-w-xl">{currentPlan?.description || "باقة مخصصة لإدارة الأندية والأكاديميات بكفاءة."}</p>
+                            <p className="text-sm text-muted-foreground max-w-xl">
+                              {tenantFullData.status === "trial"
+                                ? "لقد قمت باختيار هذه الباقة عند التسجيل. حسابك حالياً في الفترة التجريبية ولم يتم تفعيل الاشتراك المدفوع بعد."
+                                : (currentPlan?.description || "باقة مخصصة لإدارة الأندية والأكاديميات بكفاءة.")}
+                            </p>
                           </div>
 
                           <div className="text-start md:text-end shrink-0">
@@ -879,7 +900,7 @@ export default function SettingsPage() {
                         <div className="pt-6 mt-6 border-t border-white/5">
                           {isCurrent ? (
                             <button disabled className="w-full py-3 rounded-xl bg-white/5 border border-white/5 text-muted-foreground text-xs font-black cursor-not-allowed">
-                              أنت مشترك في هذه الباقة
+                              {tenantFullData?.status === "trial" ? "الباقة المختارة (قيد التجربة)" : "أنت مشترك في هذه الباقة"}
                             </button>
                           ) : (
                             <button
