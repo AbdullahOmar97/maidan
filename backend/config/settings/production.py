@@ -37,6 +37,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # S3 for media files in production — controlled by USE_S3 env var
 if env.bool("USE_S3", default=False):
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+else:
+    MEDIA_URL = "/media/"
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
