@@ -29,7 +29,7 @@ class TenantViewSet(viewsets.ModelViewSet):
     serializer_class = TenantSerializer
     
     def get_permissions(self):
-        if self.action == "register":
+        if self.action in ["register", "public_info"]:
             return [permissions.AllowAny()]
         if self.action == "me":
             from shared.permissions import IsStaff, CanUpdateTenantSettings

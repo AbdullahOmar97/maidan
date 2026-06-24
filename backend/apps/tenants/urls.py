@@ -10,6 +10,7 @@ router.register(r"subscription-requests", SubscriptionChangeRequestViewSet, base
 
 urlpatterns = [
     path("me/", TenantViewSet.as_view({"get": "me", "patch": "me"})),
+    path("public-info/", TenantViewSet.as_view({"get": "public_info"}), name="tenant-public-info"),
     path("", include(router.urls)),
 ]
 
