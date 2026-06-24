@@ -224,7 +224,7 @@ function LoginContent() {
           <div className="relative z-10">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-white tracking-tight">
-                {isTenantLogin && tenantLogo && tenantName ? `تسجيل الدخول إلى ${tenantName}` : "الدخول إلى النادي"}
+                {isTenantLogin && tenantLogo && tenantName ? "تسجيل الدخول" : "الدخول إلى النادي"}
               </h2>
               {isTenantLogin && tenantStatus && (
                 <div className="mt-3 flex items-center justify-center gap-2">
