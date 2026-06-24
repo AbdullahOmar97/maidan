@@ -194,8 +194,8 @@ function LoginContent() {
             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
             <div className="relative w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-105 transition-all duration-500 overflow-hidden bg-white">
               <img
-                src={tenantLogo || "/logo.png"}
-                alt={tenantName ? `${tenantName} Logo` : "MAIDAN Logo"}
+                src={isTenantLogin && tenantLogo ? tenantLogo : "/logo.png"}
+                alt={isTenantLogin && tenantLogo && tenantName ? `${tenantName} Logo` : "MAIDAN Logo"}
                 className="w-full h-full object-contain p-1"
                 onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
               />
@@ -205,12 +205,12 @@ function LoginContent() {
             </div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
-            {isTenantLogin && tenantName ? tenantName : "MAIDAN"}
+            {isTenantLogin && tenantLogo && tenantName ? tenantName : "MAIDAN"}
           </h1>
           <div className="flex items-center justify-center gap-2">
             <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/20" />
             <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">
-              {isTenantLogin && tenantName ? "بوابة الدخول الآمنة" : "نظام إدارة الدوجو المتكامل"}
+              {isTenantLogin && tenantLogo && tenantName ? "بوابة الدخول الآمنة" : "نظام إدارة الدوجو المتكامل"}
             </p>
             <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/20" />
           </div>
@@ -224,7 +224,7 @@ function LoginContent() {
           <div className="relative z-10">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-white tracking-tight">
-                {isTenantLogin && tenantName ? `تسجيل الدخول إلى ${tenantName}` : "الدخول إلى النادي"}
+                {isTenantLogin && tenantLogo && tenantName ? `تسجيل الدخول إلى ${tenantName}` : "الدخول إلى النادي"}
               </h2>
               {isTenantLogin && tenantStatus && (
                 <div className="mt-3 flex items-center justify-center gap-2">
