@@ -41,6 +41,9 @@ RUN pip install -r requirements/production.txt
 
 COPY . .
 
+# Create directories for media and static files
+RUN mkdir -p /app/media /app/staticfiles
+
 # Create non-root user
 RUN addgroup --system django && adduser --system --ingroup django django
 RUN chown -R django:django /app
