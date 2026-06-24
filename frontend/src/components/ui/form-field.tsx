@@ -8,11 +8,12 @@ interface FormFieldProps {
   label: string;
   required?: boolean;
   hint?: string;
+  error?: string;
   children: ReactNode;
   className?: string;
 }
 
-export function FormField({ label, required, hint, children, className }: FormFieldProps) {
+export function FormField({ label, required, hint, error, children, className }: FormFieldProps) {
   return (
     <div className={cn("space-y-2", className)}>
       <label className="block text-xs font-bold text-muted-foreground/80 uppercase tracking-wider">
@@ -20,7 +21,8 @@ export function FormField({ label, required, hint, children, className }: FormFi
         {required && <span className="text-destructive ms-1">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[10px] font-bold text-muted-foreground/60">{hint}</p>}
+      {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
+      {hint && !error && <p className="text-[10px] font-bold text-muted-foreground/60">{hint}</p>}
     </div>
   );
 }

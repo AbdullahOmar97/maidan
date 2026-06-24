@@ -195,7 +195,7 @@ export default function LocationDetailPage() {
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
               <div className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-4 text-center min-w-[120px]">
-                <p className="text-2xl font-black text-white">{location.capacity || "—"}</p>
+                <p className="text-2xl font-black text-white">{location.capacity ? `${location.capacity} طالب` : "—"}</p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">السعة الاستيعابية</p>
               </div>
               <div className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-4 text-center min-w-[120px]">

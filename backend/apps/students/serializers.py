@@ -38,8 +38,7 @@ class LocationSerializer(serializers.ModelSerializer):
                                 {"non_field_errors": f"لقد تجاوزت الحد الأقصى لعدد الفروع النشطة المسموح به في باقتك الحالية ({plan.max_locations} فرع)."}
                             )
 
-                    
-                    # 2. Enforce sum of capacities across all branches does not exceed plan.max_students
+                    # 2. Enforce sum of capacities across all active branches does not exceed plan.max_students
                     from django.db.models import Sum
                     capacity_val = attrs.get("capacity")
                     if capacity_val is None:
@@ -48,17 +47,22 @@ class LocationSerializer(serializers.ModelSerializer):
                         else:
                             capacity_val = 50  # default capacity
 
-                    query = Location.objects.all()
-                    if self.instance and self.instance.pk:
-                        query = query.exclude(pk=self.instance.pk)
+                    is_active_after_save = attrs.get("is_active")
+                    if is_active_after_save is None:
+                        is_active_after_save = self.instance.is_active if self.instance else True
 
-                    other_branches_capacity = query.aggregate(total=Sum("capacity"))["total"] or 0
-                    total_capacity = other_branches_capacity + capacity_val
+                    if is_active_after_save:
+                        query = Location.objects.filter(is_active=True)
+                        if self.instance and self.instance.pk:
+                            query = query.exclude(pk=self.instance.pk)
 
-                    if total_capacity > plan.max_students:
-                        raise serializers.ValidationError(
-                            {"capacity": f"إجمالي الطاقة الاستيعابية لجميع الفروع ({total_capacity}) يتجاوز الحد الأقصى المسموح به في الباقة للطلاب ({plan.max_students} طالب). الطاقة الاستيعابية المتاحة للفروع الأخرى هي {other_branches_capacity}."}
-                        )
+                        other_branches_capacity = query.aggregate(total=Sum("capacity"))["total"] or 0
+                        total_capacity = other_branches_capacity + capacity_val
+
+                        if total_capacity > plan.max_students:
+                            raise serializers.ValidationError(
+                                {"capacity": f"إجمالي الطاقة الاستيعابية للفروع النشطة ({total_capacity} طالب) يتجاوز الحد الأقصى لعدد الطلاب المسموح به في باقتك الحالية ({plan.max_students} طالب). السعة المتاحة لباقي الفروع النشطة هي {other_branches_capacity} طالب."}
+                            )
         return attrs
 
 

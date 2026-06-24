@@ -57,6 +57,7 @@ export default function LocationsPage() {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [createForm, setCreateForm] = useState(initialFormState);
 
   const { data: locationsResponse, isLoading, isError, refetch } = useQuery<LocationsResponse | Location[]>({
@@ -82,6 +83,7 @@ export default function LocationsPage() {
   const createLocationMutation = useMutation({
     mutationFn: async (data: typeof initialFormState) => {
       setFormError("");
+      setFieldErrors({});
       const payload = {
         ...data,
         capacity: Number(data.capacity || 0),
@@ -92,15 +94,26 @@ export default function LocationsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["locations", "list"] });
       setCreateForm(initialFormState);
+      setFieldErrors({});
       setIsCreateOpen(false);
     },
     onError: (error: AxiosError<any>) => {
       const data = error.response?.data;
       if (data && typeof data === "object") {
-        if (data.detail) setFormError(data.detail);
-        else {
-          const firstError = Object.values(data)[0];
-          setFormError(Array.isArray(firstError) ? firstError[0] : "تعذر إنشاء الفرع.");
+        if (data.detail) {
+          setFormError(data.detail);
+        } else {
+          const errors: Record<string, string> = {};
+          Object.entries(data).forEach(([key, val]) => {
+            if (Array.isArray(val)) {
+              errors[key] = val[0];
+            } else if (typeof val === "string") {
+              errors[key] = val;
+            }
+          });
+          setFieldErrors(errors);
+          const firstError = Object.values(errors)[0];
+          setFormError(firstError || "تعذر إنشاء الفرع.");
         }
       } else {
         setFormError("تعذر إنشاء الفرع.");
@@ -111,6 +124,7 @@ export default function LocationsPage() {
   const updateLocationMutation = useMutation({
     mutationFn: async (location: Location) => {
       setFormError("");
+      setFieldErrors({});
       const { id, ...data } = location;
       const payload = {
         ...data,
@@ -121,14 +135,25 @@ export default function LocationsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["locations", "list"] });
       setEditingLocation(null);
+      setFieldErrors({});
     },
     onError: (error: AxiosError<any>) => {
       const data = error.response?.data;
       if (data && typeof data === "object") {
-        if (data.detail) setFormError(data.detail);
-        else {
-          const firstError = Object.values(data)[0];
-          setFormError(Array.isArray(firstError) ? firstError[0] : "تعذر تحديث الفرع.");
+        if (data.detail) {
+          setFormError(data.detail);
+        } else {
+          const errors: Record<string, string> = {};
+          Object.entries(data).forEach(([key, val]) => {
+            if (Array.isArray(val)) {
+              errors[key] = val[0];
+            } else if (typeof val === "string") {
+              errors[key] = val;
+            }
+          });
+          setFieldErrors(errors);
+          const firstError = Object.values(errors)[0];
+          setFormError(firstError || "تعذر تحديث الفرع.");
         }
       } else {
         setFormError("تعذر تحديث الفرع.");
@@ -232,9 +257,9 @@ export default function LocationsPage() {
                   <div className="mt-auto space-y-3 pt-4 border-t border-border/50">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-2">
-                        <Users className="w-4 h-4" /> السعة الاستيعابية
+                        <Users className="w-4 h-4" /> السعة الاستيعابية (الطلاب)
                       </span>
-                      <span className="font-medium">{location.capacity || "غير محدد"}</span>
+                      <span className="font-medium">{location.capacity ? `${location.capacity} طالب` : "غير محدد"}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-2">
@@ -303,13 +328,13 @@ export default function LocationsPage() {
         {/* Create/Edit Modal */}
         <Modal
           open={isCreateOpen || !!editingLocation}
-          onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); }}
+          onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); setFieldErrors({}); }}
           size="lg"
         >
           <ModalHeader
             icon={isCreateOpen ? <Plus className="w-5 h-5" /> : <Edit className="w-5 h-5" />}
             title={isCreateOpen ? "إضافة فرع جديد" : "تعديل بيانات الفرع"}
-            onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); }}
+            onClose={() => { setIsCreateOpen(false); setEditingLocation(null); setFormError(""); setFieldErrors({}); }}
           />
 
           <form onSubmit={isCreateOpen ? handleCreateSubmit : handleUpdateSubmit} className="flex flex-col flex-1 min-h-0">
@@ -317,7 +342,7 @@ export default function LocationsPage() {
               <ErrorBanner message={formError} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="اسم الفرع" required>
+                <FormField label="اسم الفرع" required error={fieldErrors.name}>
                   <Input
                     required
                     placeholder="اسم الفرع"
@@ -329,7 +354,7 @@ export default function LocationsPage() {
 
                   />
                 </FormField>
-                <FormField label="المدينة" required>
+                <FormField label="المدينة" required error={fieldErrors.city}>
                   <Input
                     required
                     placeholder="المدينة"
@@ -340,11 +365,16 @@ export default function LocationsPage() {
                     }}
                   />
                 </FormField>
-                <FormField label="السعة الاستيعابية" required>
+                <FormField 
+                  label="السعة الاستيعابية (عدد الطلاب)" 
+                  required 
+                  hint="الحد الأقصى لعدد الطلاب المسموح به في هذا الفرع"
+                  error={fieldErrors.capacity}
+                >
                   <Input
                     required
                     type="number"
-                    placeholder="السعة"
+                    placeholder="السعة (عدد الطلاب)"
                     value={isCreateOpen ? createForm.capacity : editingLocation?.capacity ?? ""}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, capacity: e.target.value }));
@@ -352,7 +382,7 @@ export default function LocationsPage() {
                     }}
                   />
                 </FormField>
-                <FormField label="رقم الهاتف">
+                <FormField label="رقم الهاتف" error={fieldErrors.phone}>
                   <Input
                     placeholder="05xxxxxxx"
                     value={isCreateOpen ? createForm.phone : editingLocation?.phone ?? ""}
@@ -363,7 +393,7 @@ export default function LocationsPage() {
 
                   />
                 </FormField>
-                <FormField label="البريد الإلكتروني">
+                <FormField label="البريد الإلكتروني" error={fieldErrors.email}>
                   <Input
                     type="email"
                     placeholder="branch@example.com"
@@ -375,7 +405,7 @@ export default function LocationsPage() {
 
                   />
                 </FormField>
-                <FormField label="الدولة">
+                <FormField label="الدولة" error={fieldErrors.country}>
                   <Select
                     value={isCreateOpen ? createForm.country : editingLocation?.country || "SA"}
                     onChange={(e) => {
@@ -394,7 +424,7 @@ export default function LocationsPage() {
                     <option value="EG">مصر</option>
                   </Select>
                 </FormField>
-                <FormField label="المنطقة الزمنية">
+                <FormField label="المنطقة الزمنية" error={fieldErrors.timezone}>
                   <Select
                     value={isCreateOpen ? createForm.timezone : editingLocation?.timezone || "Asia/Riyadh"}
                     onChange={(e) => {
@@ -411,7 +441,7 @@ export default function LocationsPage() {
                     <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
                   </Select>
                 </FormField>
-                <FormField label="المدير المسئول">
+                <FormField label="المدير المسئول" error={fieldErrors.manager_id}>
                   <Select
                     value={isCreateOpen ? createForm.manager_id : editingLocation?.manager_id ?? ""}
                     onChange={(e) => {
