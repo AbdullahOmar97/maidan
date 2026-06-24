@@ -83,7 +83,6 @@ class Tenant(TenantMixin):
 
     # Branding
     logo = models.ImageField(upload_to="tenant_logos/", null=True, blank=True)
-    favicon = models.ImageField(upload_to="tenant_favicons/", null=True, blank=True)
 
     # Locale settings
     default_language = models.CharField(max_length=5, default="ar")
@@ -276,11 +275,5 @@ def delete_old_tenant_images(sender, instance, **kwargs):
     if old_instance.logo and instance.logo != old_instance.logo:
         try:
             old_instance.logo.delete(save=False)
-        except OSError:
-            pass
-
-    if old_instance.favicon and instance.favicon != old_instance.favicon:
-        try:
-            old_instance.favicon.delete(save=False)
         except OSError:
             pass
