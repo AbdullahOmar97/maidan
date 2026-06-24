@@ -34,9 +34,9 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# S3 for media files in production
-USE_S3 = True
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+# S3 for media files in production — controlled by USE_S3 env var
+if env.bool("USE_S3", default=False):
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")

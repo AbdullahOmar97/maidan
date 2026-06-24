@@ -53,6 +53,7 @@ services:
       POSTGRES_HOST: db
     volumes:
       - static_files:/app/staticfiles
+      - media_files:/app/media
     depends_on:
       db:
         condition: service_healthy
@@ -145,6 +146,7 @@ services:
       - certbot_conf:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
       - static_files:/var/www/static:ro
+      - media_files:/var/www/media:ro
     ports:
       - "80:80"
       - "443:443"
@@ -168,6 +170,7 @@ volumes:
   postgres_data:
   redis_data:
   static_files:
+  media_files:
   minio_data:
   certbot_conf:
   certbot_www:
