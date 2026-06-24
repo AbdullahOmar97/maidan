@@ -161,11 +161,11 @@ export default function RegisterPage() {
         <h1 className="text-5xl font-black text-white mb-4 tracking-tight">تم استلام طلبك بنجاح!</h1>
         <div className="max-w-2xl space-y-6">
           <p className="text-2xl text-muted-foreground leading-relaxed">
-            شكراً لتسجيل أكاديميتك ({formData.academy_name}).
+            شكراً لتسجيل أكاديميتك (<bdi className="text-white font-black">{formData.academy_name}</bdi>).
             حسابك الآن <strong>قيد المراجعة</strong> من قبل فريق الإدارة.
           </p>
 
-          <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-end space-y-4">
+          <div className="glass-card p-8 border-amber-500/30 bg-amber-500/5 text-end space-y-4" dir="rtl">
             <h3 className="text-xl font-black text-white flex items-center gap-3">
               <Shield className="w-6 h-6 text-amber-500" />
               ماذا سيحدث الآن؟
@@ -177,7 +177,7 @@ export default function RegisterPage() {
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">2</div>
-                <span>ستصلك رسالة تأكيد على البريد الإلكتروني ({formData.email}) بمجرد التفعيل.</span>
+                <span>ستصلك رسالة تأكيد على البريد الإلكتروني (<bdi className="text-amber-500 font-mono font-medium">{formData.email}</bdi>) بمجرد التفعيل.</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">3</div>
