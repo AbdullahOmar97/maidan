@@ -41,7 +41,7 @@ apiClient.interceptors.request.use(async (config) => {
   if (!config.skipAuth) {
     const session = await getSession();
     if (session) {
-      const token = (session as Record<string, unknown>).accessToken as string;
+      const token = (session as unknown as Record<string, unknown>).accessToken as string;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -102,33 +102,11 @@ export const api = {
     me: () => apiClient.get("/academy/me/"),
     updateMe: (data: unknown) => {
       const isFormData = data instanceof FormData;
-      // Default axios instance sets Content-Type: application/json. For FormData we must
-      // not send that header so the client can set multipart/form-data with a boundary.
-      return apiClient.patch(
-        "/academy/me/",
-        data,
-        isFormData
-          ? {
-              transformRequest: [
-                (body, headers) => {
-                  if (body instanceof FormData && headers) {
-                    const h = headers as Record<string, unknown> & {
-                      delete?: (k: string) => void;
-                    };
-                    if (typeof h.delete === "function") {
-                      h.delete("Content-Type");
-                      h.delete("content-type");
-                    } else {
-                      delete h["Content-Type"];
-                      delete h["content-type"];
-                    }
-                  }
-                  return body;
-                },
-              ],
-            }
-          : {}
-      );
+      // For FormData, we must NOT send Content-Type: application/json so the
+      // browser can set multipart/form-data with the correct boundary automatically.
+      return apiClient.patch("/academy/me/", data, {
+        headers: isFormData ? { "Content-Type": undefined } : {},
+      });
     },
     transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
     subscriptionRequests: {
@@ -180,7 +158,7 @@ export const api = {
         apiClient.get(`/students/${studentId}/documents/`),
       create: (studentId: number, data: FormData) =>
         apiClient.post(`/students/${studentId}/documents/`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": undefined },
         }),
     },
   },

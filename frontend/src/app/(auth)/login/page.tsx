@@ -28,6 +28,7 @@ function LoginContent() {
   const [trialInfo, setTrialInfo] = useState<{ isTrial: boolean; daysRemaining: number | null } | null>(null);
   const [tenantName, setTenantName] = useState<string>("");
   const [tenantStatus, setTenantStatus] = useState<string>("");
+  const [tenantLogo, setTenantLogo] = useState<string>("");
 
   const prefilledEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
 
@@ -57,6 +58,7 @@ function LoginContent() {
         const data = await res.json();
         setTenantName(data.business_name || data.name || "");
         setTenantStatus(data.status || "");
+        if (data.logo) setTenantLogo(data.logo);
         if (data.status === "trial" || data.on_trial) {
           setTrialInfo({
             isTrial: true,
@@ -191,18 +193,25 @@ function LoginContent() {
           <div className="relative inline-flex mb-6">
             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:scale-[2] transition-transform duration-700 opacity-20" />
             <div className="relative w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-105 transition-all duration-500 overflow-hidden bg-white">
-              <img src="/logo.png" alt="MAIDAN Logo" className="w-full h-full object-cover" />
+              <img
+                src={tenantLogo || "/logo.png"}
+                alt={tenantName ? `${tenantName} Logo` : "MAIDAN Logo"}
+                className="w-full h-full object-contain p-1"
+                onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+              />
             </div>
             <div className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce">
               <Sparkles className="w-4 h-4 text-primary" />
             </div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
-            MAIDAN
+            {isTenantLogin && tenantName ? tenantName : "MAIDAN"}
           </h1>
           <div className="flex items-center justify-center gap-2">
             <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/20" />
-            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">نظام إدارة الدوجو المتكامل</p>
+            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">
+              {isTenantLogin && tenantName ? "بوابة الدخول الآمنة" : "نظام إدارة الدوجو المتكامل"}
+            </p>
             <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/20" />
           </div>
         </div>

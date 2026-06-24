@@ -69,13 +69,10 @@ export default function SettingsPage() {
 
   const [initialBranding, setInitialBranding] = useState({
     logoUrl: "",
-    faviconUrl: "",
   });
   const [branding, setBranding] = useState({
     logo: null as File | null,
-    favicon: null as File | null,
     logoUrl: "",
-    faviconUrl: "",
   });
   const profileNamesInvalid = !profile.first_name.trim() || !profile.last_name.trim();
   const canEditAcademy = perms.canManageAcademy;
@@ -132,11 +129,9 @@ export default function SettingsPage() {
 
           const brandingData = {
             logoUrl: tenantData.logo || "",
-            faviconUrl: tenantData.favicon || "",
           };
           setBranding({
             logo: null,
-            favicon: null,
             ...brandingData,
           });
           setInitialBranding(brandingData);
@@ -175,7 +170,7 @@ export default function SettingsPage() {
 
   const profileHasChanges = JSON.stringify(profile) !== JSON.stringify(initialProfile);
   const academyHasChanges = JSON.stringify(academy) !== JSON.stringify(initialAcademy);
-  const brandingHasChanges = !!branding.logo || !!branding.favicon;
+  const brandingHasChanges = !!branding.logo;
 
   const handleProfileSave = async () => {
     if (profileNamesInvalid) {
@@ -236,20 +231,15 @@ export default function SettingsPage() {
       if (branding.logo instanceof File) {
         formData.append("logo", branding.logo);
       }
-      if (branding.favicon instanceof File) {
-        formData.append("favicon", branding.favicon);
-      }
 
       const response = await api.tenants.updateMe(formData);
 
       if (response.data) {
         const newData = {
           logoUrl: response.data.logo || branding.logoUrl,
-          faviconUrl: response.data.favicon || branding.faviconUrl,
         };
         setBranding({
           logo: null,
-          favicon: null,
           ...newData,
         });
         setInitialBranding(newData);
@@ -497,7 +487,7 @@ export default function SettingsPage() {
               </div>
               <hr className="border-border/50" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+              <div className="grid grid-cols-1 gap-6 max-w-md">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">شعار النادي (Logo)</label>
                   <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
@@ -528,42 +518,6 @@ export default function SettingsPage() {
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setBranding({ ...branding, logo: e.target.files[0] });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">أيقونة المتصفح (Favicon)</label>
-                  <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
-                    {branding.favicon ? (
-                      <div className="flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
-                          <img src={URL.createObjectURL(branding.favicon)} alt="New Favicon" className="max-w-full max-h-full object-contain" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">{branding.favicon.name}</p>
-                      </div>
-                    ) : branding.faviconUrl ? (
-                      <div className="flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
-                          <img src={branding.faviconUrl} alt="Current Favicon" className="max-w-full max-h-full object-contain" />
-                        </div>
-                        <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الأيقونة</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
-                        <p className="text-sm text-muted-foreground">اضغط لرفع الأيقونة</p>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setBranding({ ...branding, favicon: e.target.files[0] });
                         }
                       }}
                     />

@@ -23,6 +23,10 @@ env = environ.Env()
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=["http://localhost", "http://127.0.0.1"],
+)
 
 # Multi-tenancy settings
 USE_X_FORWARDED_HOST = True
