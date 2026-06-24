@@ -4,7 +4,7 @@ from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from shared.permissions import IsPlatformAdmin, IsStaff, RoleChoices
+from shared.permissions import IsPlatformAdmin, IsStaff, RoleChoices, IsTenantOwnerOrManager
 from .models import Tenant, Plan, SubscriptionChangeRequest
 from .serializers import (
     PlanSerializer, 

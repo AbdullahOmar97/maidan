@@ -183,6 +183,10 @@ export default function RegisterPage() {
                 <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">3</div>
                 <span>بعد التفعيل، ستتمكن من الدخول إلى لوحة التحكم عبر الرابط الخاص بك.</span>
               </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">4</div>
+                <span>ستحصل على فترة تجريبية مجانية بالكامل لمدة 14 يوماً تبدأ فور تفعيل الحساب.</span>
+              </li>
             </ul>
           </div>
 
@@ -359,15 +363,15 @@ export default function RegisterPage() {
                   <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-white/[0.02] border border-white/5">
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">تكلفة الباقة</span>
                     <div className="text-start">
-                      {plan.price_yearly && parseFloat(plan.price_yearly) > 0 ? (
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-black text-primary"><bdi>{plan.price_yearly}</bdi></span>
-                          <span className="text-[10px] text-muted-foreground font-black uppercase">{plan.currency} / سنوي</span>
-                        </div>
-                      ) : plan.price_monthly && parseFloat(plan.price_monthly) > 0 ? (
+                      {plan.price_monthly && parseFloat(plan.price_monthly) > 0 ? (
                         <div className="flex items-baseline gap-1">
                           <span className="text-xl font-black text-primary"><bdi>{plan.price_monthly}</bdi></span>
                           <span className="text-[10px] text-muted-foreground font-black uppercase">{plan.currency} / شهري</span>
+                        </div>
+                      ) : plan.price_yearly && parseFloat(plan.price_yearly) > 0 ? (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-black text-primary"><bdi>{plan.price_yearly}</bdi></span>
+                          <span className="text-[10px] text-muted-foreground font-black uppercase">{plan.currency} / سنوي</span>
                         </div>
                       ) : (
                         <span className="text-sm font-black text-emerald-400">مجانًا</span>

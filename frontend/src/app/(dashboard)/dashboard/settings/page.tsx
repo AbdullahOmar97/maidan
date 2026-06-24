@@ -2,7 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
-import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users } from "lucide-react";
+import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
@@ -702,18 +702,24 @@ export default function SettingsPage() {
                         
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                           <div className="space-y-2">
-                            <span className={cn(
-                              "px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                              tenantFullData.status === "trial"
-                                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                                : "bg-primary/10 border-primary/20 text-primary"
-                            )}>
-                              {tenantFullData.status === "trial" ? "الباقة المختارة (قيد التجربة)" : "الباقة الحالية النشطة"}
-                            </span>
+                            {tenantFullData.status === "trial" ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-amber-500/10 border-amber-500/20 text-amber-400">
+                                  فترة تجريبية مجانية (14 يوماً)
+                                </span>
+                                <span className="px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-primary/10 border-primary/20 text-primary">
+                                  تفعيل تلقائي بعد التجربة
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-primary/10 border-primary/20 text-primary">
+                                الباقة الحالية النشطة
+                              </span>
+                            )}
                             <h3 className="text-2xl font-black mt-2 text-white">{currentPlan?.name || "الباقة الافتراضية"}</h3>
                             <p className="text-sm text-muted-foreground max-w-xl">
                               {tenantFullData.status === "trial"
-                                ? "لقد قمت باختيار هذه الباقة عند التسجيل. حسابك حالياً في الفترة التجريبية ولم يتم تفعيل الاشتراك المدفوع بعد."
+                                ? `أنت حالياً في الفترة التجريبية المجانية. سيتم تفعيل باقة "${currentPlan?.name || "الباقة المختارة"}" والفوترة تلقائياً بمجرد انتهاء فترة التجربة.`
                                 : (currentPlan?.description || "باقة مخصصة لإدارة الأندية والأكاديميات بكفاءة.")}
                             </p>
                           </div>
@@ -733,6 +739,29 @@ export default function SettingsPage() {
                             )}
                           </div>
                         </div>
+
+                        {tenantFullData.status === "trial" && (
+                          <div className="mt-6 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm font-bold">
+                            <div className="flex items-center gap-3">
+                              <Clock className="w-5 h-5 shrink-0 animate-pulse text-amber-500" />
+                              <div className="text-start">
+                                <p className="text-white font-black">الحساب في الفترة التجريبية</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">سيتم بدء اشتراكك الفعلي في باقة {currentPlan?.name || "الباقة المختارة"} فور انتهاء التجربة.</p>
+                              </div>
+                            </div>
+                            <div className="bg-amber-500/10 px-4 py-2 rounded-xl text-center border border-amber-500/25 min-w-[120px] shrink-0">
+                              <p className="text-[10px] uppercase font-black tracking-wider text-muted-foreground">المتبقي بالتجربة</p>
+                              <p className="text-lg font-black text-white">
+                                {tenantFullData.trial_days_remaining !== null && tenantFullData.trial_days_remaining !== undefined ? (
+                                  tenantFullData.trial_days_remaining === 0 ? "ينتهي اليوم" :
+                                  tenantFullData.trial_days_remaining === 1 ? "يوم واحد" :
+                                  tenantFullData.trial_days_remaining === 2 ? "يومان" :
+                                  `${tenantFullData.trial_days_remaining} يوم`
+                                ) : "بضعة أيام"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         {limitsExceeded && (
                           <div className="mt-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3 text-sm font-bold animate-pulse">
@@ -900,7 +929,7 @@ export default function SettingsPage() {
                         <div className="pt-6 mt-6 border-t border-white/5">
                           {isCurrent ? (
                             <button disabled className="w-full py-3 rounded-xl bg-white/5 border border-white/5 text-muted-foreground text-xs font-black cursor-not-allowed">
-                              {tenantFullData?.status === "trial" ? "الباقة المختارة (قيد التجربة)" : "أنت مشترك في هذه الباقة"}
+                              {tenantFullData?.status === "trial" ? "سيتم التفعيل تلقائياً بعد التجربة" : "أنت مشترك في هذه الباقة"}
                             </button>
                           ) : (
                             <button

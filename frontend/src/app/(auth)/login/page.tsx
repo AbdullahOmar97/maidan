@@ -337,19 +337,7 @@ function LoginContent() {
               </div>
             )}
 
-            {isTenantLogin && (
-              <div className="mt-10 pt-8 border-t border-white/5 space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group/demo hover:border-primary/30 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/demo:scale-110 transition-transform">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">حساب تجريبي للمعاينة</p>
-                    <p className="text-xs font-bold text-white truncate" >admin@dragons-dojo.sa / admin1234</p>
-                  </div>
-                </div>
-              </div>
-            )}
+
           </div>
 
           {/* Decorative Corner */}
