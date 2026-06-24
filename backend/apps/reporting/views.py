@@ -32,7 +32,7 @@ def _rpt_cache_key(*parts: str) -> str:
     return "maidan:rpt:" + ":".join([schema] + list(parts))
 
 
-def _compute_dashboard_kpi():
+def _compute_dashboard_kpi(tenant=None):
     today = timezone.now().date()
     start_of_month = today.replace(day=1)
     last_month_start = (start_of_month - timedelta(days=1)).replace(day=1)
@@ -90,7 +90,7 @@ def _compute_dashboard_kpi():
             "last_month": float(revenue_last_month),
             "change_pct": round(float(revenue_change), 1),
             "overdue": float(overdue_amount),
-            "currency": "SAR",
+            "currency": tenant.default_currency if tenant else "JOD",
         },
         "attendance": {
             "today": attendance_today,
@@ -111,7 +111,7 @@ class DashboardKPIView(APIView):
         cache_key = _rpt_cache_key("dashboard_kpi", timezone.now().date().isoformat())
         data = cache.get(cache_key)
         if data is None:
-            data = _compute_dashboard_kpi()
+            data = _compute_dashboard_kpi(tenant=request.tenant)
             cache.set(cache_key, data, TTL_DASHBOARD_KPI)
         return Response(data)
 

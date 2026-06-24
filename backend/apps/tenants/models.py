@@ -10,6 +10,20 @@ from django.conf import settings
 from django_tenants.models import DomainMixin, TenantMixin
 
 
+CURRENCY_CHOICES = (
+    ("JOD", "دينار أردني (JOD)"),
+    ("SAR", "ريال سعودي (SAR)"),
+    ("AED", "درهم إماراتي (AED)"),
+    ("KWD", "دينار كويتي (KWD)"),
+    ("BHD", "دينار بحريني (BHD)"),
+    ("OMR", "ريال عماني (OMR)"),
+    ("QAR", "ريال قطري (QAR)"),
+    ("EGP", "جنيه مصري (EGP)"),
+    ("USD", "دولار أمريكي (USD)"),
+)
+
+
+
 
 class Plan(models.Model):
     """SaaS subscription plan definition."""
@@ -27,7 +41,7 @@ class Plan(models.Model):
     # Pricing
     price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     price_yearly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField(max_length=3, default="JOD")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
 
     # Feature flags as JSON
     features = models.JSONField(
@@ -86,7 +100,7 @@ class Tenant(TenantMixin):
 
     # Locale settings
     default_language = models.CharField(max_length=5, default="ar")
-    default_currency = models.CharField(max_length=3, default="JOD")
+    default_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
     timezone = models.CharField(max_length=50, default="Asia/Amman")
     country = models.CharField(max_length=2, default="JO")
 

@@ -49,6 +49,13 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
       });
     } else {
       setFormData(DEFAULT_FORM);
+      if (isOpen) {
+        api.tenants.me().then((res: any) => {
+          if (res.data?.default_currency) {
+            setFormData((prev) => ({ ...prev, currency: res.data.default_currency }));
+          }
+        });
+      }
     }
   }, [plan, isOpen]);
 

@@ -408,6 +408,8 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         """Revenue summary for dashboard."""
         qs = self.get_queryset()
         today = timezone.now().date()
+        tenant = getattr(request, "tenant", None)
+        currency = tenant.default_currency if tenant else "JOD"
         return Response({
             "total_paid": qs.filter(status="paid").aggregate(s=Sum("total_amount"))["s"] or 0,
             "total_pending": qs.filter(status="pending").aggregate(s=Sum("total_amount"))["s"] or 0,
@@ -418,6 +420,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                 paid_at__month=today.month,
                 paid_at__year=today.year,
             ).aggregate(s=Sum("total_amount"))["s"] or 0,
+            "currency": currency,
         })
 
 

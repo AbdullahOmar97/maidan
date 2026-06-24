@@ -19,6 +19,7 @@ import type { Invoice, PaginatedResponse } from "@/types";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
+import { useTenant } from "@/lib/providers/tenant-provider";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -205,6 +206,8 @@ function EmptyState() {
 // Page
 // ---------------------------------------------------------------------------
 export default function BillingPage() {
+  const { tenant } = useTenant();
+  const tenantCurrency = tenant?.default_currency || "JOD";
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [markingId, setMarkingId] = useState<number | null>(null);
@@ -286,10 +289,10 @@ export default function BillingPage() {
 
         {/* Summary KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <StatsCard label="مدفوع هذا الشهر" value={summary?.paid_this_month ?? 0} icon={CheckCircle} color="emerald" isCurrency />
-          <StatsCard label="إجمالي معلق" value={summary?.total_pending ?? 0} icon={Clock} color="amber" isCurrency />
-          <StatsCard label="متأخر" value={summary?.total_overdue ?? 0} icon={AlertTriangle} color="red" badge={summary?.overdue_count} isCurrency />
-          <StatsCard label="إجمالي مدفوع" value={summary?.total_paid ?? 0} icon={TrendingUp} color="primary" isCurrency />
+          <StatsCard label="مدفوع هذا الشهر" value={summary?.paid_this_month ?? 0} icon={CheckCircle} color="emerald" isCurrency currency={summary?.currency || tenantCurrency} />
+          <StatsCard label="إجمالي معلق" value={summary?.total_pending ?? 0} icon={Clock} color="amber" isCurrency currency={summary?.currency || tenantCurrency} />
+          <StatsCard label="متأخر" value={summary?.total_overdue ?? 0} icon={AlertTriangle} color="red" badge={summary?.overdue_count} isCurrency currency={summary?.currency || tenantCurrency} />
+          <StatsCard label="إجمالي مدفوع" value={summary?.total_paid ?? 0} icon={TrendingUp} color="primary" isCurrency currency={summary?.currency || tenantCurrency} />
         </div>
 
         {/* Filter Toolbar */}

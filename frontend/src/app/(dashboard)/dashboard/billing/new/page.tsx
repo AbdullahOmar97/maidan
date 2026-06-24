@@ -47,8 +47,8 @@ function NewInvoiceContent() {
   // Fetch tenant default currency
   useEffect(() => {
     api.tenants.me().then((res: any) => {
-      if (res.data?.currency) {
-        setFormData((prev) => ({ ...prev, currency: res.data.currency }));
+      if (res.data?.default_currency) {
+        setFormData((prev) => ({ ...prev, currency: res.data.default_currency }));
       }
     });
   }, []);
@@ -321,8 +321,13 @@ function NewInvoiceContent() {
                     >
                       <option value="JOD">JOD - دينار أردني</option>
                       <option value="SAR">SAR - ريال سعودي</option>
-                      <option value="USD">USD - دولار أمريكي</option>
                       <option value="AED">AED - درهم إماراتي</option>
+                      <option value="KWD">KWD - دينار كويتي</option>
+                      <option value="BHD">BHD - دينار بحريني</option>
+                      <option value="OMR">OMR - ريال عماني</option>
+                      <option value="QAR">QAR - ريال قطري</option>
+                      <option value="EGP">EGP - جنيه مصري</option>
+                      <option value="USD">USD - دولار أمريكي</option>
                     </Select>
                   </InputWrapper>
 

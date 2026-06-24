@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, BarChart, Bar, Cell,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
+import { useTenant } from "@/lib/providers/tenant-provider";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
@@ -22,6 +23,9 @@ const TOOLTIP_STYLE = {
 } as const;
 
 export default function ReportingPage() {
+  const { tenant } = useTenant();
+  const currency = tenant?.default_currency || "JOD";
+
   const { data: retention } = useQuery({
     queryKey: ["reporting", "retention"],
     queryFn: () => api.dashboard.retention().then((r) => r.data),
@@ -106,7 +110,7 @@ export default function ReportingPage() {
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   cursor={{ stroke: "#dc2626", strokeWidth: 2, strokeDasharray: "5 5" }}
-                  formatter={(v: number) => [formatCurrency(v), "الإيراد"]}
+                  formatter={(v: number) => [formatCurrency(v, currency), "الإيراد"]}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={3} fill="url(#revGradReporting)" animationDuration={1500} />
               </AreaChart>

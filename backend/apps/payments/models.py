@@ -10,6 +10,7 @@ from django.db import models, transaction
 
 from apps.billing.models import Invoice
 from apps.students.models import Student
+from apps.tenants.models import CURRENCY_CHOICES
 from .providers.base import PaymentProvider, PaymentStatus
 
 
@@ -58,7 +59,7 @@ class Payment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="payments")
 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="SAR")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
 
     provider = models.CharField(max_length=20, choices=Provider.choices)
     provider_transaction_id = models.CharField(max_length=200, blank=True)

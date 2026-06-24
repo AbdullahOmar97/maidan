@@ -10,7 +10,8 @@ import {
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2
 } from "lucide-react";
-import { formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
+import { useTenant } from "@/lib/providers/tenant-provider";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
 export default function StudentDetailPage() {
+  const { tenant } = useTenant();
+  const currency = tenant?.default_currency || "JOD";
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -403,7 +406,7 @@ export default function StudentDetailPage() {
                       <div className="space-y-6">
                         <OverviewRow
                           label="الرصيد المستحق"
-                          value={`${outstandingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ر.س`}
+                          value={formatCurrency(outstandingBalance, currency)}
                           valueClass={outstandingBalance > 0 ? "text-red-400" : "text-emerald-400"}
                         />
                         <OverviewRow label="فواتير متأخرة" value={overdueCount.toString()} />
@@ -525,7 +528,7 @@ export default function StudentDetailPage() {
                                     {inv.plan_name || "—"}
                                   </td>
                                   <td className="px-6 py-5 text-muted-foreground text-sm font-medium text-start">{formatDate(inv.created_at)}</td>
-                                  <td className="px-6 py-5 font-black text-white text-sm text-start">{inv.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>
+                                  <td className="px-6 py-5 font-black text-white text-sm text-start">{formatCurrency(inv.total_amount, inv.currency)}</td>
                                   <td className="px-6 py-5 text-start">
                                     <span className={cn(
                                       "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border",

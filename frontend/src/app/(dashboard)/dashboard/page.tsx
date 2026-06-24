@@ -211,7 +211,7 @@ export default function DashboardPage() {
           loading={kpisLoading}
           label="إيرادات الشهر"
           value={formatCurrency(kpis?.revenue.this_month ?? 0, kpis?.revenue.currency ?? "SAR")}
-          subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2)}`}
+          subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2, kpis?.revenue.currency)}`}
           icon={CreditCard}
           color="emerald"
           trend={(kpis?.revenue.change_pct ?? 0) >= 0 ? "up" : "down"}

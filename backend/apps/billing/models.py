@@ -8,6 +8,7 @@ import uuid
 
 from django.db import models
 from apps.students.models import Student, Location
+from apps.tenants.models import CURRENCY_CHOICES
 
 
 class MembershipPlan(models.Model):
@@ -26,7 +27,7 @@ class MembershipPlan(models.Model):
 
     billing_cycle = models.CharField(max_length=20, choices=BillingCycle.choices, default=BillingCycle.MONTHLY)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="JOD")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
     setup_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.0)  # VAT 15% Saudi
 
@@ -123,7 +124,7 @@ class Invoice(models.Model):
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField(max_length=3, default="JOD")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     due_date = models.DateField()
