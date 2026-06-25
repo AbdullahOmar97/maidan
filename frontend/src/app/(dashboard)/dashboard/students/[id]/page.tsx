@@ -405,7 +405,10 @@ export default function StudentDetailPage() {
               ) : (
                 <div className="text-center py-4 border-2 border-dashed border-white/5 rounded-2xl">
                   <p className="text-xs font-bold text-muted-foreground mb-4">لم يتم تحديد مستوى</p>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-2 mx-auto">
+                  <button
+                    onClick={() => setIsPromoteDialogOpen(true)}
+                    className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-2 mx-auto"
+                  >
                     <Plus className="w-3 h-3" />
                     تعيين حزام
                   </button>
