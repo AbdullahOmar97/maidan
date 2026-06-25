@@ -115,7 +115,30 @@
     background-attachment: fixed;
   }
 
-  [dir="rtl"] body { @apply font-arabic; }
+  [dir="rtl"] body {
+    @apply font-arabic;
+    line-height: 1.625;
+  }
+
+  /* Optimize line-height for RTL layout text size classes to prevent Cairo vertical overlap */
+  [dir="rtl"] .text-xs { line-height: 1.125rem; }
+  [dir="rtl"] .text-sm { line-height: 1.375rem; }
+  [dir="rtl"] .text-base { line-height: 1.625rem; }
+  [dir="rtl"] .text-lg { line-height: 1.875rem; }
+  [dir="rtl"] .text-xl { line-height: 2.125rem; }
+  [dir="rtl"] .text-2xl { line-height: 2.375rem; }
+  [dir="rtl"] .text-3xl { line-height: 2.625rem; }
+  [dir="rtl"] .text-4xl { line-height: 3.25rem; }
+  [dir="rtl"] .text-5xl { line-height: 4rem; }
+  [dir="rtl"] .text-6xl { line-height: 4.75rem; }
+
+  /* Adjust line height for Tailwind leading utilities in RTL/Arabic */
+  [dir="rtl"] .leading-none { line-height: 1.35; }
+  [dir="rtl"] .leading-tight { line-height: 1.45; }
+  [dir="rtl"] .leading-snug { line-height: 1.55; }
+  [dir="rtl"] .leading-normal { line-height: 1.7; }
+  [dir="rtl"] .leading-relaxed { line-height: 1.9; }
+  [dir="rtl"] .leading-loose { line-height: 2.25; }
 
   /* Autofill override */
   input:-webkit-autofill,

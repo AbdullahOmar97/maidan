@@ -5,6 +5,7 @@ import { Sidebar, MobileSidebarContent } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/topbar";
 import { DashboardFooter } from "@/components/dashboard/footer";
 import { Drawer } from "@/components/ui/drawer";
+import { useSession } from "next-auth/react";
 import type { Session } from "next-auth";
 
 interface DashboardShellProps {
@@ -19,6 +20,9 @@ interface DashboardShellProps {
  */
 export function DashboardShell({ session, children }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: clientSession } = useSession();
+
+  const user = clientSession?.user || session.user;
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden relative">
@@ -38,13 +42,13 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
 
       {/* ── Desktop Sidebar ── */}
       <div className="relative z-20 shrink-0">
-        <Sidebar user={session.user} />
+        <Sidebar user={user} />
       </div>
 
       {/* ── Mobile Drawer ── */}
       <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)}>
         <MobileSidebarContent
-          user={session.user}
+          user={user}
           onClose={() => setMobileOpen(false)}
         />
       </Drawer>
@@ -52,7 +56,7 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
       {/* ── Main Content ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <TopBar
-          user={session.user}
+          user={user}
           onMenuToggle={() => setMobileOpen(true)}
         />
         <main

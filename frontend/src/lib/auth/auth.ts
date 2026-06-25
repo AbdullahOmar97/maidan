@@ -126,7 +126,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.role = (user as any).role;
@@ -137,6 +137,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.last_name = (user as any).last_name;
         token.permissions = (user as any).permissions;
         token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
+      }
+
+      if (trigger === "update" && session) {
+        if (session.first_name !== undefined) token.first_name = session.first_name;
+        if (session.last_name !== undefined) token.last_name = session.last_name;
       }
 
       // Refresh token if expired — one in-flight refresh per refresh token (not process-global)

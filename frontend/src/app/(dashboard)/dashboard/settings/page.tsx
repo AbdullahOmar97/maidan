@@ -10,9 +10,11 @@ import { useTenant } from "@/lib/providers/tenant-provider";
 import { useSettingsPermissions } from "@/lib/hooks/use-permission";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/constants";
+import { useSession } from "next-auth/react";
 
 
 export default function SettingsPage() {
+  const { update: updateSession } = useSession();
   const { refreshTenant } = useTenant();
   const perms = useSettingsPermissions();
   const [activeTab, setActiveTab] = useState("profile");
@@ -184,6 +186,10 @@ export default function SettingsPage() {
         first_name: profile.first_name,
         last_name: profile.last_name,
         phone: profile.phone,
+      });
+      await updateSession({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
       });
       setInitialProfile({ ...profile });
       setSaveStatus(prev => ({ ...prev, profile: "success" }));
