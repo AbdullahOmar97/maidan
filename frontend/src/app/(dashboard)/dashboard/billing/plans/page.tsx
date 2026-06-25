@@ -6,19 +6,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import {
-  CreditCard, Plus, Edit2, Trash2, Loader2, Sparkles,
-  CheckCircle2, XCircle, ArrowRight
+  CreditCard, Plus, Edit2, Trash2, Loader2,
+  CheckCircle2
 } from "lucide-react";
 import type { MembershipPlan } from "@/types";
-import Link from "next/link";
 import MembershipPlanDialog from "@/components/dashboard/MembershipPlanDialog";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
 export default function PlansPage() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | undefined>(undefined);
+  const [planToDelete, setPlanToDelete] = useState<MembershipPlan | null>(null);
 
   const { data: plansData, isLoading } = useQuery({
     queryKey: ["billing", "plans"],
@@ -32,6 +33,7 @@ export default function PlansPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing", "plans"] });
       toast.success("تم حذف الباقة بنجاح");
+      setPlanToDelete(null);
     },
     onError: () => {
       toast.error("فشل حذف الباقة. قد تكون مرتبطة باشتراكات نشطة.");
@@ -48,36 +50,28 @@ export default function PlansPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("هل أنت متأكد من حذف هذه الباقة؟ لا يمكن التراجع عن هذا الإجراء.")) {
-      deleteMutation.mutate(id);
-    }
+  const handleDelete = (plan: MembershipPlan) => {
+    setPlanToDelete(plan);
   };
 
   return (
     <PermissionGuard permission="can_manage_billing">
-      <div className="space-y-10 pb-12">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard/billing"
-            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all"
+      <div className="space-y-8 pb-12">
+        <PageHeader
+          title="باقات الاشتراك"
+          description="إدارة خطط العضوية والاشتراكات المتاحة للطلاب في الأكاديمية."
+          icon={CreditCard}
+          backHref="/dashboard/billing"
+          backLabel="العودة للمالية"
+        >
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all"
           >
-            <ArrowRight className="w-5 h-5 rtl-flip" />
-          </Link>
-          <PageHeader
-            title="باقات الاشتراك"
-            description="إدارة خطط العضوية والاشتراكات المتاحة للطلاب في الأكاديمية."
-            icon={CreditCard}
-          >
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              باقة جديدة
-            </button>
-          </PageHeader>
-        </div>
+            <Plus className="w-4 h-4" />
+            باقة جديدة
+          </button>
+        </PageHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading ? (
@@ -215,7 +209,7 @@ export default function PlansPage() {
                       تعديل الباقة
                     </button>
                     <button
-                      onClick={() => handleDelete(plan.id)}
+                      onClick={() => handleDelete(plan)}
                       disabled={deleteMutation.isPending}
                       className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:bg-red-500 hover:text-white transition-all flex items-center justify-center active:scale-90"
                     >
@@ -233,6 +227,42 @@ export default function PlansPage() {
           onClose={() => setIsDialogOpen(false)}
           plan={editingPlan}
         />
+
+        {planToDelete && (
+          <Modal open={!!planToDelete} onClose={() => setPlanToDelete(null)} size="sm">
+            <ModalHeader
+              icon={<Trash2 className="w-5 h-5 text-red-500" />}
+              title="حذف باقة الاشتراك"
+              subtitle={planToDelete.name}
+              onClose={() => setPlanToDelete(null)}
+            />
+            <ModalBody className="space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed text-start">
+                هل أنت متأكد من رغبتك في حذف باقة الاشتراك هذه بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setPlanToDelete(null)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(planToDelete.id)}
+                  className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  تأكيد الحذف
+                </button>
+              </div>
+            </ModalFooter>
+          </Modal>
+        )}
       </div>
     </PermissionGuard>
   );

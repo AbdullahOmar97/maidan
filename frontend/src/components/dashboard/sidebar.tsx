@@ -143,7 +143,7 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
   const { tenant } = useTenant();
 
   return (
-    <div className="mt-auto relative z-10 space-y-2 p-4 pb-8 pb-safe">
+    <div className="mt-auto relative z-10 space-y-2 p-4 pb-safe mb-12">
       <Link
         href="/kiosk"
         target="_blank"

@@ -103,7 +103,7 @@ export default function NewStudentPage() {
               href="/dashboard/students"
               className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-90"
             >
-              <ArrowRight className="w-6 h-6 rtl-flip" />
+              <ArrowRight className="w-6 h-6" />
             </Link>
             <div>
               <div className="flex items-center gap-3">

@@ -2,7 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
-import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock } from "lucide-react";
+import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [requestReason, setRequestReason] = useState("");
   const [selectedNewPlan, setSelectedNewPlan] = useState<any>(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly" | "biennial">("monthly");
 
   const refreshRequests = async () => {
     try {
@@ -815,14 +816,82 @@ export default function SettingsPage() {
 
               {/* Plans Catalog Grid */}
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-black text-white">استعراض الباقات المتاحة</h3>
-                  <p className="text-sm text-muted-foreground mt-1">اختر الباقة المناسبة لاحتياجاتك واطلب الترقية فوراً.</p>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black text-white">استعراض الباقات المتاحة</h3>
+                    <p className="text-sm text-muted-foreground mt-1">اختر الباقة المناسبة لاحتياجاتك واطلب الترقية فوراً.</p>
+                  </div>
+
+                  {/* Selector Toggle */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-1 flex gap-1 items-center self-start lg:self-auto shrink-0 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("monthly")}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                        billingCycle === "monthly"
+                          ? "bg-primary text-white shadow-md shadow-primary/20"
+                          : "text-muted-foreground hover:text-white"
+                      )}
+                    >
+                      شهري
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("yearly")}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 relative overflow-hidden",
+                        billingCycle === "yearly"
+                          ? "bg-primary text-white shadow-md shadow-primary/20"
+                          : "text-muted-foreground hover:text-white"
+                      )}
+                    >
+                      <span>سنوي</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        وفر شهر (8.3%-)
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("biennial")}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                        billingCycle === "biennial"
+                          ? "bg-primary text-white shadow-md shadow-primary/20"
+                          : "text-muted-foreground hover:text-white"
+                      )}
+                    >
+                      <span>سنتين</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                        وفر شهرين (8.3%-)
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {plans.map(p => {
                     const isCurrent = tenantFullData && p.id === tenantFullData.plan;
+                    const monthly = parseFloat(p.price_monthly) || 0;
+                    const currency = p.currency || "SAR";
+                    
+                    let priceVal = monthly;
+                    let savingsVal = 0;
+                    let originalVal = 0;
+                    let monthlyEquivalent = monthly;
+
+                    if (billingCycle === "yearly") {
+                      originalVal = monthly * 12;
+                      priceVal = monthly * 11;
+                      savingsVal = monthly;
+                      monthlyEquivalent = priceVal / 12;
+                    } else if (billingCycle === "biennial") {
+                      originalVal = monthly * 24;
+                      priceVal = monthly * 22;
+                      savingsVal = monthly * 2;
+                      monthlyEquivalent = priceVal / 24;
+                    }
+
                     return (
                       <div key={p.id} className={cn(
                         "glass-card p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:scale-[1.02]",
@@ -850,21 +919,34 @@ export default function SettingsPage() {
                             </p>
                           </div>
 
-                          <div className="py-4 px-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 text-start">
-                            {p.price_yearly && parseFloat(p.price_yearly) > 0 ? (
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">التكلفة السنوية</span>
+                          <div className="py-4 px-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-2 text-start">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                {billingCycle === "monthly" ? "الاشتراك الشهري" : billingCycle === "yearly" ? "الاشتراك السنوي" : "الاشتراك لسنتين"}
+                              </span>
+                              <div className="flex flex-col items-end">
+                                {billingCycle !== "monthly" && originalVal > 0 && (
+                                  <span className="text-xs text-muted-foreground/60 line-through font-bold mb-0.5">
+                                    <bdi>{originalVal.toFixed(2)} {currency}</bdi>
+                                  </span>
+                                )}
                                 <div className="flex items-baseline gap-1">
-                                  <span className="text-xl font-black text-primary"><bdi>{p.price_yearly}</bdi></span>
-                                  <span className="text-[10px] text-muted-foreground font-black uppercase">{p.currency ?? "SAR"}</span>
+                                  <span className="text-2xl font-black text-primary"><bdi>{priceVal.toFixed(2)}</bdi></span>
+                                  <span className="text-[10px] text-muted-foreground font-black uppercase">{currency}</span>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">التكلفة الشهرية</span>
-                                <div className="flex items-baseline gap-1">
-                                  <span className="text-xl font-black text-primary"><bdi>{p.price_monthly}</bdi></span>
-                                  <span className="text-[10px] text-muted-foreground font-black uppercase">{p.currency ?? "SAR"}</span>
+                            </div>
+
+                            {billingCycle !== "monthly" && (
+                              <div className="pt-2 border-t border-white/5 flex flex-col gap-1 text-emerald-400 text-[10px] font-bold">
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-1 text-[10px]">
+                                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                    <span>ما يعادل {monthlyEquivalent.toFixed(2)} {currency}/شهر</span>
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black animate-pulse">
+                                    وفرت {savingsVal.toFixed(2)} {currency}!
+                                  </span>
                                 </div>
                               </div>
                             )}
@@ -980,17 +1062,40 @@ export default function SettingsPage() {
                       <h2 className="text-xl font-black text-white">طلب تغيير باقة الاشتراك</h2>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
-                      <p className="text-muted-foreground">الباقة المستهدفة: <strong className="text-white font-bold">{selectedNewPlan.name}</strong></p>
-                      <p className="text-muted-foreground">
-                        قيمة الاشتراك:{" "}
-                        {selectedNewPlan.price_yearly && parseFloat(selectedNewPlan.price_yearly) > 0 ? (
-                          <strong className="text-white font-bold">{selectedNewPlan.price_yearly} {selectedNewPlan.currency ?? "SAR"} سنوياً</strong>
-                        ) : (
-                          <strong className="text-white font-bold">{selectedNewPlan.price_monthly} {selectedNewPlan.currency ?? "SAR"} شهرياً</strong>
-                        )}
-                      </p>
-                    </div>
+                    {(() => {
+                      const monthly = parseFloat(selectedNewPlan.price_monthly) || 0;
+                      const currency = selectedNewPlan.currency || "SAR";
+                      let priceVal = monthly;
+                      let cycleTextText = "شهرياً";
+                      let savingsText = "";
+
+                      if (billingCycle === "yearly") {
+                        priceVal = monthly * 11;
+                        cycleTextText = "سنوياً (خصم 8.3% - وفرت شهر!)";
+                        savingsText = `توفير: وفرت ${monthly.toFixed(2)} ${currency} سنوياً!`;
+                      } else if (billingCycle === "biennial") {
+                        priceVal = monthly * 22;
+                        cycleTextText = "كل سنتين (خصم 8.3% - وفرت شهرين!)";
+                        savingsText = `توفير: وفرت ${(monthly * 2).toFixed(2)} ${currency} كل سنتين!`;
+                      }
+
+                      return (
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
+                          <p className="text-muted-foreground">الباقة المستهدفة: <strong className="text-white font-bold">{selectedNewPlan.name}</strong></p>
+                          <p className="text-muted-foreground">دورة الدفع المطلوبة: <strong className="text-white font-bold">{billingCycle === "monthly" ? "شهري" : billingCycle === "yearly" ? "سنوي" : "سنتين"}</strong></p>
+                          <p className="text-muted-foreground">
+                            قيمة الاشتراك المقدرة:{" "}
+                            <strong className="text-white font-bold">{priceVal.toFixed(2)} {currency} {cycleTextText}</strong>
+                          </p>
+                          {savingsText && (
+                            <p className="text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>{savingsText}</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div className="space-y-2 text-start">
                       <label className="text-sm font-bold text-white">سبب طلب تغيير الباقة (اختياري)</label>
@@ -1018,9 +1123,11 @@ export default function SettingsPage() {
                         onClick={async () => {
                           try {
                             setSubmittingPlanRequest(true);
+                            const cycleText = billingCycle === "monthly" ? "شهري" : billingCycle === "yearly" ? "سنوي (1 سنة)" : "سنتين (2 سنة)";
+                            const reasonPayload = `[دورة الدفع المطلوبة: ${cycleText}]\n${requestReason}`;
                             await api.tenants.subscriptionRequests.create({
                               new_plan: selectedNewPlan.id,
-                              reason: requestReason
+                              reason: reasonPayload
                             });
                             toast.success("تم إرسال طلب تغيير الباقة بنجاح ✓");
                             setShowPlanModal(false);

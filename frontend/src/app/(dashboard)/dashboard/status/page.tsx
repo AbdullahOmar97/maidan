@@ -94,7 +94,7 @@ function StatusContent() {
               className="flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl gradient-brand text-white font-black text-sm hover:scale-105 transition-all shadow-xl shadow-primary/20"
             >
               العودة للدخول
-              <ArrowRight className="w-5 h-5 rtl-flip" />
+              <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
         </div>

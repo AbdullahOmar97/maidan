@@ -82,7 +82,7 @@ export default function CreateTenantPage() {
           href="/dashboard/tenants"
           className="inline-flex items-center gap-2 text-xs font-black text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest mb-6"
         >
-          <ArrowRight className="w-4 h-4 rtl-flip" />
+          <ArrowRight className="w-4 h-4" />
           العودة للأكاديميات
         </Link>
         <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-4">
