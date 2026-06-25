@@ -111,7 +111,7 @@ export const api = {
     transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
     subscriptionRequests: {
       list: () => apiClient.get("/academy/subscription-requests/"),
-      create: (data: { new_plan: number; reason?: string }) => apiClient.post("/academy/subscription-requests/", data),
+      create: (data: { new_plan: number; billing_cycle?: string; reason?: string }) => apiClient.post("/academy/subscription-requests/", data),
     },
   },
 

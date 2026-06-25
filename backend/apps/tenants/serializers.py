@@ -194,16 +194,17 @@ class SubscriptionChangeRequestSerializer(serializers.ModelSerializer):
     old_plan_name = serializers.ReadOnlyField(source="old_plan.name")
     new_plan_name = serializers.ReadOnlyField(source="new_plan.name")
     requested_by_email = serializers.ReadOnlyField(source="requested_by.email")
+    calculated_price = serializers.ReadOnlyField()
 
     class Meta:
         model = SubscriptionChangeRequest
         fields = [
             "id", "tenant", "tenant_name", "old_plan", "old_plan_name", 
-            "new_plan", "new_plan_name", "status", "reason", 
-            "admin_notes", "requested_by", "requested_by_email",
-            "created_at", "updated_at"
+            "new_plan", "new_plan_name", "status", "billing_cycle", 
+            "calculated_price", "reason", "admin_notes", "requested_by", 
+            "requested_by_email", "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "tenant", "old_plan", "status", "admin_notes", "requested_by", "created_at", "updated_at"]
+        read_only_fields = ["id", "tenant", "old_plan", "status", "calculated_price", "admin_notes", "requested_by", "created_at", "updated_at"]
 
     def validate(self, attrs):
         request = self.context.get("request")

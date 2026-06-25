@@ -257,6 +257,12 @@ class SubscriptionChangeRequestViewSet(viewsets.ModelViewSet):
             tenant.plan = sub_request.new_plan
             tenant.save()
 
+            # Update subscription details if they exist
+            if hasattr(tenant, "subscription") and tenant.subscription:
+                tenant.subscription.plan = sub_request.new_plan
+                tenant.subscription.billing_cycle = sub_request.billing_cycle
+                tenant.subscription.save()
+
             # 2. Trigger auto-deactivation logic under tenant schema context
             from django_tenants.utils import schema_context
             from .utils import enforce_plan_downgrade_limits

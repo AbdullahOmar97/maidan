@@ -157,6 +157,7 @@ class TenantSubscription(models.Model):
     class BillingCycle(models.TextChoices):
         MONTHLY = "monthly", "Monthly"
         YEARLY = "yearly", "Yearly"
+        BIENNIAL = "biennial", "Biennial"
 
     tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name="subscription")
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT)
@@ -185,6 +186,17 @@ class TenantSubscription(models.Model):
     @property
     def is_active(self):
         return self.status in [self.Status.ACTIVE, self.Status.TRIALING]
+
+    @property
+    def subscription_price(self):
+        if not self.plan:
+            return 0
+        monthly = self.plan.price_monthly
+        if self.billing_cycle == self.BillingCycle.YEARLY:
+            return monthly * 11
+        elif self.billing_cycle == self.BillingCycle.BIENNIAL:
+            return monthly * 21
+        return monthly
 
 class GlobalDefaultBelt(models.Model):
     """Platform-wide default belts to be seeded into new tenants."""
@@ -251,6 +263,13 @@ class SubscriptionChangeRequest(models.Model):
     
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
+    billing_cycle = models.CharField(
+        max_length=20,
+        choices=TenantSubscription.BillingCycle.choices,
+        default=TenantSubscription.BillingCycle.MONTHLY,
+        help_text="دورة الفوترة المطلوبة"
+    )
+    
     reason = models.TextField(blank=True, help_text="السبب لطلب التغيير")
     admin_notes = models.TextField(blank=True, help_text="ملاحظات مسؤول المنصة")
     
@@ -271,6 +290,17 @@ class SubscriptionChangeRequest(models.Model):
 
     def __str__(self):
         return f"{self.tenant.name} request to {self.new_plan.name} ({self.status})"
+
+    @property
+    def calculated_price(self):
+        if not self.new_plan:
+            return 0
+        monthly = self.new_plan.price_monthly
+        if self.billing_cycle == TenantSubscription.BillingCycle.YEARLY:
+            return monthly * 11
+        elif self.billing_cycle == TenantSubscription.BillingCycle.BIENNIAL:
+            return monthly * 21
+        return monthly
 
 
 from django.db.models.signals import pre_save

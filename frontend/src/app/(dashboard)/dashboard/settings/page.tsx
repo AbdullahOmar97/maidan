@@ -863,7 +863,7 @@ export default function SettingsPage() {
                     >
                       <span>سنتين</span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
-                        وفر شهرين (8.3%-)
+                        وفر 3 أشهر (12.5%-)
                       </span>
                     </button>
                   </div>
@@ -887,8 +887,8 @@ export default function SettingsPage() {
                       monthlyEquivalent = priceVal / 12;
                     } else if (billingCycle === "biennial") {
                       originalVal = monthly * 24;
-                      priceVal = monthly * 22;
-                      savingsVal = monthly * 2;
+                      priceVal = monthly * 21;
+                      savingsVal = monthly * 3;
                       monthlyEquivalent = priceVal / 24;
                     }
 
@@ -1074,9 +1074,9 @@ export default function SettingsPage() {
                         cycleTextText = "سنوياً (خصم 8.3% - وفرت شهر!)";
                         savingsText = `توفير: وفرت ${monthly.toFixed(2)} ${currency} سنوياً!`;
                       } else if (billingCycle === "biennial") {
-                        priceVal = monthly * 22;
-                        cycleTextText = "كل سنتين (خصم 8.3% - وفرت شهرين!)";
-                        savingsText = `توفير: وفرت ${(monthly * 2).toFixed(2)} ${currency} كل سنتين!`;
+                        priceVal = monthly * 21;
+                        cycleTextText = "كل سنتين (خصم 12.5% - وفرت 3 أشهر!)";
+                        savingsText = `توفير: وفرت ${(monthly * 3).toFixed(2)} ${currency} كل سنتين!`;
                       }
 
                       return (
@@ -1127,6 +1127,7 @@ export default function SettingsPage() {
                             const reasonPayload = `[دورة الدفع المطلوبة: ${cycleText}]\n${requestReason}`;
                             await api.tenants.subscriptionRequests.create({
                               new_plan: selectedNewPlan.id,
+                              billing_cycle: billingCycle,
                               reason: reasonPayload
                             });
                             toast.success("تم إرسال طلب تغيير الباقة بنجاح ✓");
