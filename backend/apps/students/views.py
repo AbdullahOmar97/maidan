@@ -428,6 +428,7 @@ class StudentNoteViewSet(viewsets.ModelViewSet):
     """Student notes CRUD."""
     serializer_class = StudentNoteSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
+    pagination_class = None
 
     def get_queryset(self):
         student_id = self.kwargs.get("student_pk")
@@ -447,6 +448,7 @@ class StudentDocumentViewSet(viewsets.ModelViewSet):
     """Student documents CRUD."""
     serializer_class = StudentDocumentSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
+    pagination_class = None
 
     def get_queryset(self):
         return StudentDocument.objects.filter(student_id=self.kwargs.get("student_pk"))

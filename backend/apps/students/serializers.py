@@ -277,10 +277,23 @@ class StudentDetailSerializer(serializers.ModelSerializer):
 
 
 class StudentNoteSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentNote
-        fields = ["id", "student_id", "author_id", "note_type", "content", "is_private", "created_at"]
+        fields = ["id", "student_id", "author_id", "author_name", "note_type", "content", "is_private", "created_at"]
         read_only_fields = ["id", "author_id", "created_at"]
+
+    def get_author_name(self, obj):
+        if not obj.author_id:
+            return None
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            user = User.objects.only("first_name", "last_name").get(id=obj.author_id)
+            return user.get_full_name() or str(obj.author_id)
+        except User.DoesNotExist:
+            return str(obj.author_id)
 
 
 class StudentDocumentSerializer(serializers.ModelSerializer):

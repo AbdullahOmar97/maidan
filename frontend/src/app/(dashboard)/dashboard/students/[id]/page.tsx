@@ -131,13 +131,19 @@ export default function StudentDetailPage() {
 
   const { data: notes } = useQuery<StudentNote[]>({
     queryKey: ["student-notes", id],
-    queryFn: () => api.students.notes.list(studentId).then((res: { data: StudentNote[] }) => res.data),
+    queryFn: () =>
+      api.students.notes.list(studentId).then((res: { data: StudentNote[] | { results: StudentNote[] } }) =>
+        Array.isArray(res.data) ? res.data : res.data.results
+      ),
     enabled: !!student,
   });
 
   const { data: documents } = useQuery<StudentDocument[]>({
     queryKey: ["student-documents", id],
-    queryFn: () => api.students.documents.list(studentId).then((res: { data: StudentDocument[] }) => res.data),
+    queryFn: () =>
+      api.students.documents.list(studentId).then((res: { data: StudentDocument[] | { results: StudentDocument[] } }) =>
+        Array.isArray(res.data) ? res.data : res.data.results
+      ),
     enabled: !!student,
   });
 
@@ -149,7 +155,10 @@ export default function StudentDetailPage() {
 
   const { data: invoices } = useQuery<Invoice[]>({
     queryKey: ["student-invoices", id],
-    queryFn: () => api.billing.invoices.list({ student_id: studentId }).then((res: any) => res.data.results || res.data),
+    queryFn: () =>
+      api.billing.invoices.list({ student_id: studentId }).then((res: { data: Invoice[] | { results: Invoice[] } }) =>
+        Array.isArray(res.data) ? res.data : res.data.results
+      ),
     enabled: !!student,
   });
 
