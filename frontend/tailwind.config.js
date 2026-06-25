@@ -81,8 +81,8 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        arabic: ["var(--font-noto-arabic)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        arabic: ["var(--font-arabic)", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

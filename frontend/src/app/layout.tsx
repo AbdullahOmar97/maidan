@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Arabic } from "next/font/google";
+import { Inter, Cairo } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "@/lib/providers/query-provider";
 import { SessionProvider } from "@/lib/providers/session-provider";
@@ -8,15 +8,15 @@ import "@/styles/globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
   display: "swap",
 });
 
-const notoArabic = Noto_Sans_Arabic({
+const cairo = Cairo({
   subsets: ["arabic"],
-  variable: "--font-noto-arabic",
+  variable: "--font-arabic",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900", "1000"],
 });
 
 export const metadata: Metadata = {
@@ -45,7 +45,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${inter.variable} ${notoArabic.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${cairo.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
