@@ -99,12 +99,12 @@ export default function LocationsPage() {
     },
     onError: (error: AxiosError<any>) => {
       const data = error.response?.data;
-      if (data && typeof data === "object") {
-        if (data.detail) {
-          setFormError(data.detail);
-        } else {
+      const apiError = data?.error || data;
+      if (apiError && typeof apiError === "object") {
+        const errorDetail = apiError.detail || apiError;
+        if (errorDetail && typeof errorDetail === "object" && !Array.isArray(errorDetail)) {
           const errors: Record<string, string> = {};
-          Object.entries(data).forEach(([key, val]) => {
+          Object.entries(errorDetail).forEach(([key, val]) => {
             if (Array.isArray(val)) {
               errors[key] = val[0];
             } else if (typeof val === "string") {
@@ -114,6 +114,10 @@ export default function LocationsPage() {
           setFieldErrors(errors);
           const firstError = Object.values(errors)[0];
           setFormError(firstError || "تعذر إنشاء الفرع.");
+        } else if (typeof apiError.message === "string") {
+          setFormError(apiError.message);
+        } else {
+          setFormError("تعذر إنشاء الفرع.");
         }
       } else {
         setFormError("تعذر إنشاء الفرع.");
@@ -139,12 +143,12 @@ export default function LocationsPage() {
     },
     onError: (error: AxiosError<any>) => {
       const data = error.response?.data;
-      if (data && typeof data === "object") {
-        if (data.detail) {
-          setFormError(data.detail);
-        } else {
+      const apiError = data?.error || data;
+      if (apiError && typeof apiError === "object") {
+        const errorDetail = apiError.detail || apiError;
+        if (errorDetail && typeof errorDetail === "object" && !Array.isArray(errorDetail)) {
           const errors: Record<string, string> = {};
-          Object.entries(data).forEach(([key, val]) => {
+          Object.entries(errorDetail).forEach(([key, val]) => {
             if (Array.isArray(val)) {
               errors[key] = val[0];
             } else if (typeof val === "string") {
@@ -154,6 +158,10 @@ export default function LocationsPage() {
           setFieldErrors(errors);
           const firstError = Object.values(errors)[0];
           setFormError(firstError || "تعذر تحديث الفرع.");
+        } else if (typeof apiError.message === "string") {
+          setFormError(apiError.message);
+        } else {
+          setFormError("تعذر تحديث الفرع.");
         }
       } else {
         setFormError("تعذر تحديث الفرع.");
@@ -351,7 +359,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, name: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, name: e.target.value });
                     }}
-
+                    error={!!fieldErrors.name}
                   />
                 </FormField>
                 <FormField label="المدينة" required error={fieldErrors.city}>
@@ -363,6 +371,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, city: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, city: e.target.value });
                     }}
+                    error={!!fieldErrors.city}
                   />
                 </FormField>
                 <FormField 
@@ -380,6 +389,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, capacity: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, capacity: Number(e.target.value) });
                     }}
+                    error={!!fieldErrors.capacity}
                   />
                 </FormField>
                 <FormField label="رقم الهاتف" error={fieldErrors.phone}>
@@ -390,7 +400,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, phone: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, phone: e.target.value });
                     }}
-
+                    error={!!fieldErrors.phone}
                   />
                 </FormField>
                 <FormField label="البريد الإلكتروني" error={fieldErrors.email}>
@@ -402,7 +412,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, email: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, email: e.target.value });
                     }}
-
+                    error={!!fieldErrors.email}
                   />
                 </FormField>
                 <FormField label="الدولة" error={fieldErrors.country}>
@@ -412,6 +422,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, country: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, country: e.target.value });
                     }}
+                    error={!!fieldErrors.country}
                     className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="SA">المملكة العربية السعودية</option>
@@ -431,6 +442,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, timezone: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, timezone: e.target.value });
                     }}
+                    error={!!fieldErrors.timezone}
                     className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="Asia/Riyadh">Asia/Riyadh (GMT+3)</option>
@@ -448,6 +460,7 @@ export default function LocationsPage() {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, manager_id: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, manager_id: e.target.value });
                     }}
+                    error={!!fieldErrors.manager_id}
                     className="w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="">-- اختر مديراً --</option>
@@ -489,7 +502,7 @@ export default function LocationsPage() {
                 </div>
               </div>
 
-              <FormField label="العنوان بالتفصيل" required>
+              <FormField label="العنوان بالتفصيل" required error={fieldErrors.address}>
                 <Textarea
                   required
                   rows={3}
@@ -499,6 +512,7 @@ export default function LocationsPage() {
                     if (isCreateOpen) setCreateForm(prev => ({ ...prev, address: e.target.value }));
                     else if (editingLocation) setEditingLocation({ ...editingLocation, address: e.target.value });
                   }}
+                  error={!!fieldErrors.address}
                 />
               </FormField>
             </ModalBody>

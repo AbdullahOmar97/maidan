@@ -843,7 +843,7 @@ function ContactItem({ icon: Icon, label, value }: { icon: any, label: string, v
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
-        <p className="text-sm font-bold text-white truncate"><bdi>{value || "—"}</bdi></p>
+        <p className="text-sm font-bold text-white break-all"><bdi>{value || "—"}</bdi></p>
       </div>
     </div>
   );

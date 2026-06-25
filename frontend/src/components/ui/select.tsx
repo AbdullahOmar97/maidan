@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   /** Wrapper className – applies to the outer div */
   wrapperClassName?: string;
+  error?: boolean;
 }
 
 /**
@@ -15,7 +16,7 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
  * consistent focus / hover states.
  */
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, wrapperClassName, children, ...props }, ref) => {
+  ({ className, wrapperClassName, error, children, ...props }, ref) => {
     return (
       <div className={cn("relative group", wrapperClassName)}>
         <select
@@ -41,6 +42,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             "transition-all duration-300",
             // Option colors (browser-native fallback)
             "[&>option]:bg-[hsl(var(--card))] [&>option]:text-foreground",
+            error && "border-destructive/50 focus:border-destructive focus:ring-destructive/10",
             className
           )}
           {...props}

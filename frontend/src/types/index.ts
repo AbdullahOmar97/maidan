@@ -107,6 +107,7 @@ export interface Family {
 export interface Location {
   id: number;
   name: string;
+  name_ar?: string;
   city: string;
   country: string;
   phone: string;

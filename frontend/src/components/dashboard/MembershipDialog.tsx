@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { CreditCard, Calendar, FileText, Loader2, CheckCircle, Package } from "lucide-react";
+import { CreditCard, Calendar, FileText, Loader2, CheckCircle, Package, Settings } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { MembershipPlan } from "@/types";
 import { toast } from "sonner";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, Textarea } from "@/components/ui/form-field";
+import Link from "next/link";
 
 interface MembershipDialogProps {
   isOpen: boolean;
@@ -77,7 +78,20 @@ export default function MembershipDialog({
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
         <ModalBody className="space-y-4">
-          <FormField label="اختر الباقة" required>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-muted-foreground/80 uppercase tracking-wider">
+                اختر الباقة
+                <span className="text-destructive ms-1">*</span>
+              </label>
+              <Link
+                href="/dashboard/billing/plans"
+                className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 font-bold"
+              >
+                <Settings className="w-3 h-3" />
+                إدارة الباقات
+              </Link>
+            </div>
             <Select
               value={selectedPlanId}
               onChange={(e) => setSelectedPlanId(Number(e.target.value))}
@@ -91,7 +105,7 @@ export default function MembershipDialog({
                 </option>
               ))}
             </Select>
-          </FormField>
+          </div>
 
           {/* Plan summary card */}
           {selectedPlan && (

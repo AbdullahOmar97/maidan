@@ -39,21 +39,37 @@ const inputBase =
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   className?: string;
+  error?: boolean;
 };
 
-export function Input({ className, ...props }: InputProps) {
-  return <input className={cn(inputBase, className)} {...props} />;
+export function Input({ className, error, ...props }: InputProps) {
+  return (
+    <input
+      className={cn(
+        inputBase,
+        error && "border-destructive/50 focus:border-destructive focus:ring-destructive/10",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
 /* ── Textarea ──────────────────────────────────────────────────── */
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   className?: string;
+  error?: boolean;
 };
 
-export function Textarea({ className, ...props }: TextareaProps) {
+export function Textarea({ className, error, ...props }: TextareaProps) {
   return (
     <textarea
-      className={cn(inputBase, "resize-none leading-relaxed", className)}
+      className={cn(
+        inputBase,
+        "resize-none leading-relaxed",
+        error && "border-destructive/50 focus:border-destructive focus:ring-destructive/10",
+        className
+      )}
       {...props}
     />
   );

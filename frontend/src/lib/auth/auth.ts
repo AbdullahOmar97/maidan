@@ -1,4 +1,5 @@
-import NextAuth, { type JWT } from "next-auth";
+import NextAuth from "next-auth";
+import { type JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { isTenantHost } from "@/lib/auth/host";
