@@ -152,6 +152,8 @@ export const api = {
         apiClient.get(`/students/${studentId}/notes/`),
       create: (studentId: number, data: unknown) =>
         apiClient.post(`/students/${studentId}/notes/`, data),
+      delete: (studentId: number, id: number) =>
+        apiClient.delete(`/students/${studentId}/notes/${id}/`),
     },
     documents: {
       list: (studentId: number) =>
@@ -160,6 +162,8 @@ export const api = {
         apiClient.post(`/students/${studentId}/documents/`, data, {
           headers: { "Content-Type": undefined },
         }),
+      delete: (studentId: number, id: number) =>
+        apiClient.delete(`/students/${studentId}/documents/${id}/`),
     },
   },
 

@@ -8,7 +8,8 @@ import {
   CreditCard, ClipboardList, MessageSquare, Edit,
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
-  Trash2
+  Trash2, FileText, Eye, Shield, ShieldAlert, Search,
+  Filter, Clock
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -22,6 +23,8 @@ import MembershipDialog from "@/components/dashboard/MembershipDialog";
 import { EditStudentModal } from "@/components/dashboard/EditStudentModal";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import AddNoteDialog from "@/components/dashboard/AddNoteDialog";
+import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 
 export default function StudentDetailPage() {
   const { tenant } = useTenant();
@@ -37,6 +40,16 @@ export default function StudentDetailPage() {
   const [editData, setEditData] = useState<Student | null>(null);
   const [editError, setEditError] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Notes states
+  const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<StudentNote | null>(null);
+
+  // Documents states
+  const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<StudentDocument | null>(null);
+  const [docSearchQuery, setDocSearchQuery] = useState("");
+  const [docTypeFilter, setDocTypeFilter] = useState("all");
 
   const studentId = Number(id);
 
@@ -74,6 +87,30 @@ export default function StudentDetailPage() {
     onError: (err: any) => {
       console.error("Update student error:", err);
       setEditError(parseApiError(err, "حدث خطأ أثناء تحديث بيانات الطالب."));
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) => api.students.notes.delete(studentId, noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-notes", id] });
+      toast.success("تم حذف الملاحظة بنجاح");
+      setNoteToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(parseApiError(err, "حدث خطأ أثناء حذف الملاحظة."));
+    },
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: number) => api.students.documents.delete(studentId, docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-documents", id] });
+      toast.success("تم حذف الوثيقة بنجاح");
+      setDocToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(parseApiError(err, "حدث خطأ أثناء حذف الوثيقة."));
     },
   });
 
@@ -151,12 +188,71 @@ export default function StudentDetailPage() {
     );
   }
 
+  const DOCUMENT_TYPES: Record<string, string> = {
+    id: "هوية وطنية / إقامة",
+    passport: "جواز سفر",
+    medical: "تقرير طبي",
+    waiver: "إخلاء مسؤولية",
+    photo_consent: "موافقة تصوير",
+    other: "أخرى",
+  };
+
+  const getDocTypeBadgeClass = (type: string) => {
+    switch (type) {
+      case "id":
+      case "passport":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "medical":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "waiver":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      case "photo_consent":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      default:
+        return "bg-white/5 text-muted-foreground border-white/10";
+    }
+  };
+
+  const getExpiryStatus = (expiresAtStr: string | null) => {
+    if (!expiresAtStr) return null;
+    const expiryDate = new Date(expiresAtStr);
+    const now = new Date();
+    expiryDate.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    
+    if (expiryDate < now) {
+      return {
+        status: "expired",
+        label: "منتهية الصلاحية",
+        badgeClass: "bg-red-500/15 text-red-400 border-red-500/30 animate-pulse",
+      };
+    }
+    
+    const diffTime = expiryDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 30) {
+      return {
+        status: "expiring_soon",
+        label: `تنتهي خلال ${diffDays} يوم`,
+        badgeClass: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+      };
+    }
+    
+    return {
+      status: "valid",
+      label: `صالحة حتى: ${formatDate(expiresAtStr)}`,
+      badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    };
+  };
+
   const tabs = [
     { id: "overview", label: "نظرة عامة", icon: User },
     { id: "membership", label: "الاشتراكات", icon: CreditCard },
     { id: "attendance", label: "الحضور", icon: Calendar },
     { id: "belts", label: "الأحزمة", icon: Award },
     { id: "notes", label: "الملاحظات", icon: ClipboardList },
+    { id: "documents", label: "الوثائق", icon: FileText },
   ];
 
   return (
@@ -358,9 +454,6 @@ export default function StudentDetailPage() {
                   >
                     <Icon className={cn("w-4 h-4", isActive ? "scale-110" : "opacity-50")} />
                     <span className="hidden sm:inline">{tab.label}</span>
-                    {isActive && (
-                      <div className="absolute -bottom-1 start-1/2 -translate-x-1/2 w-4 h-1 bg-white/40 rounded-full" />
-                    )}
                   </button>
                 );
               })}
@@ -663,90 +756,221 @@ export default function StudentDetailPage() {
               )}
 
               {activeTab === "notes" && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {/* Notes Section */}
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                      <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">الملاحظات الإدارية</h4>
-                      <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95">
-                        <Plus className="w-3.5 h-3.5" />
-                        إضافة ملاحظة
-                      </button>
-                    </div>
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center justify-between px-2">
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">الملاحظات الإدارية</h4>
+                    <button
+                      onClick={() => setIsAddNoteOpen(true)}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      إضافة ملاحظة جديدة
+                    </button>
+                  </div>
 
-                    <div className="space-y-4">
-                      {notes && notes.length > 0 ? (
-                        notes.map((note) => (
-                          <div key={note.id} className="glass-card p-6 space-y-4 group">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black text-primary">
-                                  {note.author_name?.[0] || "A"}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-black text-white">{note.author_name}</p>
-                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{formatDate(note.created_at)}</p>
-                                </div>
+                  <div className="space-y-4">
+                    {notes && notes.length > 0 ? (
+                      notes.map((note) => (
+                        <div key={note.id} className="glass-card p-6 space-y-4 group relative hover:border-primary/20 transition-all">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary uppercase shadow-sm">
+                                {note.author_name?.[0] || "A"}
                               </div>
+                              <div className="text-start">
+                                <p className="text-sm font-black text-white">{note.author_name}</p>
+                                <p className="text-[10px] font-bold text-muted-foreground mt-0.5">{formatDate(note.created_at)}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {note.is_private && (
+                                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm">
+                                  <ShieldAlert className="w-3 h-3" />
+                                  سرية
+                                </span>
+                              )}
                               <span className={cn(
-                                "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-xl border",
+                                "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl border shadow-sm",
                                 note.note_type === "medical" ? "bg-red-500/10 text-red-400 border-red-500/20" :
                                   note.note_type === "billing" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                                  note.note_type === "behavior" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                                  note.note_type === "progress" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                                     "bg-white/5 text-muted-foreground border-white/10"
                               )}>
                                 {note.note_type === "medical" ? "طبية" :
-                                  note.note_type === "billing" ? "مالية" : "عامة"}
+                                  note.note_type === "billing" ? "مالية" :
+                                  note.note_type === "behavior" ? "سلوكية" :
+                                  note.note_type === "progress" ? "تقدم" : "عامة"}
                               </span>
+                              
+                              <button
+                                onClick={() => setNoteToDelete(note)}
+                                className="w-8 h-8 rounded-xl bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 text-red-400 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+                                title="حذف الملاحظة"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                            <p className="text-sm font-medium text-white/90 leading-relaxed bg-white/[0.01] p-4 rounded-xl border border-white/5 group-hover:border-primary/20 transition-colors">
-                              {note.content}
-                            </p>
                           </div>
-                        ))
-                      ) : (
-                        <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                          <p className="text-sm font-bold text-muted-foreground">لا توجد ملاحظات مسجلة</p>
+                          
+                          <p className="text-sm font-medium text-white/90 leading-relaxed bg-white/[0.01] p-4 rounded-xl border border-white/5 text-start whitespace-pre-wrap">
+                            {note.content}
+                          </p>
                         </div>
-                      )}
+                      ))
+                    ) : (
+                      <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                        <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                        <p className="text-sm font-bold text-muted-foreground">لا توجد ملاحظات مسجلة لهذا الطالب</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "documents" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">الوثائق والمستندات الرسمية</h4>
+                    <button
+                      onClick={() => setIsUploadDocOpen(true)}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20 w-fit"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      رفع وثيقة جديدة
+                    </button>
+                  </div>
+
+                  {/* Search and Filters Bar */}
+                  <div className="flex flex-col sm:flex-row gap-3 bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+                    <div className="flex-1 relative">
+                      <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                      <input
+                        type="text"
+                        placeholder="البحث عن وثيقة بالاسم..."
+                        value={docSearchQuery}
+                        onChange={(e) => setDocSearchQuery(e.target.value)}
+                        className="w-full bg-background/40 border border-white/5 rounded-xl py-2.5 ps-10 pe-4 text-xs font-medium text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 transition-colors text-start"
+                      />
+                    </div>
+                    <div className="w-full sm:w-48 relative">
+                      <Filter className="absolute start-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                      <select
+                        value={docTypeFilter}
+                        onChange={(e) => setDocTypeFilter(e.target.value)}
+                        className="w-full bg-background/40 border border-white/5 rounded-xl py-2.5 ps-10 pe-4 text-xs font-medium text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer [&>option]:bg-[#0f172a] [&>option]:text-white text-start"
+                      >
+                        <option value="all">كل أنواع الوثائق</option>
+                        <option value="id">هوية وطنية / إقامة</option>
+                        <option value="passport">جواز السفر</option>
+                        <option value="medical">تقرير طبي</option>
+                        <option value="waiver">إخلاء مسؤولية</option>
+                        <option value="photo_consent">موافقة تصوير</option>
+                        <option value="other">أخرى</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Documents Section */}
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                      <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">الوثائق والمستندات</h4>
-                      <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95">
-                        <Plus className="w-3.5 h-3.5" />
-                        رفع وثيقة جديدة
-                      </button>
-                    </div>
+                  {/* Documents Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {documents && documents.length > 0 ? (
+                      (() => {
+                        const filteredDocs = documents.filter((doc) => {
+                          const matchesSearch = doc.name.toLowerCase().includes(docSearchQuery.toLowerCase());
+                          const matchesType = docTypeFilter === "all" || doc.document_type === docTypeFilter;
+                          return matchesSearch && matchesType;
+                        });
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {documents && documents.length > 0 ? (
-                        documents.map((doc) => (
-                          <div key={doc.id} className="glass-card p-5 flex items-center justify-between group hover:border-primary/40 transition-all">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-lg shadow-primary/5">
-                                <Download className="w-6 h-6" />
+                        if (filteredDocs.length === 0) {
+                          return (
+                            <div className="sm:col-span-2 py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                              <Search className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                              <p className="text-sm font-bold text-muted-foreground">لم يتم العثور على وثائق تطابق البحث</p>
+                            </div>
+                          );
+                        }
+
+                        return filteredDocs.map((doc) => {
+                          const expiryInfo = getExpiryStatus(doc.expires_at);
+
+                          return (
+                            <div key={doc.id} className="glass-card p-5 space-y-4 group hover:border-primary/30 transition-all flex flex-col justify-between">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-3.5 min-w-0">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-md shrink-0">
+                                      <FileText className="w-6 h-6" />
+                                    </div>
+                                    <div className="min-w-0 text-start">
+                                      <p className="text-sm font-black text-white truncate max-w-[160px]">{doc.name}</p>
+                                      <span className={cn("inline-block mt-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border", getDocTypeBadgeClass(doc.document_type))}>
+                                        {DOCUMENT_TYPES[doc.document_type] || doc.document_type}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => setDocToDelete(doc)}
+                                    className="w-8 h-8 rounded-xl bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 text-red-400 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 active:scale-95"
+                                    title="حذف الوثيقة"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+
+                                {doc.notes && (
+                                  <p className="text-xs font-semibold text-muted-foreground bg-white/[0.01] p-3 rounded-xl border border-white/[0.03] text-start leading-relaxed truncate group-hover:whitespace-normal group-hover:line-clamp-none line-clamp-2">
+                                    {doc.notes}
+                                  </p>
+                                )}
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-black text-white truncate max-w-[140px]">{doc.name}</p>
-                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                                  {doc.document_type} • {formatDate(doc.created_at)}
-                                </p>
+
+                              <div className="pt-2 border-t border-white/5 flex flex-col gap-3">
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                  <span className="text-muted-foreground/60">تاريخ الرفع: {formatDate(doc.created_at)}</span>
+                                  {expiryInfo && (
+                                    <span className={cn("px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider", expiryInfo.badgeClass)}>
+                                      {expiryInfo.label}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  {/* View / Open in new window */}
+                                  <a
+                                    href={doc.file}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-white transition-colors"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    عرض الملف
+                                  </a>
+                                  
+                                  {/* Download */}
+                                  <a
+                                    href={doc.file}
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-colors"
+                                    title="تحميل"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </a>
+                                </div>
                               </div>
                             </div>
-                            <button className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all active:scale-90">
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="sm:col-span-2 py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                          <p className="text-sm font-bold text-muted-foreground">لا توجد وثائق مرفقة</p>
-                        </div>
-                      )}
-                    </div>
+                          );
+                        });
+                      })()
+                    ) : (
+                      <div className="sm:col-span-2 py-24 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-5" />
+                        <p className="text-sm font-bold text-muted-foreground">لا توجد وثائق مرفقة بهذا الطالب حالياً</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -824,6 +1048,96 @@ export default function StudentDetailPage() {
                   className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  تأكيد الحذف
+                </button>
+              </div>
+            </ModalFooter>
+          </Modal>
+        )}
+
+        {isUploadDocOpen && (
+          <UploadDocumentDialog
+            isOpen={isUploadDocOpen}
+            onClose={() => setIsUploadDocOpen(false)}
+            studentId={studentId}
+            studentName={student.full_name}
+          />
+        )}
+
+        {isAddNoteOpen && (
+          <AddNoteDialog
+            isOpen={isAddNoteOpen}
+            onClose={() => setIsAddNoteOpen(false)}
+            studentId={studentId}
+            studentName={student.full_name}
+          />
+        )}
+
+        {noteToDelete && (
+          <Modal open={!!noteToDelete} onClose={() => setNoteToDelete(null)} size="sm">
+            <ModalHeader
+              icon={<Trash2 className="w-5 h-5 text-red-500" />}
+              title="حذف الملاحظة"
+              subtitle={student.full_name}
+              onClose={() => setNoteToDelete(null)}
+            />
+            <ModalBody className="space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed text-start">
+                هل أنت متأكد من رغبتك في حذف هذه الملاحظة بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setNoteToDelete(null)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteNoteMutation.isPending}
+                  onClick={() => deleteNoteMutation.mutate(noteToDelete.id)}
+                  className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {deleteNoteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  تأكيد الحذف
+                </button>
+              </div>
+            </ModalFooter>
+          </Modal>
+        )}
+
+        {docToDelete && (
+          <Modal open={!!docToDelete} onClose={() => setDocToDelete(null)} size="sm">
+            <ModalHeader
+              icon={<Trash2 className="w-5 h-5 text-red-500" />}
+              title="حذف الوثيقة"
+              subtitle={docToDelete.name}
+              onClose={() => setDocToDelete(null)}
+            />
+            <ModalBody className="space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed text-start">
+                هل أنت متأكد من رغبتك في حذف هذه الوثيقة بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setDocToDelete(null)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteDocMutation.isPending}
+                  onClick={() => deleteDocMutation.mutate(docToDelete.id)}
+                  className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {deleteDocMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   تأكيد الحذف
                 </button>
               </div>

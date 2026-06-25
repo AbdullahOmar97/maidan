@@ -1,15 +1,19 @@
 "use client";
+import { useState } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { AxiosError } from "axios";
-import { MessageSquare, Plus, Send, FileText, MessageCircle, Mail } from "lucide-react";
+import { MessageSquare, Plus, Send, FileText, MessageCircle, Mail, Sparkles, AlertCircle } from "lucide-react";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
 export default function MessagingPage() {
+  const [isUnderDevelopmentOpen, setIsUnderDevelopmentOpen] = useState(false);
+
   const { data: campaigns, isLoading: campaignsLoading } = useQuery<{ results: any[] }>({
     queryKey: ["messaging", "campaigns"],
     queryFn: () => api.messaging.campaigns.list().then((r) => r.data),
@@ -27,13 +31,13 @@ export default function MessagingPage() {
         description="إرسال حملات واتساب وبريد إلكتروني للطلاب، إدارة القوالب الجاهزة، ومتابعة سجل الإرسال."
         icon={MessageSquare}
       >
-        <Link
-          href="/dashboard/messaging/new"
+        <button
+          onClick={() => setIsUnderDevelopmentOpen(true)}
           className="flex items-center justify-center gap-3 px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all group overflow-hidden relative"
         >
           <Plus className="w-4 h-4 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
           <span className="relative z-10">حملة جديدة</span>
-        </Link>
+        </button>
       </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -109,6 +113,37 @@ export default function MessagingPage() {
           )}
         </div>
       </div>
+
+      {/* Under Development Modal */}
+      {isUnderDevelopmentOpen && (
+        <Modal open={isUnderDevelopmentOpen} onClose={() => setIsUnderDevelopmentOpen(false)} size="sm">
+          <ModalHeader
+            icon={<Sparkles className="w-5 h-5 text-amber-400" />}
+            title="الخدمة تحت التطوير"
+            subtitle="قريباً جداً"
+            onClose={() => setIsUnderDevelopmentOpen(false)}
+          />
+          <ModalBody className="space-y-4 text-center py-6">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/10 animate-bounce">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-black text-white">نعمل على إطلاق هذه الميزة قريباً!</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                ميزة إنشاء الحملات الإعلانية وإرسال الرسائل الجماعية عبر الواتساب والبريد الإلكتروني قيد التطوير والبرمجة حالياً لتلبية احتياجاتكم بأعلى كفاءة.
+              </p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <button
+              onClick={() => setIsUnderDevelopmentOpen(false)}
+              className="w-full py-3 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-transform active:scale-95"
+            >
+              فهمت ذلك
+            </button>
+          </ModalFooter>
+        </Modal>
+      )}
     </div>
   );
 }

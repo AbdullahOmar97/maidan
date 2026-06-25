@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -170,7 +171,10 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
         {/* Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* User card — condensed on mobile (avatar only) */}
-          <div className="flex items-center gap-3 px-2 sm:px-3 py-1.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group cursor-default">
+          <Link
+            href="/dashboard/settings?tab=profile"
+            className="flex items-center gap-3 px-2 sm:px-3 py-1.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group cursor-pointer"
+          >
             {/* Name + role (hidden on xs) */}
             <div className="hidden sm:flex text-start flex-col items-start">
               <p className="text-sm font-black text-white tracking-tight leading-none mb-1 group-hover:text-primary transition-colors whitespace-nowrap">
@@ -193,7 +197,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
             >
               {(user as any)?.first_name?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? "U"}
             </div>
-          </div>
+          </Link>
 
           {/* Logout */}
           <button

@@ -143,7 +143,7 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
   const { tenant } = useTenant();
 
   return (
-    <div className="mt-auto relative z-10 space-y-2 p-4 pb-safe">
+    <div className="mt-auto relative z-10 space-y-2 p-4 pb-8 pb-safe">
       <Link
         href="/kiosk"
         target="_blank"
@@ -160,7 +160,11 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
 
       {user && (
         <div className="pt-2">
-          <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 group hover:bg-primary/10 transition-all">
+          <Link
+            href="/dashboard/settings?tab=profile"
+            onClick={onLinkClick}
+            className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 group hover:bg-primary/10 transition-all cursor-pointer text-start"
+          >
             <div
               className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
               aria-hidden="true"
@@ -177,7 +181,7 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
                 {ROLE_LABELS[role] ?? role}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
       )}
     </div>

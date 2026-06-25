@@ -61,7 +61,7 @@ class LocationSerializer(serializers.ModelSerializer):
 
                         if total_capacity > plan.max_students:
                             raise serializers.ValidationError(
-                                {"capacity": f"إجمالي الطاقة الاستيعابية للفروع النشطة ({total_capacity} طالب) يتجاوز الحد الأقصى لعدد الطلاب المسموح به في باقتك الحالية ({plan.max_students} طالب). السعة المتاحة لباقي الفروع النشطة هي {other_branches_capacity} طالب."}
+                                {"capacity": f"إجمالي الطاقة الاستيعابية للفروع النشطة يتجاوز الحد الأقصى لعدد الطلاب المسموح به في باقتك الحالية ({plan.max_students} طالب). السعة المتاحة لباقي الفروع النشطة هي {other_branches_capacity} طالب."}
                             )
         return attrs
 

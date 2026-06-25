@@ -37,10 +37,10 @@ const initialFormState = {
   name: "",
   address: "",
   city: "",
-  country: "SA",
+  country: "JO",
   phone: "",
   email: "",
-  timezone: "Asia/Riyadh",
+  timezone: "Asia/Amman",
   manager_id: "",
   capacity: "50",
   is_active: true,
@@ -347,10 +347,9 @@ export default function LocationsPage() {
 
           <form onSubmit={isCreateOpen ? handleCreateSubmit : handleUpdateSubmit} className="flex flex-col flex-1 min-h-0">
             <ModalBody className="space-y-4">
-              <ErrorBanner message={formError} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="اسم الفرع" required error={fieldErrors.name}>
+                <FormField label="اسم الفرع" required>
                   <Input
                     required
                     placeholder="اسم الفرع"
@@ -362,7 +361,7 @@ export default function LocationsPage() {
                     error={!!fieldErrors.name}
                   />
                 </FormField>
-                <FormField label="المدينة" required error={fieldErrors.city}>
+                <FormField label="المدينة" required>
                   <Input
                     required
                     placeholder="المدينة"
@@ -378,7 +377,6 @@ export default function LocationsPage() {
                   label="السعة الاستيعابية (عدد الطلاب)" 
                   required 
                   hint="الحد الأقصى لعدد الطلاب المسموح به في هذا الفرع"
-                  error={fieldErrors.capacity}
                 >
                   <Input
                     required
@@ -392,7 +390,7 @@ export default function LocationsPage() {
                     error={!!fieldErrors.capacity}
                   />
                 </FormField>
-                <FormField label="رقم الهاتف" error={fieldErrors.phone}>
+                <FormField label="رقم الهاتف">
                   <Input
                     placeholder="05xxxxxxx"
                     value={isCreateOpen ? createForm.phone : editingLocation?.phone ?? ""}
@@ -403,7 +401,7 @@ export default function LocationsPage() {
                     error={!!fieldErrors.phone}
                   />
                 </FormField>
-                <FormField label="البريد الإلكتروني" error={fieldErrors.email}>
+                <FormField label="البريد الإلكتروني">
                   <Input
                     type="email"
                     placeholder="branch@example.com"
@@ -415,9 +413,9 @@ export default function LocationsPage() {
                     error={!!fieldErrors.email}
                   />
                 </FormField>
-                <FormField label="الدولة" error={fieldErrors.country}>
+                <FormField label="الدولة">
                   <Select
-                    value={isCreateOpen ? createForm.country : editingLocation?.country || "SA"}
+                    value={isCreateOpen ? createForm.country : editingLocation?.country || "JO"}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, country: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, country: e.target.value });
@@ -435,9 +433,9 @@ export default function LocationsPage() {
                     <option value="EG">مصر</option>
                   </Select>
                 </FormField>
-                <FormField label="المنطقة الزمنية" error={fieldErrors.timezone}>
+                <FormField label="المنطقة الزمنية">
                   <Select
-                    value={isCreateOpen ? createForm.timezone : editingLocation?.timezone || "Asia/Riyadh"}
+                    value={isCreateOpen ? createForm.timezone : editingLocation?.timezone || "Asia/Amman"}
                     onChange={(e) => {
                       if (isCreateOpen) setCreateForm(prev => ({ ...prev, timezone: e.target.value }));
                       else if (editingLocation) setEditingLocation({ ...editingLocation, timezone: e.target.value });
@@ -453,7 +451,7 @@ export default function LocationsPage() {
                     <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
                   </Select>
                 </FormField>
-                <FormField label="المدير المسئول" error={fieldErrors.manager_id}>
+                <FormField label="المدير المسئول">
                   <Select
                     value={isCreateOpen ? createForm.manager_id : editingLocation?.manager_id ?? ""}
                     onChange={(e) => {
@@ -502,7 +500,7 @@ export default function LocationsPage() {
                 </div>
               </div>
 
-              <FormField label="العنوان بالتفصيل" required error={fieldErrors.address}>
+              <FormField label="العنوان بالتفصيل" required>
                 <Textarea
                   required
                   rows={3}
@@ -515,6 +513,8 @@ export default function LocationsPage() {
                   error={!!fieldErrors.address}
                 />
               </FormField>
+
+              <ErrorBanner message={formError} className="mt-4" />
             </ModalBody>
 
             <ModalFooter>
