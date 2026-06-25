@@ -12,7 +12,7 @@ from django.db import models
 
 
 class Location(models.Model):
-    """Physical dojo location / branch."""
+    """Physical Sports Club location / branch."""
 
     name = models.CharField(max_length=200)
     address = models.TextField()

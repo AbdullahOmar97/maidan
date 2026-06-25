@@ -12,7 +12,7 @@ from apps.tenants.models import CURRENCY_CHOICES
 
 
 class MembershipPlan(models.Model):
-    """Dojo-defined membership plan templates."""
+    """Sports Club-defined membership plan templates."""
 
     class BillingCycle(models.TextChoices):
         WEEKLY = "weekly", "Weekly"

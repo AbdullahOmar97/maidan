@@ -1,5 +1,5 @@
 # =============================================================================
-# MAIDAN Dojo Management System — Makefile
+# MAIDAN Sports Club Management System — Makefile
 # =============================================================================
 
 .PHONY: help up down build logs shell-backend shell-frontend migrate makemigrations createsuperuser seed test lint format

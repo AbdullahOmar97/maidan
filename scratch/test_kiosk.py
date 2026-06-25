@@ -19,7 +19,7 @@ def test_kiosk_logic():
     
     # Setup: Create a location in Riyadh
     location, _ = Location.objects.get_or_create(
-        name="Test Dojo",
+        name="Test Sports Club",
         defaults={"timezone": "Asia/Riyadh", "city": "Riyadh", "address": "123 Main St"}
     )
     

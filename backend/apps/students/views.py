@@ -63,7 +63,7 @@ class StudentFilter(django_filters.FilterSet):
 
 
 class LocationViewSet(LocationFilterMixin, viewsets.ModelViewSet):
-    """CRUD for dojo locations/branches."""
+    """CRUD for Sports Club locations/branches."""
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
     location_field = "id"

@@ -21,16 +21,16 @@ const cairo = Cairo({
 
 export const metadata: Metadata = {
   title: {
-    default: "MAIDAN — Dojo Management System",
+    default: "MAIDAN — Sports Club Management System",
     template: "%s | MAIDAN",
   },
   description:
     "Professional martial arts academy management platform for the MENA region. Manage students, billing, attendance, and more.",
-  keywords: ["martial arts", "dojo management", "BJJ", "karate", "attendance", "billing", "MENA"],
+  keywords: ["martial arts", "Sports Club management", "BJJ", "karate", "attendance", "billing", "MENA"],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
-    siteName: "MAIDAN Dojo Management",
+    siteName: "MAIDAN Sports Club Management",
   },
   icons: {
     icon: "/icon.png",

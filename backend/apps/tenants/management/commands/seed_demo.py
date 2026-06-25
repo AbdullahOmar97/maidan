@@ -1,8 +1,8 @@
 """
 MAIDAN — seed_demo Management Command
 
-Creates a complete demo tenant with realistic dojo data:
-- 1 tenant (Dragon's Dojo)
+Creates a complete demo tenant with realistic Sports Club data:
+- 1 tenant (Dragon's Sports Club)
 - 2 locations
 - 5 belt ranks (BJJ)
 - 3 class types
@@ -45,9 +45,9 @@ class Command(BaseCommand):
         tenant, created = Tenant.objects.get_or_create(
             schema_name=schema_name,
             defaults={
-                "name": "Dragon's Dojo نادي التنين",
+                "name": "Dragon's Sports Club نادي التنين",
                 "slug": schema_name,
-                "email": "admin@dragons-dojo.sa",
+                "email": "admin@dragons-Sports Club.sa",
                 "plan": plan,
                 "default_language": "ar",
                 "default_currency": "SAR",
@@ -69,7 +69,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"✅ Demo data seeded for tenant '{schema_name}'"))
         self.stdout.write(f"   → Tenant URL: http://{schema_name}.localhost/")
-        self.stdout.write(f"   → Admin: admin@dragons-dojo.sa / admin1234")
+        self.stdout.write(f"   → Admin: admin@dragons-Sports Club.sa / admin1234")
 
     def _seed_tenant_data(self):
         from apps.students.models import Location, Student, Family
@@ -80,7 +80,7 @@ class Command(BaseCommand):
 
         # --- Create Admin User ---
         admin, _ = User.objects.get_or_create(
-            email="admin@dragons-dojo.sa",
+            email="admin@dragons-Sports Club.sa",
             defaults={
                 "first_name": "Ahmed",
                 "last_name": "Al-Rashid",

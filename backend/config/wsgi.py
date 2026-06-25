@@ -1,5 +1,5 @@
 """
-MAIDAN Dojo Management System
+MAIDAN Sports Club Management System
 Django WSGI configuration.
 """
 

@@ -14,4 +14,4 @@ CREATE EXTENSION IF NOT EXISTS "unaccent"; -- For Arabic/accented text search
 -- Allow case-insensitive text search (for Arabic transliteration)
 CREATE TEXT SEARCH CONFIGURATION IF NOT EXISTS arabic (COPY = simple);
 
-COMMENT ON DATABASE maidan IS 'MAIDAN Dojo Management System — Multi-tenant PostgreSQL database';
+COMMENT ON DATABASE maidan IS 'MAIDAN Sports Club Management System — Multi-tenant PostgreSQL database';

@@ -1,5 +1,5 @@
 # =============================================================================
-# MAIDAN Dojo Management System — Docker Compose (Production)
+# MAIDAN Sports Club Management System — Docker Compose (Production)
 # =============================================================================
 services:
   db:

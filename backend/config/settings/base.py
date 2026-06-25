@@ -356,7 +356,7 @@ DEFAULT_LANGUAGE = env("DEFAULT_LANGUAGE", default="ar")
 # API Documentation
 # ---------------------------------------------------------------------------
 SPECTACULAR_SETTINGS = {
-    "TITLE": "MAIDAN Dojo Management API",
+    "TITLE": "MAIDAN Sports Club Management API",
     "DESCRIPTION": "Multi-tenant SaaS platform for martial arts academies.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

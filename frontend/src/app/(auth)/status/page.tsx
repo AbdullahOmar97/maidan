@@ -3,11 +3,11 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { 
-  ShieldAlert, 
-  Clock, 
-  CreditCard, 
-  ArrowRight, 
+import {
+  ShieldAlert,
+  Clock,
+  CreditCard,
+  ArrowRight,
   MessageCircle,
   ShieldCheck,
   ChevronLeft,
@@ -66,10 +66,10 @@ function StatusContent() {
         {/* Brand Section */}
         <div className="text-center mb-12">
           <div className="relative inline-flex mb-8">
-             <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 opacity-20" />
-             <div className="relative w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl">
-                <ShieldCheck className="w-8 h-8 text-primary" />
-             </div>
+            <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 opacity-20" />
+            <div className="relative w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+            </div>
           </div>
           <h1 className="text-2xl font-black text-white tracking-tighter uppercase mb-2">MAIDAN</h1>
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Platform Status Center</p>
@@ -78,14 +78,14 @@ function StatusContent() {
         {/* Main Card */}
         <div className="glass-card relative p-8 md:p-12 overflow-hidden border-white/10 text-center">
           <div className={cn("absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r via-transparent opacity-100", `from-${type === 'pending' ? 'amber' : type === 'expired' ? 'red' : 'slate'}-500`, `to-${type === 'pending' ? 'orange' : type === 'expired' ? 'rose' : 'slate'}-600`)} />
-          
+
           <div className="relative z-10 space-y-8">
             {/* Status Icon */}
             <div className="flex justify-center">
               <div className={cn("relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl border transition-transform duration-500 hover:scale-105", currentStatus.bg, currentStatus.border)}>
                 <Icon className={cn("w-12 h-12", currentStatus.accent)} />
                 <div className={cn("absolute -top-2 -end-2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 animate-bounce", currentStatus.accent)}>
-                   <ShieldAlert className="w-4 h-4" />
+                  <ShieldAlert className="w-4 h-4" />
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@ function StatusContent() {
                 <ChevronLeft className="w-5 h-5 rtl-flip group-hover:-translate-x-1 rtl:group-hover:translate-x-1 transition-transform" />
                 <span>العودة للرئيسية</span>
               </Link>
-              
+
               <button
                 className={cn(
                   "flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative",
@@ -134,8 +134,8 @@ function StatusContent() {
 
         {/* Footer */}
         <div className="mt-12 text-center">
-           <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">
-            MAIDAN — INTEGRATED DOJO MANAGEMENT
+          <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">
+            MAIDAN — INTEGRATED Sports Club MANAGEMENT
           </p>
         </div>
       </div>

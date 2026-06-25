@@ -1,5 +1,5 @@
 # =============================================================================
-# MAIDAN Dojo Management System — Docker Compose (Development)
+# MAIDAN Sports Club Management System — Docker Compose (Development)
 # =============================================================================
 
 x-backend-env: &backend-env
