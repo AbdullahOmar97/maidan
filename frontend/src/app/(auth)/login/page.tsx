@@ -210,7 +210,7 @@ function LoginContent() {
           <div className="flex items-center justify-center gap-2">
             <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/20" />
             <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">
-              {isTenantLogin && tenantLogo && tenantName ? "بوابة الدخول الآمنة" : "نظام إدارة الدوجو المتكامل"}
+              {isTenantLogin && tenantLogo && tenantName ? "بوابة الدخول الآمنة" : "نظام إدارة الأندية الرياضية المتكامل"}
             </p>
             <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/20" />
           </div>
