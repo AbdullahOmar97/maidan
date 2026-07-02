@@ -31,6 +31,7 @@ import { UserRole } from "@/types";
 const navItems = [
   { label: "لوحة التحكم", labelEn: "Dashboard",  href: "/dashboard",            icon: LayoutDashboard, exact: true },
   { label: "الطلاب",       labelEn: "Students",   href: "/dashboard/students",   icon: Users,           permission: "can_manage_students" },
+  { label: "العائلات",     labelEn: "Families",   href: "/dashboard/families",   icon: Users,           permission: "can_manage_students" },
   { label: "الحضور",       labelEn: "Attendance", href: "/dashboard/attendance", icon: CalendarCheck },
   { label: "الأحزمة",      labelEn: "Belts",      href: "/dashboard/belts",      icon: Award,           permission: "can_manage_belts" },
   { label: "الفواتير",     labelEn: "Billing",    href: "/dashboard/billing",    icon: CreditCard,      permission: "can_view_billing" },

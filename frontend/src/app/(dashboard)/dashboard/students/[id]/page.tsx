@@ -26,6 +26,7 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/moda
 import AddNoteDialog from "@/components/dashboard/AddNoteDialog";
 import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
+import LinkFamilyDialog from "@/components/dashboard/LinkFamilyDialog";
 
 export default function StudentDetailPage() {
   const { tenant } = useTenant();
@@ -52,6 +53,7 @@ export default function StudentDetailPage() {
   const [docSearchQuery, setDocSearchQuery] = useState("");
   const [docTypeFilter, setDocTypeFilter] = useState("all");
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isLinkFamilyOpen, setIsLinkFamilyOpen] = useState(false);
 
   const studentId = Number(id);
 
@@ -439,7 +441,10 @@ export default function StudentDetailPage() {
               ) : (
                 <div className="text-center py-4 border-2 border-dashed border-white/5 rounded-2xl">
                   <p className="text-xs font-bold text-muted-foreground mb-4">لا توجد عائلة مرتبطة</p>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-2 mx-auto">
+                  <button
+                    onClick={() => setIsLinkFamilyOpen(true)}
+                    className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-2 mx-auto"
+                  >
                     <Plus className="w-3 h-3" />
                     ربط بملف عائلة
                   </button>
@@ -1167,6 +1172,13 @@ export default function StudentDetailPage() {
             </ModalFooter>
           </Modal>
         )}
+
+        <LinkFamilyDialog
+          studentId={studentId}
+          studentName={student.full_name}
+          isOpen={isLinkFamilyOpen}
+          onClose={() => setIsLinkFamilyOpen(false)}
+        />
       </div>
     </PermissionGuard>
   );
