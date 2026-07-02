@@ -2,15 +2,15 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { Award, Medal, TrendingUp, CheckCircle } from "lucide-react";
+import { Award, Medal, TrendingUp, CheckCircle, Plus } from "lucide-react";
 import type { BeltRank, PaginatedResponse } from "@/types";
 import { useState } from "react";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
+import BeltRankDialog from "@/components/dashboard/BeltRankDialog";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 
 
 export default function BeltsPage() {
-  // ... (state and queries)
   const [promotionDialog, setPromotionDialog] = useState<{
     isOpen: boolean;
     studentId?: number;
@@ -19,6 +19,9 @@ export default function BeltsPage() {
     currentBeltColor?: string;
     nextBeltId?: number;
   }>({ isOpen: false });
+
+  const [isBeltRankDialogOpen, setIsBeltRankDialogOpen] = useState(false);
+  const [rankToEdit, setRankToEdit] = useState<BeltRank | undefined>(undefined);
 
   const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank>>({
     queryKey: ["belts", "ranks"],
@@ -47,7 +50,19 @@ export default function BeltsPage() {
         <div className="lg:col-span-1 glass-card p-6 space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">تسلسل الأحزمة</h2>
-            <Medal className="w-5 h-5 text-amber-400" />
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  setRankToEdit(undefined);
+                  setIsBeltRankDialogOpen(true);
+                }}
+                className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                title="إضافة حزام جديد"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <Medal className="w-5 h-5 text-amber-400" />
+            </div>
           </div>
 
           {ranksLoading ? (
@@ -59,11 +74,23 @@ export default function BeltsPage() {
           ) : (
             <div className="space-y-3">
               {ranks.map((rank) => (
-                <div key={rank.id} className="flex items-center gap-3 p-3 rounded-lg border bg-secondary/30">
-                  <div className="w-8 h-8 rounded-full shadow-sm" style={{ backgroundColor: rank.color_hex }} />
+                <div 
+                  key={rank.id} 
+                  onClick={() => {
+                    setRankToEdit(rank);
+                    setIsBeltRankDialogOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-all group"
+                  title="تعديل الحزام"
+                >
+                  <div className="w-8 h-8 rounded-full shadow-sm shrink-0" style={{ backgroundColor: rank.color_hex }} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{rank.name}</p>
-                    <p className="text-xs text-muted-foreground">{rank.min_attendance_sessions} حصة • {rank.min_months_since_last} شهر</p>
+                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                      {rank.name} {rank.name_ar && `(${rank.name_ar})`}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {rank.martial_art} • {rank.min_attendance_sessions} حصة • {rank.min_months_since_last} شهر
+                    </p>
                   </div>
                 </div>
               ))}
@@ -161,6 +188,17 @@ export default function BeltsPage() {
           currentBeltName={promotionDialog.currentBeltName}
           currentBeltColor={promotionDialog.currentBeltColor}
           nextBeltId={promotionDialog.nextBeltId}
+        />
+      )}
+
+      {isBeltRankDialogOpen && (
+        <BeltRankDialog
+          isOpen={isBeltRankDialogOpen}
+          onClose={() => {
+            setIsBeltRankDialogOpen(false);
+            setRankToEdit(undefined);
+          }}
+          rankToEdit={rankToEdit}
         />
       )}
     </div>

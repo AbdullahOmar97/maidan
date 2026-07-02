@@ -125,6 +125,7 @@ export interface BeltRank {
   id: number;
   martial_art: string;
   name: string;
+  name_ar?: string;
   color_hex: string;
   order_index: number;
   min_attendance_sessions: number;

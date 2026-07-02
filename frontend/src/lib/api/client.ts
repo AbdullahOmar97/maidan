@@ -203,6 +203,9 @@ export const api = {
   // Belts
   belts: {
     ranks: () => apiClient.get("/belts/ranks/"),
+    createRank: (data: unknown) => apiClient.post("/belts/ranks/", data),
+    updateRank: (id: number, data: unknown) => apiClient.patch(`/belts/ranks/${id}/`, data),
+    deleteRank: (id: number) => apiClient.delete(`/belts/ranks/${id}/`),
     eligibility: () => apiClient.get("/belts/eligibility/"),
     promote: (data: unknown) => apiClient.post("/belts/promotions/", data),
   },
