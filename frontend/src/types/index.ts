@@ -69,6 +69,8 @@ export interface BeltHistoryItem {
   color: string;
   promoted_at: string;
   is_current: boolean;
+  martial_art?: string;
+  notes?: string;
 }
 
 export interface StudentNote {

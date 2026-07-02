@@ -51,6 +51,19 @@ export default function PromoteStudentDialog({
 
   const ranks = ranksData?.results ?? [];
 
+  // Group and sort ranks by martial art program
+  const groupedRanks = ranks.reduce<Record<string, BeltRank[]>>((acc, rank) => {
+    const program = rank.martial_art || "أخرى";
+    if (!acc[program]) acc[program] = [];
+    acc[program].push(rank);
+    return acc;
+  }, {});
+
+  // Sort ranks within each program by progression order_index
+  Object.values(groupedRanks).forEach((artRanks) => {
+    artRanks.sort((a, b) => a.order_index - b.order_index);
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRankId) return;
@@ -99,8 +112,14 @@ export default function PromoteStudentDialog({
               required
             >
               <option value="">اختر الحزام...</option>
-              {ranks.map((rank) => (
-                <option key={rank.id} value={rank.id}>{rank.name}</option>
+              {Object.entries(groupedRanks).map(([program, artRanks]) => (
+                <optgroup key={program} label={program} className="bg-slate-900 text-white font-bold">
+                  {artRanks.map((rank) => (
+                    <option key={rank.id} value={rank.id}>
+                      {rank.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </Select>
           </FormField>

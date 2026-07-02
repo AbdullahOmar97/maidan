@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { QrCode, Download, Printer, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import QRCode from "qrcode";
 
 interface StudentQRCardProps {
   studentNumber: string;
@@ -33,7 +34,6 @@ export default function StudentQRCard({
   const generateQR = useCallback(async () => {
     setIsLoading(true);
     try {
-      const QRCode = await import("qrcode");
       const dataUrl = await QRCode.toDataURL(studentNumber, {
         width: 300,
         margin: 4,
@@ -169,8 +169,35 @@ export default function StudentQRCard({
         <head>
           <title>بطاقة ${studentName}</title>
           <style>
-            body { margin: 0; padding: 0; background: #0f172a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-            .card { width: 320px; font-family: system-ui, sans-serif; }
+            body { 
+              margin: 0; 
+              padding: 0; 
+              background: #ffffff !important; 
+              color: #000000 !important; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              min-height: 100vh; 
+              font-family: system-ui, sans-serif;
+              direction: rtl;
+            }
+            .card { 
+              width: 320px; 
+              padding: 24px;
+              border: 1px solid #e2e8f0;
+              border-radius: 16px;
+              text-align: center;
+              background: #ffffff !important;
+              color: #000000 !important;
+              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+            /* Overrides to make all text dark on printed paper */
+            .card p, .card span, .card div {
+              color: #000000 !important;
+            }
+            .text-white { color: #000000 !important; }
+            .text-muted-foreground { color: #475569 !important; }
+            .bg-black\\/20 { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; }
           </style>
         </head>
         <body>
@@ -181,6 +208,7 @@ export default function StudentQRCard({
     `);
     printWindow.document.close();
   };
+
 
   const cardContent = (
     <div className="flex flex-col items-center">

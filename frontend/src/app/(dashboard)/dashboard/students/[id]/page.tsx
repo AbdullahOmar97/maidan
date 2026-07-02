@@ -744,40 +744,69 @@ export default function StudentDetailPage() {
                   </div>
 
                   <div className="relative pt-4">
-                    <div className="absolute top-0 bottom-0 end-[31px] w-1 bg-gradient-to-b from-primary/40 via-primary/5 to-transparent rounded-full" />
                     <div className="space-y-12 relative">
-                      {student.belt_history && student.belt_history.length > 0 ? (
-                        student.belt_history.map((history, idx) => (
-                          <div key={idx} className="flex items-start gap-8 group/belt">
-                            <div
-                              className="w-16 h-16 rounded-[1.25rem] border-4 flex items-center justify-center bg-[#0f172a] z-10 shadow-2xl shrink-0 group-hover/belt:scale-110 transition-transform relative overflow-hidden"
-                              style={{ borderColor: history.color }}
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent" />
-                              <Award className="w-8 h-8 z-10" style={{ color: history.color }} />
+                      {(() => {
+                        const groupedHistory = student.belt_history?.reduce<Record<string, typeof student.belt_history>>((acc, item) => {
+                          const art = item.martial_art || "عام";
+                          if (!acc[art]) acc[art] = [];
+                          acc[art].push(item);
+                          return acc;
+                        }, {}) || {};
+
+                        const entries = Object.entries(groupedHistory);
+
+                        if (entries.length === 0) {
+                          return (
+                            <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                              <Award className="w-16 h-16 mx-auto mb-4 opacity-5" />
+                              <p className="text-sm font-bold text-muted-foreground">لا يوجد سجل ترقيات متاح حالياً</p>
                             </div>
-                            <div className="flex-1 pt-2">
-                              <div className="flex items-center gap-3">
-                                <p className="text-2xl font-black text-white">{history.belt_name}</p>
-                                {history.is_current && (
-                                  <span className="px-3 py-1 rounded-xl bg-primary shadow-lg shadow-primary/20 text-white text-[9px] font-black uppercase tracking-widest">
-                                    الحالي
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] font-black text-primary/70 mt-1 uppercase tracking-[0.1em]">تاريخ الترقية: {formatDate(history.promoted_at)}</p>
-                              <div className="mt-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 text-sm font-medium text-muted-foreground leading-relaxed group-hover/belt:bg-white/[0.04] transition-colors">
-                                تم اجتياز الاختبار بنجاح مع إشادة خاصة بمهارات الدفاع والهجوم المضاد.
-                              </div>
+                          );
+                        }
+
+                        return entries.map(([art, historyList]) => (
+                          <div key={art} className="space-y-6">
+                            {/* Program Sub-Header */}
+                            <div className="flex items-center gap-3 border-b border-white/5 pb-2">
+                              <div className="w-1.5 h-6 rounded-full bg-primary" />
+                              <h5 className="text-sm font-black text-white uppercase tracking-wider">{art}</h5>
+                            </div>
+
+                            {/* Timeline for this Program */}
+                            <div className="relative pt-4 ps-6 border-s border-dashed border-white/10 space-y-8">
+                              {historyList.map((history, idx) => (
+                                <div key={idx} className="flex items-start gap-6 group/belt relative">
+                                  {/* Timeline node */}
+                                  <div 
+                                    className="absolute -start-[7px] top-[14px] w-3 h-3 rounded-full border bg-[#0f172a] z-20 group-hover/belt:scale-125 transition-transform" 
+                                    style={{ borderColor: history.color, boxShadow: `0 0 10px ${history.color}40` }}
+                                  />
+                                  <div
+                                    className="w-10 h-10 rounded-xl border flex items-center justify-center bg-[#0f172a] shrink-0 shadow-lg group-hover/belt:scale-105 transition-transform overflow-hidden"
+                                    style={{ borderColor: history.color }}
+                                  >
+                                    <Award className="w-5 h-5" style={{ color: history.color }} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <p className="text-lg font-black text-white">{history.belt_name}</p>
+                                      {history.is_current && (
+                                        <span className="px-2 py-0.5 rounded-lg bg-primary/20 text-primary border border-primary/30 text-[8px] font-black uppercase tracking-widest">
+                                          الحالي
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] font-bold text-muted-foreground mt-1">تاريخ الترقية: {formatDate(history.promoted_at)}</p>
+                                    <div className="mt-3 p-4 rounded-xl bg-white/[0.01] border border-white/5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                      {history.notes || "لا توجد ملاحظات مسجلة لهذه الترقية."}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                          <Award className="w-16 h-16 mx-auto mb-4 opacity-5" />
-                          <p className="text-sm font-bold text-muted-foreground">لا يوجد سجل ترقيات متاح حالياً</p>
-                        </div>
-                      )}
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>

@@ -366,6 +366,8 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                 "color": h.belt_rank.color_hex,
                 "promoted_at": h.promoted_at,
                 "is_current": h.is_current,
+                "martial_art": h.belt_rank.martial_art,
+                "notes": h.notes,
             }
             for h in obj.belt_history.all()[:10]
         ]

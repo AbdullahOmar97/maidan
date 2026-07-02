@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -6,9 +7,12 @@ import { CalendarCheck, Users, Clock, MapPin, Monitor } from "lucide-react";
 import type { ClassSession } from "@/types";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import SessionAttendanceDialog from "@/components/dashboard/SessionAttendanceDialog";
 
 
 export default function AttendancePage() {
+  const [selectedSession, setSelectedSession] = useState<ClassSession | null>(null);
+
   const { data: sessions, isLoading } = useQuery<ClassSession[]>({
     queryKey: ["attendance", "sessions", "today"],
     queryFn: () => api.attendance.sessions.today().then((r) => r.data),
@@ -98,7 +102,10 @@ export default function AttendancePage() {
                     </div>
                   )}
                 </div>
-                <button className="px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">
+                <button
+                  onClick={() => setSelectedSession(session)}
+                  className="px-6 py-3 rounded-xl gradient-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95"
+                >
                   تفاصيل الحضور
                 </button>
               </div>
@@ -106,6 +113,14 @@ export default function AttendancePage() {
           ))
         )}
       </div>
+
+      {selectedSession && (
+        <SessionAttendanceDialog
+          isOpen={!!selectedSession}
+          onClose={() => setSelectedSession(null)}
+          session={selectedSession}
+        />
+      )}
     </div>
   );
 }

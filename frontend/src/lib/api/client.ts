@@ -209,6 +209,7 @@ export const api = {
       list: (sessionId: number) =>
         apiClient.get("/attendance/records/", { params: { session_id: sessionId } }),
       create: (data: unknown) => apiClient.post("/attendance/records/", data),
+      delete: (id: number) => apiClient.delete(`/attendance/records/${id}/`),
       kiosk: (data: { student_id?: number; student_number?: string; phone?: string; session_id?: number }) =>
         apiClient.post("/attendance/records/kiosk/", data),
     },

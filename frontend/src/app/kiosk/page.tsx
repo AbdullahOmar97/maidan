@@ -197,25 +197,33 @@ export default function KioskPage() {
           // ignore — fallback to facingMode
         }
 
-        await html5.start(
+         await html5.start(
           cameraConfig,
-          { fps: 12, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0, disableFlip: true },
+          { 
+            fps: 24, 
+            aspectRatio: 1.0,
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              const min = Math.min(viewfinderWidth, viewfinderHeight);
+              return {
+                width: Math.floor(min * 0.75),
+                height: Math.floor(min * 0.75)
+              };
+            },
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            }
+          },
           (decodedText: string) => {
             const txt = (decodedText ?? "").trim();
             if (!txt) return;
 
             const now = Date.now();
             const last = lastDecodedRef.current;
-            if (last && last.text === txt && now - last.at < 2500) return;
+            if (last && last.text === txt && now - last.at < 4000) return;
             lastDecodedRef.current = { text: txt, at: now };
 
-            // Stop scanning immediately to avoid duplicate check-ins.
-            html5
-              .stop()
-              .catch(() => null)
-              .finally(() => {
-                checkinMutation.mutate({ student_number: txt });
-              });
+            // Run checkin immediately without stopping the camera, allowing continuous scans.
+            checkinMutation.mutate({ student_number: txt });
           },
           () => {
             // Per-frame decode errors are noisy; ignore.
