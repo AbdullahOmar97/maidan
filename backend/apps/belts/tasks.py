@@ -14,8 +14,7 @@ logger = logging.getLogger("maidan.belts")
 def check_promotion_eligibility(schema_name: str):
     """Compute belt promotion eligibility for all active students in one tenant schema."""
     from apps.students.models import Student
-    from apps.belts.models import StudentBelt, PromotionEligibility
-    from apps.tenants.models import Belt
+    from apps.belts.models import StudentBelt, PromotionEligibility, Belt
     from apps.attendance.models import AttendanceRecord
 
     updated = 0

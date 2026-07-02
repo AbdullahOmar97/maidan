@@ -1,8 +1,7 @@
 """MAIDAN — Belts App Views"""
 from rest_framework import filters, permissions, serializers, viewsets
 from shared.permissions import IsStaff, IsTenantOwnerOrManager
-from apps.tenants.models import Belt
-from .models import StudentBelt, PromotionEligibility
+from .models import Belt, StudentBelt, PromotionEligibility
 
 
 class BeltRankSerializer(serializers.ModelSerializer):

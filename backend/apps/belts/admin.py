@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import StudentBelt, PromotionEligibility
+from .models import Belt, StudentBelt, PromotionEligibility
+
+
+@admin.register(Belt)
+class BeltAdmin(admin.ModelAdmin):
+    list_display = ("name", "name_ar", "martial_art", "order_index", "min_attendance_sessions", "min_months_since_last", "is_active")
+    list_filter = ("martial_art", "is_active")
+    search_fields = ("name", "name_ar")
+    ordering = ("martial_art", "order_index")
 
 
 @admin.register(StudentBelt)

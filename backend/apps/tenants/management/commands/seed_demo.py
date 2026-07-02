@@ -123,7 +123,8 @@ class Command(BaseCommand):
         )
 
         # --- Belt Ranks (BJJ) ---
-        from apps.tenants.models import Belt
+        from apps.tenants.models import GlobalDefaultBelt
+        from apps.belts.models import Belt
         from django_tenants.utils import schema_context
 
         bjj_belts = [
@@ -133,10 +134,11 @@ class Command(BaseCommand):
             ("Brown", "#92400E", 3, 150, 24),
             ("Black", "#111827", 4, 250, 36),
         ]
-        belt_objs = []
+        
+        # 1. Seed global default belts in public schema
         with schema_context("public"):
             for name, color, order, sessions, months in bjj_belts:
-                belt, _ = Belt.objects.get_or_create(
+                GlobalDefaultBelt.objects.get_or_create(
                     martial_art="BJJ",
                     order_index=order,
                     defaults={
@@ -147,7 +149,22 @@ class Command(BaseCommand):
                         "is_active": True,
                     },
                 )
-                belt_objs.append(belt)
+
+        # 2. Seed tenant-scoped belts inside this tenant context
+        belt_objs = []
+        for name, color, order, sessions, months in bjj_belts:
+            belt, _ = Belt.objects.get_or_create(
+                martial_art="BJJ",
+                order_index=order,
+                defaults={
+                    "name": name,
+                    "color_hex": color,
+                    "min_attendance_sessions": sessions,
+                    "min_months_since_last": months,
+                    "is_active": True,
+                },
+            )
+            belt_objs.append(belt)
 
         # --- Class Types ---
         bjj_fund, _ = ClassType.objects.get_or_create(
