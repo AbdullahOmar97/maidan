@@ -167,6 +167,21 @@ export const api = {
     },
   },
 
+  // Families
+  families: {
+    list: (params?: Record<string, unknown>) => apiClient.get("/families/", { params }),
+    get: (id: number) => apiClient.get(`/families/${id}/`),
+    create: (data: unknown) => apiClient.post("/families/", data),
+    update: (id: number, data: unknown) => apiClient.patch(`/families/${id}/`, data),
+    delete: (id: number) => apiClient.delete(`/families/${id}/`),
+    members: (id: number) => apiClient.get(`/families/${id}/members/`),
+    addMember: (id: number, studentId: number) =>
+      apiClient.post(`/families/${id}/add_member/`, { student_id: studentId }),
+    removeMember: (id: number, studentId: number) =>
+      apiClient.post(`/families/${id}/remove_member/`, { student_id: studentId }),
+    stats: (id: number) => apiClient.get(`/families/${id}/stats/`),
+  },
+
   // Locations
   locations: {
     list: () => apiClient.get("/students/locations/"),

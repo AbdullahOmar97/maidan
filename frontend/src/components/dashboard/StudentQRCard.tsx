@@ -36,10 +36,11 @@ export default function StudentQRCard({
       const QRCode = await import("qrcode");
       const dataUrl = await QRCode.toDataURL(studentNumber, {
         width: 300,
-        margin: 2,
+        margin: 4,
         color: {
-          dark: "#ffffff",
-          light: "#00000000", // transparent background
+          // High contrast QR (best for scanners): black on white, no transparency.
+          dark: "#000000",
+          light: "#ffffff",
         },
         errorCorrectionLevel: "H",
       });

@@ -20,6 +20,8 @@ from shared.permissions import (
 from .models import Family, Location, Student, StudentDocument, StudentNote
 from .serializers import (
     FamilySerializer,
+    FamilyDetailSerializer,
+    FamilyMemberSerializer,
     LocationSerializer,
     StudentDetailSerializer,
     StudentDocumentSerializer,
@@ -82,12 +84,71 @@ class LocationViewSet(LocationFilterMixin, viewsets.ModelViewSet):
 
 
 class FamilyViewSet(viewsets.ModelViewSet):
-    """CRUD for family groups."""
-    queryset = Family.objects.all()
-    serializer_class = FamilySerializer
+    """CRUD + member management for family groups."""
+    queryset = Family.objects.prefetch_related("members").all()
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter]
-    search_fields = ["name", "primary_contact_name", "primary_contact_phone"]
+    search_fields = ["name", "primary_contact_name", "primary_contact_phone", "primary_contact_email"]
+
+    def get_serializer_class(self):
+        from .serializers import FamilyDetailSerializer
+        if self.action in ["retrieve", "members", "stats"]:
+            return FamilyDetailSerializer
+        return FamilySerializer
+
+    @action(detail=True, methods=["get"])
+    def members(self, request, pk=None):
+        """List all students belonging to this family."""
+        from .serializers import FamilyMemberSerializer
+        family = self.get_object()
+        qs = family.members.prefetch_related(
+            "belt_history__belt_rank", "memberships__plan"
+        ).all()
+        serializer = FamilyMemberSerializer(qs, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="add_member")
+    def add_member(self, request, pk=None):
+        """Attach an existing student to this family."""
+        family = self.get_object()
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"error": "يجب إرسال student_id."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            student = Student.objects.get(pk=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "الطالب غير موجود."}, status=status.HTTP_404_NOT_FOUND)
+
+        if student.family_id == family.pk:
+            return Response({"error": "الطالب مرتبط بهذه العائلة بالفعل."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Detach from old family if any
+        student.family = family
+        student.save(update_fields=["family"])
+        return Response({"message": f"تم ربط {student.full_name} بعائلة {family.name} بنجاح."})
+
+    @action(detail=True, methods=["post"], url_path="remove_member")
+    def remove_member(self, request, pk=None):
+        """Detach a student from this family."""
+        family = self.get_object()
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"error": "يجب إرسال student_id."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            student = Student.objects.get(pk=student_id, family=family)
+        except Student.DoesNotExist:
+            return Response({"error": "الطالب غير موجود في هذه العائلة."}, status=status.HTTP_404_NOT_FOUND)
+
+        student.family = None
+        student.save(update_fields=["family"])
+        return Response({"message": f"تم فصل {student.full_name} عن عائلة {family.name}."})
+
+    @action(detail=True, methods=["get"])
+    def stats(self, request, pk=None):
+        """Aggregated financial and attendance stats for the family."""
+        family = self.get_object()
+        serializer = self.get_serializer(family, context={"request": request})
+        return Response(serializer.data.get("stats", {}))
 
 
 class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.ModelViewSet):

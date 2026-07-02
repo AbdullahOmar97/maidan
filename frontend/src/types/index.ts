@@ -100,8 +100,41 @@ export interface Family {
   primary_contact_name: string;
   primary_contact_phone: string;
   primary_contact_email: string;
+  billing_address?: string;
+  notes?: string;
   member_count: number;
   created_at: string;
+}
+
+export interface FamilyMember {
+  id: number;
+  student_number: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  photo_url: string | null;
+  age: number | null;
+  gender: string;
+  phone: string;
+  email: string;
+  status: StudentStatus;
+  current_belt: { name: string; color: string; promoted_at: string } | null;
+  active_membership: { id: number; plan_name: string; status: string; end_date: string | null } | null;
+  created_at: string;
+}
+
+export interface FamilyStats {
+  member_count: number;
+  active_count: number;
+  active_memberships: number;
+  total_billed: number;
+  outstanding_balance: number;
+  attendance_last_90_days: number;
+}
+
+export interface FamilyDetail extends Family {
+  members: FamilyMember[];
+  stats: FamilyStats;
 }
 
 export interface Location {

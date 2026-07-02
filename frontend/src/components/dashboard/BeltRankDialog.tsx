@@ -64,8 +64,8 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => {
-      if (!rankToEdit) return Promise.resolve();
+    mutationFn: async () => {
+      if (!rankToEdit) throw new Error("No belt rank selected for deletion");
       return api.belts.deleteRank(rankToEdit.id);
     },
     onSuccess: () => {

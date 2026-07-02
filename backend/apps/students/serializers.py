@@ -83,6 +83,101 @@ class FamilySerializer(serializers.ModelSerializer):
         return obj.members.count()
 
 
+class FamilyMemberSerializer(serializers.ModelSerializer):
+    """Compact student snapshot for family member list."""
+    full_name = serializers.ReadOnlyField()
+    age = serializers.ReadOnlyField()
+    photo_url = serializers.SerializerMethodField()
+    current_belt = serializers.SerializerMethodField()
+    active_membership = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = [
+            "id", "student_number", "first_name", "last_name", "full_name",
+            "photo_url", "age", "gender", "phone", "email",
+            "status", "current_belt", "active_membership", "created_at",
+        ]
+
+    def get_photo_url(self, obj):
+        if obj.photo:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+        return None
+
+    def get_current_belt(self, obj):
+        belt = obj.belt_history.filter(is_current=True).first()
+        if belt:
+            return {
+                "name": belt.belt_rank.name,
+                "color": belt.belt_rank.color_hex,
+                "promoted_at": belt.promoted_at,
+            }
+        return None
+
+    def get_active_membership(self, obj):
+        membership = obj.memberships.filter(status="active").first()
+        if membership:
+            return {
+                "id": membership.id,
+                "plan_name": membership.plan.name,
+                "status": membership.status,
+                "end_date": membership.end_date,
+            }
+        return None
+
+
+class FamilyDetailSerializer(FamilySerializer):
+    """Full family detail with member list and aggregated stats."""
+    members = serializers.SerializerMethodField()
+    stats = serializers.SerializerMethodField()
+
+    class Meta(FamilySerializer.Meta):
+        fields = FamilySerializer.Meta.fields + ["members", "stats"]
+
+    def get_members(self, obj):
+        qs = obj.members.prefetch_related(
+            "belt_history__belt_rank", "memberships__plan"
+        ).all()
+        return FamilyMemberSerializer(qs, many=True, context=self.context).data
+
+    def get_stats(self, obj):
+        from django.db.models import Sum, Q
+        members = obj.members.all()
+        member_ids = list(members.values_list("id", flat=True))
+
+        active_count = members.filter(status="active").count()
+        active_memberships = members.filter(memberships__status="active").distinct().count()
+
+        # Total invoices and outstanding balance
+        from apps.billing.models import Invoice
+        invoices = Invoice.objects.filter(student_id__in=member_ids)
+        total_billed = invoices.aggregate(t=Sum("total_amount"))["t"] or 0
+        outstanding = invoices.filter(
+            status__in=["pending", "overdue"]
+        ).aggregate(t=Sum("amount_due"))["t"] or 0
+
+        # Attendance count (last 90 days)
+        from apps.attendance.models import AttendanceRecord
+        from django.utils import timezone
+        import datetime
+        since = timezone.now() - datetime.timedelta(days=90)
+        attendance_count = AttendanceRecord.objects.filter(
+            student_id__in=member_ids,
+            checked_in_at__gte=since,
+        ).count()
+
+        return {
+            "member_count": len(member_ids),
+            "active_count": active_count,
+            "active_memberships": active_memberships,
+            "total_billed": float(total_billed),
+            "outstanding_balance": float(outstanding),
+            "attendance_last_90_days": attendance_count,
+        }
+
+
 class KioskStudentSerializer(serializers.ModelSerializer):
     """Minimal student data for kiosk search."""
     full_name = serializers.ReadOnlyField()
