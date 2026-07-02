@@ -27,7 +27,7 @@ export default function KioskPage() {
   // Inputs
   const [searchValue, setSearchValue] = useState("");
   const [phoneValue, setPhoneValue] = useState("");
-  const [codeValue, setCodeValue] = useState("");
+  const [codeSuffix, setCodeSuffix] = useState("");
   
   // State for check-in status
   const [lastCheckIn, setLastCheckIn] = useState<{ name: string; success: boolean; message: string } | null>(null);
@@ -35,6 +35,8 @@ export default function KioskPage() {
   const queryClient = useQueryClient();
   const scannerRef = useRef<any>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [isQrStarting, setIsQrStarting] = useState(false);
+  const [isQrRunning, setIsQrRunning] = useState(false);
   const lastDecodedRef = useRef<{ text: string; at: number } | null>(null);
 
   const handleSelectLocation = (loc: Location) => {
@@ -132,7 +134,7 @@ export default function KioskPage() {
       });
       setSearchValue("");
       setPhoneValue("");
-      setCodeValue("");
+      setCodeSuffix("");
       queryClient.invalidateQueries({ queryKey: ["kiosk", "sessions"] });
     },
     onError: (error: any) => {
@@ -146,9 +148,27 @@ export default function KioskPage() {
     let isCancelled = false;
     let html5: any = null;
 
+    async function stopExisting() {
+      const inst = scannerRef.current;
+      if (!inst) return;
+      scannerRef.current = null;
+      try {
+        if (inst?.stop) await inst.stop();
+      } catch {
+        // ignore
+      }
+      try {
+        if (inst?.clear) await inst.clear();
+      } catch {
+        // ignore
+      }
+      setIsQrRunning(false);
+    }
+
     async function start() {
       if (activeTab !== "qr" || !selectedLocation) return;
       setScanError(null);
+      setIsQrStarting(true);
 
       const container = document.getElementById("kiosk-qr-reader");
       if (!container) return;
@@ -159,11 +179,26 @@ export default function KioskPage() {
         if (isCancelled) return;
 
         const { Html5Qrcode } = mod as any;
+        await stopExisting();
         html5 = new Html5Qrcode("kiosk-qr-reader");
         scannerRef.current = html5;
 
+        // Prefer selecting a real camera device (more reliable than facingMode on many browsers/devices).
+        let cameraConfig: any = { facingMode: "environment" };
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          if (Array.isArray(cameras) && cameras.length > 0) {
+            const preferred =
+              cameras.find((c: any) => /back|rear|environment/i.test(c?.label ?? "")) ??
+              cameras[cameras.length - 1];
+            if (preferred?.id) cameraConfig = { deviceId: { exact: preferred.id } };
+          }
+        } catch {
+          // ignore — fallback to facingMode
+        }
+
         await html5.start(
-          { facingMode: "environment" },
+          cameraConfig,
           { fps: 12, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0, disableFlip: true },
           (decodedText: string) => {
             const txt = (decodedText ?? "").trim();
@@ -186,18 +221,24 @@ export default function KioskPage() {
             // Per-frame decode errors are noisy; ignore.
           }
         );
+        setIsQrRunning(true);
       } catch (e: any) {
         const message =
           e?.name === "NotAllowedError"
             ? "تم رفض إذن الكاميرا. يرجى السماح للكاميرا ثم تحديث الصفحة."
             : e?.name === "NotFoundError"
             ? "لم يتم العثور على كاميرا على هذا الجهاز."
+          : e?.name === "NotReadableError"
+            ? "تعذر تشغيل الكاميرا (قد تكون مستخدمة من تطبيق/تبويب آخر). أغلق أي تطبيق يستخدم الكاميرا ثم أعد المحاولة."
             : e?.name === "OverconstrainedError"
             ? "تعذر اختيار الكاميرا الخلفية. جرّب جهاز/متصفح آخر."
             : typeof e?.message === "string"
             ? e.message
             : "تعذر تشغيل الكاميرا لمسح QR.";
         setScanError(message);
+        setIsQrRunning(false);
+      } finally {
+        setIsQrStarting(false);
       }
     }
 
@@ -205,14 +246,7 @@ export default function KioskPage() {
 
     return () => {
       isCancelled = true;
-      const inst = scannerRef.current;
-      scannerRef.current = null;
-      if (inst?.stop) {
-        inst.stop().catch(() => null);
-      }
-      if (inst?.clear) {
-        inst.clear?.().catch(() => null);
-      }
+      stopExisting();
     };
   }, [activeTab, selectedLocation]);
 
@@ -246,8 +280,10 @@ export default function KioskPage() {
 
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!codeValue.trim()) return;
-    checkinMutation.mutate({ student_number: codeValue.trim() });
+    const raw = codeSuffix.trim();
+    if (!raw) return;
+    const studentNumber = raw.toUpperCase().startsWith("STU-") ? raw : `STU-${raw}`;
+    checkinMutation.mutate({ student_number: studentNumber });
   };
 
   return (
@@ -407,6 +443,20 @@ export default function KioskPage() {
                     <p className="text-muted-foreground text-sm mb-2">
                       ضع رمز الـ QR الخاص بك أمام كاميرا الجهاز اللوحي لتسجيل حضورك مباشرة
                     </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Trigger a re-run by toggling tab quickly: easiest reliable "retry" without refactor.
+                          setActiveTab("keypad");
+                          setTimeout(() => setActiveTab("qr"), 0);
+                        }}
+                        disabled={isQrStarting}
+                        className="px-4 py-2 rounded-lg border border-border bg-card/50 hover:bg-primary/10 transition-all text-sm font-semibold"
+                      >
+                        {isQrStarting ? "جاري تشغيل الكاميرا..." : (isQrRunning ? "إعادة تشغيل الكاميرا" : "تشغيل الكاميرا")}
+                      </button>
+                    </div>
                     {scanError && (
                       <div className="mx-auto max-w-md text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl p-3">
                         {scanError}
@@ -492,18 +542,27 @@ export default function KioskPage() {
                     </div>
 
                     <form onSubmit={handleCodeSubmit} className="space-y-4">
-                      <input
-                        id="kiosk-code-input"
-                        type="text"
-                        value={codeValue}
-                        onChange={(e) => setCodeValue(e.target.value)}
-                        placeholder="STU-XXXXXX..."
-                        className="w-full py-4 text-xl rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none text-center font-mono font-bold tracking-wider"
-                        autoComplete="off"
-                      />
+                      <div className="w-full rounded-xl bg-secondary/50 border border-border focus-within:border-primary/50 overflow-hidden flex items-stretch font-mono font-bold tracking-wider">
+                        <div className="px-4 flex items-center justify-center bg-secondary/60 border-e border-border text-muted-foreground text-xl select-none">
+                          STU-
+                        </div>
+                        <input
+                          id="kiosk-code-input"
+                          type="text"
+                          inputMode="text"
+                          value={codeSuffix}
+                          onChange={(e) => {
+                            const v = e.target.value ?? "";
+                            setCodeSuffix(v.replace(/^STU-/i, ""));
+                          }}
+                          placeholder="XXXXXX..."
+                          className="flex-1 py-4 text-xl bg-transparent focus:outline-none text-center"
+                          autoComplete="off"
+                        />
+                      </div>
                       <button
                         type="submit"
-                        disabled={!codeValue.trim() || checkinMutation.isPending}
+                        disabled={!codeSuffix.trim() || checkinMutation.isPending}
                         className="w-full py-4 rounded-xl gradient-brand text-white font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
                       >
                         {checkinMutation.isPending ? (
