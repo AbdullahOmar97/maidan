@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt, PlatformSettings, SubscriptionChangeRequest
+from .models import Domain, Plan, Tenant, TenantSubscription, Belt, PlatformSettings, SubscriptionChangeRequest
 
 
-@admin.register(GlobalDefaultBelt)
-class GlobalDefaultBeltAdmin(admin.ModelAdmin):
+@admin.register(Belt)
+class BeltAdmin(admin.ModelAdmin):
     list_display = ("name", "name_ar", "martial_art", "order_index", "min_attendance_sessions", "min_months_since_last", "is_active")
     list_filter = ("martial_art", "is_active")
     search_fields = ("name", "name_ar")

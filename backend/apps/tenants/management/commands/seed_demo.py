@@ -73,7 +73,7 @@ class Command(BaseCommand):
 
     def _seed_tenant_data(self):
         from apps.students.models import Location, Student, Family
-        from apps.belts.models import BeltRank, StudentBelt
+        from apps.belts.models import StudentBelt
         from apps.attendance.models import ClassType, ClassSchedule, ClassSession, AttendanceRecord
         from apps.billing.models import MembershipPlan, Membership, Invoice
         from apps.accounts.models import User
@@ -123,6 +123,9 @@ class Command(BaseCommand):
         )
 
         # --- Belt Ranks (BJJ) ---
+        from apps.tenants.models import Belt
+        from django_tenants.utils import schema_context
+
         bjj_belts = [
             ("White", "#FFFFFF", 0, 0, 0),
             ("Blue", "#1E3A8A", 1, 50, 12),
@@ -131,19 +134,20 @@ class Command(BaseCommand):
             ("Black", "#111827", 4, 250, 36),
         ]
         belt_objs = []
-        for name, color, order, sessions, months in bjj_belts:
-            belt, _ = BeltRank.objects.get_or_create(
-                martial_art="BJJ",
-                order_index=order,
-                defaults={
-                    "name": name,
-                    "color_hex": color,
-                    "min_attendance_sessions": sessions,
-                    "min_months_since_last": months,
-                    "is_active": True,
-                },
-            )
-            belt_objs.append(belt)
+        with schema_context("public"):
+            for name, color, order, sessions, months in bjj_belts:
+                belt, _ = Belt.objects.get_or_create(
+                    martial_art="BJJ",
+                    order_index=order,
+                    defaults={
+                        "name": name,
+                        "color_hex": color,
+                        "min_attendance_sessions": sessions,
+                        "min_months_since_last": months,
+                        "is_active": True,
+                    },
+                )
+                belt_objs.append(belt)
 
         # --- Class Types ---
         bjj_fund, _ = ClassType.objects.get_or_create(

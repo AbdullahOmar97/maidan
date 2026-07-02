@@ -198,8 +198,8 @@ class TenantSubscription(models.Model):
             return monthly * 21
         return monthly
 
-class GlobalDefaultBelt(models.Model):
-    """Platform-wide default belts to be seeded into new tenants."""
+class Belt(models.Model):
+    """Platform-wide shared belts for all tenants."""
     martial_art = models.CharField(max_length=100, default="BJJ")
     name = models.CharField(max_length=100)
     name_ar = models.CharField(max_length=100, blank=True)
@@ -216,8 +216,8 @@ class GlobalDefaultBelt(models.Model):
     class Meta:
         app_label = "tenants"
         ordering = ["martial_art", "order_index"]
-        verbose_name = "Global Default Belt"
-        verbose_name_plural = "Global Default Belts"
+        verbose_name = "Belt"
+        verbose_name_plural = "Belts"
 
     def __str__(self):
         return f"[{self.martial_art}] {self.name} ({self.name_ar})"

@@ -14,7 +14,8 @@ logger = logging.getLogger("maidan.belts")
 def check_promotion_eligibility(schema_name: str):
     """Compute belt promotion eligibility for all active students in one tenant schema."""
     from apps.students.models import Student
-    from apps.belts.models import BeltRank, StudentBelt, PromotionEligibility
+    from apps.belts.models import StudentBelt, PromotionEligibility
+    from apps.tenants.models import Belt
     from apps.attendance.models import AttendanceRecord
 
     updated = 0
@@ -28,7 +29,7 @@ def check_promotion_eligibility(schema_name: str):
             if not current_belt:
                 continue
 
-            next_belt = BeltRank.objects.filter(
+            next_belt = Belt.objects.filter(
                 martial_art=current_belt.belt_rank.martial_art,
                 order_index__gt=current_belt.belt_rank.order_index,
                 is_active=True,

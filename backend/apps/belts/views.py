@@ -1,12 +1,13 @@
 """MAIDAN — Belts App Views"""
 from rest_framework import filters, permissions, serializers, viewsets
 from shared.permissions import IsStaff, IsTenantOwnerOrManager
-from .models import BeltRank, StudentBelt, PromotionEligibility
+from apps.tenants.models import Belt
+from .models import StudentBelt, PromotionEligibility
 
 
 class BeltRankSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BeltRank
+        model = Belt
         fields = "__all__"
         read_only_fields = ["id", "created_at"]
 
@@ -39,7 +40,7 @@ class PromotionEligibilitySerializer(serializers.ModelSerializer):
 
 
 class BeltRankViewSet(viewsets.ModelViewSet):
-    queryset = BeltRank.objects.filter(is_active=True).order_by("martial_art", "order_index")
+    queryset = Belt.objects.filter(is_active=True).order_by("martial_art", "order_index")
     serializer_class = BeltRankSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter]

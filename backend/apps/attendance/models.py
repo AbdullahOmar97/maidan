@@ -18,7 +18,7 @@ class ClassType(models.Model):
     default_duration_minutes = models.PositiveIntegerField(default=60)
     color = models.CharField(max_length=7, default="#6366f1")
     min_belt_rank = models.ForeignKey(
-        "belts.BeltRank", on_delete=models.SET_NULL, null=True, blank=True,
+        "tenants.Belt", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="minimum_class_types",
     )
     is_active = models.BooleanField(default=True)
