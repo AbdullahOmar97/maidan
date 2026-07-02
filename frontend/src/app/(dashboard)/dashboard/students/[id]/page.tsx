@@ -9,7 +9,7 @@ import {
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
-  Filter, Clock
+  Filter, Clock, QrCode
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -25,6 +25,7 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import AddNoteDialog from "@/components/dashboard/AddNoteDialog";
 import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
+import StudentQRCard from "@/components/dashboard/StudentQRCard";
 
 export default function StudentDetailPage() {
   const { tenant } = useTenant();
@@ -50,6 +51,7 @@ export default function StudentDetailPage() {
   const [docToDelete, setDocToDelete] = useState<StudentDocument | null>(null);
   const [docSearchQuery, setDocSearchQuery] = useState("");
   const [docTypeFilter, setDocTypeFilter] = useState("all");
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   const studentId = Number(id);
 
@@ -444,6 +446,15 @@ export default function StudentDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* QR Card — Inline in Sidebar */}
+            <StudentQRCard
+              inline
+              studentNumber={student.student_number}
+              studentName={student.full_name}
+              beltName={student.current_belt?.name}
+              beltColor={student.current_belt?.color}
+            />
           </div>
 
           {/* Main Content Area */}
