@@ -22,6 +22,7 @@ export default function BeltsPage() {
 
   const [isBeltRankDialogOpen, setIsBeltRankDialogOpen] = useState(false);
   const [rankToEdit, setRankToEdit] = useState<BeltRank | undefined>(undefined);
+  const [activeSport, setActiveSport] = useState<string>("BJJ");
 
   const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank>>({
     queryKey: ["belts", "ranks"],
@@ -35,6 +36,12 @@ export default function BeltsPage() {
 
   const ranks = ranksData?.results || [];
   const eligibility = eligibilityData?.results || [];
+
+  const availableSports = Array.from(new Set(ranks.map((r) => r.martial_art))).filter(Boolean);
+  const sports = availableSports.length > 0 ? availableSports : ["BJJ", "Karate", "Taekwondo", "Judo"];
+  const currentSport = sports.includes(activeSport) ? activeSport : sports[0] || "BJJ";
+
+  const filteredRanks = ranks.filter((rank) => rank.martial_art === currentSport);
 
   return (
     <PermissionGuard permission="can_manage_belts">
@@ -65,6 +72,22 @@ export default function BeltsPage() {
             </div>
           </div>
 
+          <div className="flex border-b border-border/40 gap-2 mb-2 overflow-x-auto pb-1.5 scrollbar-thin">
+            {sports.map((sport) => (
+              <button
+                key={sport}
+                onClick={() => setActiveSport(sport)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  currentSport === sport
+                    ? "bg-primary/10 border border-primary/20 text-primary"
+                    : "hover:bg-secondary/40 text-muted-foreground"
+                }`}
+              >
+                {sport}
+              </button>
+            ))}
+          </div>
+
           {ranksLoading ? (
             <div className="space-y-3">
               {[...Array(6)].map((_, i) => (
@@ -73,27 +96,33 @@ export default function BeltsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {ranks.map((rank) => (
-                <div 
-                  key={rank.id} 
-                  onClick={() => {
-                    setRankToEdit(rank);
-                    setIsBeltRankDialogOpen(true);
-                  }}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-all group"
-                  title="تعديل الحزام"
-                >
-                  <div className="w-8 h-8 rounded-full shadow-sm shrink-0" style={{ backgroundColor: rank.color_hex }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                      {rank.name} {rank.name_ar && `(${rank.name_ar})`}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {rank.martial_art} • {rank.min_attendance_sessions} حصة • {rank.min_months_since_last} شهر
-                    </p>
+              {filteredRanks.length > 0 ? (
+                filteredRanks.map((rank) => (
+                  <div 
+                    key={rank.id} 
+                    onClick={() => {
+                      setRankToEdit(rank);
+                      setIsBeltRankDialogOpen(true);
+                    }}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-all group"
+                    title="تعديل الحزام"
+                  >
+                    <div className="w-8 h-8 rounded-full shadow-sm shrink-0" style={{ backgroundColor: rank.color_hex }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                        {rank.name} {rank.name_ar && `(${rank.name_ar})`}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {rank.martial_art} • {rank.min_attendance_sessions} حصة • {rank.min_months_since_last} شهر
+                      </p>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  لا توجد أحزمة مضافة لرياضة {currentSport}.
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -199,6 +228,7 @@ export default function BeltsPage() {
             setRankToEdit(undefined);
           }}
           rankToEdit={rankToEdit}
+          defaultMartialArt={currentSport}
         />
       )}
     </div>

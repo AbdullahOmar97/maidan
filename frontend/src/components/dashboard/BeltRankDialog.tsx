@@ -14,9 +14,10 @@ interface BeltRankDialogProps {
   isOpen: boolean;
   onClose: () => void;
   rankToEdit?: BeltRank;
+  defaultMartialArt?: string;
 }
 
-export default function BeltRankDialog({ isOpen, onClose, rankToEdit }: BeltRankDialogProps) {
+export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMartialArt }: BeltRankDialogProps) {
   const queryClient = useQueryClient();
   const isEdit = !!rankToEdit;
 
@@ -38,7 +39,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit }: BeltRank
       setMinSessions(rankToEdit.min_attendance_sessions ?? 0);
       setMinMonths(rankToEdit.min_months_since_last ?? 0);
     } else {
-      setMartialArt("BJJ");
+      setMartialArt(defaultMartialArt || "BJJ");
       setName("");
       setNameAr("");
       setColorHex("#FFFFFF");

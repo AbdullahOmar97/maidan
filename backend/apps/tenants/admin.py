@@ -6,10 +6,27 @@ from .models import Domain, Plan, Tenant, TenantSubscription, GlobalDefaultBelt,
 
 @admin.register(GlobalDefaultBelt)
 class GlobalDefaultBeltAdmin(admin.ModelAdmin):
-    list_display = ("name", "name_ar", "martial_art", "order_index", "min_attendance_sessions", "min_months_since_last", "is_active")
+    list_display = (
+        "order_index",
+        "martial_art",
+        "name",
+        "name_ar",
+        "min_attendance_sessions",
+        "min_months_since_last",
+        "is_active",
+    )
+    list_editable = (
+        "name",
+        "name_ar",
+        "order_index",
+        "min_attendance_sessions",
+        "min_months_since_last",
+        "is_active",
+    )
     list_filter = ("martial_art", "is_active")
-    search_fields = ("name", "name_ar")
+    search_fields = ("name", "name_ar", "martial_art")
     ordering = ("martial_art", "order_index")
+    list_per_page = 50
 
 @admin.register(PlatformSettings)
 class PlatformSettingsAdmin(admin.ModelAdmin):

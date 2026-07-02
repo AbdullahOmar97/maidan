@@ -17,6 +17,7 @@ class Migration(migrations.Migration):
             name="next_belt",
             field=models.ForeignKey(
                 blank=True,
+                db_constraint=False,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 to="tenants.belt",
@@ -26,6 +27,7 @@ class Migration(migrations.Migration):
             model_name="studentbelt",
             name="belt_rank",
             field=models.ForeignKey(
+                db_constraint=False,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="promotions",
                 to="tenants.belt",

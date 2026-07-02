@@ -4,6 +4,43 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def copy_default_belts_to_tenant(apps, schema_editor):
+    schema_name = schema_editor.connection.schema_name
+    if schema_name == 'public':
+        return
+
+    from django_tenants.utils import schema_context
+    TenantBelt = apps.get_model('belts', 'Belt')
+    
+    with schema_context('public'):
+        from apps.tenants.models import GlobalDefaultBelt
+        global_belts_data = list(GlobalDefaultBelt.objects.values(
+            'id', 'martial_art', 'name', 'name_ar', 'color_hex', 'order_index',
+            'min_attendance_sessions', 'min_months_since_last', 'is_active'
+        ))
+
+    for data in global_belts_data:
+        TenantBelt.objects.update_or_create(
+            id=data['id'],
+            defaults={
+                'martial_art': data['martial_art'],
+                'name': data['name'],
+                'name_ar': data['name_ar'],
+                'color_hex': data['color_hex'],
+                'order_index': data['order_index'],
+                'min_attendance_sessions': data['min_attendance_sessions'],
+                'min_months_since_last': data['min_months_since_last'],
+                'is_active': data['is_active'],
+            }
+        )
+
+    if global_belts_data:
+        # Reset postgres ID sequence for this tenant schema
+        with schema_editor.connection.cursor() as cursor:
+            table_name = TenantBelt._meta.db_table
+            cursor.execute(f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), COALESCE(MAX(id), 1)) FROM {table_name}")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -30,6 +67,10 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Belts',
                 'ordering': ['martial_art', 'order_index'],
             },
+        ),
+        migrations.RunPython(
+            code=copy_default_belts_to_tenant,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AlterField(
             model_name='promotioneligibility',
