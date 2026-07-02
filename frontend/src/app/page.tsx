@@ -55,7 +55,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-xl font-black tracking-tighter text-gradient">MAIDAN</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80">نظام إدارة الدوجو</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80">نظام إدارة الأندية الرياضية</p>
             </div>
           </div>
 

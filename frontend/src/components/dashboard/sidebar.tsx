@@ -214,7 +214,7 @@ function LogoHeader() {
           {tenant?.name || "MAIDAN"}
         </p>
         <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mt-1 truncate">
-          {tenant?.name ? "نظام الأكاديمية" : "نظام الدوجو"}
+          {tenant?.name ? "نظام الأكاديمية" : "نظام الأندية الرياضية"}
         </p>
       </div>
     </div>
