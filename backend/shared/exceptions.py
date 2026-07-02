@@ -10,6 +10,8 @@ from rest_framework import status
 logger = logging.getLogger("maidan")
 
 
+from django.db.models import ProtectedError
+
 def custom_exception_handler(exc, context):
     """
     Custom DRF exception handler that returns consistent error format:
@@ -21,6 +23,17 @@ def custom_exception_handler(exc, context):
         }
     }
     """
+    if isinstance(exc, ProtectedError):
+        return Response(
+            {
+                "error": {
+                    "code": "protected_relation_error",
+                    "message": "لا يمكن حذف هذا الحزام لأنه مرتبط ببيانات طلاب مسجلين به حالياً. يرجى نقل الطلاب إلى حزام آخر أولاً.",
+                }
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     response = exception_handler(exc, context)
 
     if response is not None:

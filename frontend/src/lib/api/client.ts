@@ -194,7 +194,7 @@ export const api = {
       list: (sessionId: number) =>
         apiClient.get("/attendance/records/", { params: { session_id: sessionId } }),
       create: (data: unknown) => apiClient.post("/attendance/records/", data),
-      kiosk: (data: { student_id: number; session_id?: number }) =>
+      kiosk: (data: { student_id?: number; student_number?: string; phone?: string; session_id?: number }) =>
         apiClient.post("/attendance/records/kiosk/", data),
     },
     classTypes: () => apiClient.get("/attendance/class-types/"),

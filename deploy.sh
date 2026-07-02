@@ -23,6 +23,9 @@ git pull origin main
 echo "[$(date)] Rebuilding and starting docker containers..."
 docker compose -f docker-compose.prod.yml up -d --build
 
+echo "[$(date)] Reloading Nginx to refresh container DNS resolution..."
+docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+
 # 3. Apply database migrations
 echo "[$(date)] Applying shared database migrations..."
 docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate_schemas --shared

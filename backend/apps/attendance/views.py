@@ -83,7 +83,9 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
 
 class KioskCheckInSerializer(serializers.Serializer):
     """Lightweight check-in for kiosk mode."""
-    student_id = serializers.IntegerField()
+    student_id = serializers.IntegerField(required=False)
+    student_number = serializers.CharField(required=False)
+    phone = serializers.CharField(required=False)
     session_id = serializers.IntegerField(required=False)
 
 
@@ -190,15 +192,42 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
 
         from apps.students.models import Student
-        try:
-            student = Student.objects.select_related("location").get(
-                id=data["student_id"], 
-                status__in=["active", "trial"]
+        from django.db.models import Q
+        
+        student_id = data.get("student_id")
+        student_number = data.get("student_number")
+        phone = data.get("phone")
+        
+        # Build query filter
+        q_filter = Q(status__in=["active", "trial"])
+        if student_id:
+            q_filter &= Q(id=student_id)
+        elif student_number:
+            q_filter &= Q(student_number=student_number)
+        elif phone:
+            q_filter &= Q(phone=phone)
+        else:
+            return Response(
+                {"error": "يجب تحديد معرف الطالب أو الرمز الخاص به أو رقم هاتفه."},
+                status=status.HTTP_400_BAD_REQUEST
             )
+
+        try:
+            student = Student.objects.select_related("location").get(q_filter)
         except Student.DoesNotExist:
             return Response(
-                {"error": "هذا الطالب غير مسجل أو حسابه غير نشط."},
+                {"error": "هذا الطالب غير مسجل، حسابه غير نشط، أو البيانات غير صحيحة."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Student.MultipleObjectsReturned:
+            if phone:
+                return Response(
+                    {"error": "يوجد أكثر من طالب مسجل بنفس رقم الهاتف. يرجى استخدام رمز الطالب أو بطاقة الـ QR."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {"error": "حدث خطأ أثناء تحديد بيانات الطالب."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         # Get local time for the student's location
