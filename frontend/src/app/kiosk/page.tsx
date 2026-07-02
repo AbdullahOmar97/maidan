@@ -34,6 +34,8 @@ export default function KioskPage() {
   const [isOnline, setIsOnline] = useState(true);
   const queryClient = useQueryClient();
   const scannerRef = useRef<any>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const lastDecodedRef = useRef<{ text: string; at: number } | null>(null);
 
   const handleSelectLocation = (loc: Location) => {
     setSelectedLocation(loc);
@@ -141,43 +143,75 @@ export default function KioskPage() {
 
   // Camera QR scanner effect
   useEffect(() => {
-    let scannerInstance: any = null;
+    let isCancelled = false;
+    let html5: any = null;
 
-    if (activeTab === "qr" && selectedLocation) {
-      import("html5-qrcode").then(({ Html5QrcodeScanner }) => {
-        setTimeout(() => {
-          const container = document.getElementById("kiosk-qr-reader");
-          if (!container) return;
+    async function start() {
+      if (activeTab !== "qr" || !selectedLocation) return;
+      setScanError(null);
 
-          scannerInstance = new Html5QrcodeScanner(
-            "kiosk-qr-reader",
-            { 
-              fps: 10, 
-              qrbox: { width: 220, height: 220 },
-              aspectRatio: 1.0
-            },
-            /* verbose= */ false
-          );
-          
-          scannerRef.current = scannerInstance;
+      const container = document.getElementById("kiosk-qr-reader");
+      if (!container) return;
+      container.innerHTML = "";
 
-          scannerInstance.render(
-            (decodedText: string) => {
-              if (decodedText) {
-                checkinMutation.mutate({ student_number: decodedText });
-              }
-            },
-            (error: any) => {
-              // silent fail for individual frame scan failures
-            }
-          );
-        }, 200);
-      }).catch(err => console.error("Error loading html5-qrcode library", err));
+      try {
+        const mod = await import("html5-qrcode");
+        if (isCancelled) return;
+
+        const { Html5Qrcode } = mod as any;
+        html5 = new Html5Qrcode("kiosk-qr-reader");
+        scannerRef.current = html5;
+
+        await html5.start(
+          { facingMode: "environment" },
+          { fps: 12, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0, disableFlip: true },
+          (decodedText: string) => {
+            const txt = (decodedText ?? "").trim();
+            if (!txt) return;
+
+            const now = Date.now();
+            const last = lastDecodedRef.current;
+            if (last && last.text === txt && now - last.at < 2500) return;
+            lastDecodedRef.current = { text: txt, at: now };
+
+            // Stop scanning immediately to avoid duplicate check-ins.
+            html5
+              .stop()
+              .catch(() => null)
+              .finally(() => {
+                checkinMutation.mutate({ student_number: txt });
+              });
+          },
+          () => {
+            // Per-frame decode errors are noisy; ignore.
+          }
+        );
+      } catch (e: any) {
+        const message =
+          e?.name === "NotAllowedError"
+            ? "تم رفض إذن الكاميرا. يرجى السماح للكاميرا ثم تحديث الصفحة."
+            : e?.name === "NotFoundError"
+            ? "لم يتم العثور على كاميرا على هذا الجهاز."
+            : e?.name === "OverconstrainedError"
+            ? "تعذر اختيار الكاميرا الخلفية. جرّب جهاز/متصفح آخر."
+            : typeof e?.message === "string"
+            ? e.message
+            : "تعذر تشغيل الكاميرا لمسح QR.";
+        setScanError(message);
+      }
     }
 
+    start();
+
     return () => {
-      if (scannerInstance) {
-        scannerInstance.clear().catch((err: any) => console.log("HTML5Qrcode cleanup error", err));
+      isCancelled = true;
+      const inst = scannerRef.current;
+      scannerRef.current = null;
+      if (inst?.stop) {
+        inst.stop().catch(() => null);
+      }
+      if (inst?.clear) {
+        inst.clear?.().catch(() => null);
       }
     };
   }, [activeTab, selectedLocation]);
@@ -373,6 +407,11 @@ export default function KioskPage() {
                     <p className="text-muted-foreground text-sm mb-2">
                       ضع رمز الـ QR الخاص بك أمام كاميرا الجهاز اللوحي لتسجيل حضورك مباشرة
                     </p>
+                    {scanError && (
+                      <div className="mx-auto max-w-md text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl p-3">
+                        {scanError}
+                      </div>
+                    )}
                     <div className="relative mx-auto max-w-[280px] aspect-square rounded-2xl overflow-hidden border border-border bg-black/40 flex items-center justify-center shadow-lg">
                       <div id="kiosk-qr-reader" className="w-full h-full" />
                       {/* Decorative scanning laser animation */}
