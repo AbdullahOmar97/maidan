@@ -18,6 +18,7 @@ import {
   Building2,
   UserCheck,
   X,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
@@ -37,6 +38,7 @@ const navItems = [
   { label: "الفواتير",     labelEn: "Billing",    href: "/dashboard/billing",    icon: CreditCard,      permission: "can_view_billing" },
   { label: "الجدول",       labelEn: "Schedule",   href: "/dashboard/scheduling", icon: Calendar,        permission: "can_manage_schedules" },
   { label: "الرسائل",      labelEn: "Messaging",  href: "/dashboard/messaging",  icon: MessageCircle },
+  { label: "المتجر",       labelEn: "Store",      href: "/dashboard/store",      icon: ShoppingBag },
   { label: "التقارير",     labelEn: "Reports",    href: "/dashboard/reporting",  icon: BarChart3,       permission: "can_view_reports" },
   { label: "الموظفون",     labelEn: "Staff",      href: "/dashboard/staff",      icon: UserCheck,       permission: "can_manage_staff" },
   { label: "الفروع",       labelEn: "Locations",  href: "/dashboard/locations",  icon: Building2,       permission: "can_manage_locations" },
