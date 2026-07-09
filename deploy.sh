@@ -20,6 +20,12 @@ echo "[$(date)] Pulling latest code from GitHub..."
 git pull origin main
 
 # 2. Rebuild and restart the container services
+echo "[$(date)] Pruning docker builder cache..."
+docker builder prune -f
+
+echo "[$(date)] Rebuilding frontend container without cache..."
+docker compose -f docker-compose.prod.yml build --no-cache frontend
+
 echo "[$(date)] Rebuilding and starting docker containers..."
 docker compose -f docker-compose.prod.yml up -d --build
 
