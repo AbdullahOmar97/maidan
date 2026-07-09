@@ -20,6 +20,8 @@ class ProductViewSet(AuditMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy", "add_option"]:
             return [IsStaff()]
+        if self.action in ["list", "retrieve"]:
+            return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
@@ -47,10 +49,14 @@ class OrderViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = OrderSerializer
 
     def get_permissions(self):
+        if self.action == "create":
+            return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
+        if not user or not user.is_authenticated:
+            return Order.objects.none()
         if user.role in RoleChoices.STAFF_ROLES or user.is_staff:
             return Order.objects.all()
 
@@ -62,12 +68,12 @@ class OrderViewSet(AuditMixin, viewsets.ModelViewSet):
         return Order.objects.filter(student__family__primary_contact_email=user.email)
 
     def perform_create(self, serializer):
-        # Student profiles are automatically set for student accounts if not provided
         user = self.request.user
-        if not (user.role in RoleChoices.STAFF_ROLES or user.is_staff):
-            if hasattr(user, "student_profile"):
-                serializer.save(student=user.student_profile)
-                return
+        if user and user.is_authenticated:
+            if not (user.role in RoleChoices.STAFF_ROLES or user.is_staff):
+                if hasattr(user, "student_profile"):
+                    serializer.save(student=user.student_profile)
+                    return
         serializer.save()
 
     @action(detail=True, methods=["post"], url_path="update-status", permission_classes=[IsStaff])

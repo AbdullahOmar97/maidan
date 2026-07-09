@@ -16,7 +16,21 @@ class StoreAPITestCase(TenantTestCase):
 
     def setUp(self):
         super().setUp()
+        
+        # Force switch schema connection to prevent state mismatches from request lifecycles
+        from django.db import connection
+        connection.set_schema_to_public()
+        connection.set_tenant(self.tenant)
+        
+        # Ensure the test tenant status is active/trial so it bypasses TenantStatusMiddleware
+        self.tenant.status = "trial"
+        self.tenant.is_active = True
+        self.tenant.save()
+
         self.client = APIClient()
+        # Ensure the test client requests are routed to the tenant schema
+        tenant_domain = self.tenant.domains.first().domain
+        self.client.credentials(HTTP_HOST=tenant_domain)
 
         # Create a test location (required for Student)
         self.location = Location.objects.create(
@@ -88,13 +102,32 @@ class StoreAPITestCase(TenantTestCase):
             is_active=True
         )
 
+    def get_data(self, response):
+        """Helper to extract JSON data from DRF Response or Django JsonResponse."""
+        if hasattr(response, "data") and response.data is not None:
+            return response.data
+        import json
+        return json.loads(response.content.decode("utf-8"))
+
+    def tearDown(self):
+        # Clean up database state since TransactionTestCase does not rollback automatically
+        OrderItem.objects.all().delete()
+        Order.objects.all().delete()
+        Invoice.objects.all().delete()
+        ProductOption.objects.all().delete()
+        Product.objects.all().delete()
+        Student.objects.all().delete()
+        super().tearDown()
+
     def test_list_products_authenticated(self):
         """Authenticated users should be able to list active products."""
         self.client.force_authenticate(user=self.student_user)
         response = self.client.get("/api/v1/store/products/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        res_data = self.get_data(response)
+        results = res_data.get("results") if isinstance(res_data, dict) else res_data
         # Should see 2 products (uniform and belt)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(results), 2)
 
     def test_staff_create_product(self):
         """Staff should be able to create new products and options."""
@@ -107,7 +140,7 @@ class StoreAPITestCase(TenantTestCase):
         }
         response = self.client.post("/api/v1/store/products/", product_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        product_id = response.data["id"]
+        product_id = self.get_data(response)["id"]
 
         # Add an option
         option_data = {
@@ -157,16 +190,17 @@ class StoreAPITestCase(TenantTestCase):
         
         response = self.client.post("/api/v1/store/orders/", order_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        res_data = self.get_data(response)
         
         # Total: (45.00 * 2) + 15.00 = 105.00
-        self.assertEqual(Decimal(response.data["total_amount"]), Decimal("105.00"))
+        self.assertEqual(Decimal(res_data["total_amount"]), Decimal("105.00"))
         
         # Stock check: M size uniform should be 8 (10 - 2)
         self.size_m.refresh_from_db()
         self.assertEqual(self.size_m.stock, 8)
         
         # Invoice check: an invoice must have been generated
-        invoice_id = response.data["invoice"]
+        invoice_id = res_data["invoice"]
         self.assertTrue(invoice_id)
         invoice = Invoice.objects.get(id=invoice_id)
         self.assertEqual(invoice.total_amount, Decimal("105.00"))
@@ -212,7 +246,8 @@ class StoreAPITestCase(TenantTestCase):
         
         # Create order
         response = self.client.post("/api/v1/store/orders/", order_data, format="json")
-        order_id = response.data["id"]
+        res_data = self.get_data(response)
+        order_id = res_data["id"]
         
         self.size_l.refresh_from_db()
         self.assertEqual(self.size_l.stock, 3) # 5 - 2 = 3
@@ -226,6 +261,49 @@ class StoreAPITestCase(TenantTestCase):
         self.assertEqual(self.size_l.stock, 5)
         
         # Invoice should be VOID
-        invoice_id = response.data["invoice"]
+        invoice_id = res_data["invoice"]
         invoice = Invoice.objects.get(id=invoice_id)
         self.assertEqual(invoice.status, Invoice.Status.VOID)
+
+    def test_list_products_unauthenticated(self):
+        """Unauthenticated guests should be able to list active products."""
+        self.client.force_authenticate(user=None)
+        tenant_domain = self.tenant.domains.first().domain
+        response = self.client.get("/api/v1/store/products/", HTTP_HOST=tenant_domain)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        res_data = self.get_data(response)
+        results = res_data.get("results") if isinstance(res_data, dict) else res_data
+        self.assertEqual(len(results), 2)
+
+    def test_guest_create_order_success(self):
+        """Guests should be able to place an order by providing buyer details."""
+        self.client.force_authenticate(user=None)
+        order_data = {
+            "buyer_name": "John Guest",
+            "buyer_phone": "0790000000",
+            "buyer_email": "john@guest.com",
+            "items": [
+                {
+                    "product": self.uniform.id,
+                    "option": self.size_m.id,
+                    "quantity": 1
+                }
+            ]
+        }
+        tenant_domain = self.tenant.domains.first().domain
+        response = self.client.post("/api/v1/store/orders/", order_data, format="json", HTTP_HOST=tenant_domain)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        res_data = self.get_data(response)
+        self.assertEqual(res_data["buyer_name"], "John Guest")
+        self.assertIsNone(res_data["student"])
+
+        # Check stock deduction
+        self.size_m.refresh_from_db()
+        self.assertEqual(self.size_m.stock, 9)
+
+    def test_guest_cannot_list_orders(self):
+        """Guests should be blocked from listing orders."""
+        self.client.force_authenticate(user=None)
+        tenant_domain = self.tenant.domains.first().domain
+        response = self.client.get("/api/v1/store/orders/", HTTP_HOST=tenant_domain)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

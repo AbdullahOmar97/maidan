@@ -69,7 +69,10 @@ class Order(models.Model):
         REFUNDED = "refunded", "Refunded"
         FAILED = "failed", "Failed"
 
-    student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="store_orders")
+    student = models.ForeignKey(Student, on_delete=models.PROTECT, null=True, blank=True, related_name="store_orders")
+    buyer_name = models.CharField(max_length=200, null=True, blank=True)
+    buyer_phone = models.CharField(max_length=50, null=True, blank=True)
+    buyer_email = models.EmailField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
@@ -83,7 +86,8 @@ class Order(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Order #{self.id} — {self.student.first_name} {self.student.last_name} ({self.status})"
+        buyer = f"{self.student.first_name} {self.student.last_name}" if self.student else self.buyer_name or "مشتري خارجي"
+        return f"Order #{self.id} — {buyer} ({self.status})"
 
 
 class OrderItem(models.Model):

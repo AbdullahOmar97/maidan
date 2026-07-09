@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
+from decimal import Decimal
 from apps.students.models import Student
 from apps.billing.models import Invoice
 from .models import Product, ProductOption, Order, OrderItem
@@ -62,6 +63,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "student",
             "student_name",
+            "buyer_name",
+            "buyer_phone",
+            "buyer_email",
             "status",
             "payment_method",
             "payment_status",
@@ -76,7 +80,9 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ["invoice", "total_amount", "payment_status"]
 
     def get_student_name(self, obj):
-        return f"{obj.student.first_name} {obj.student.last_name}"
+        if obj.student:
+            return f"{obj.student.first_name} {obj.student.last_name}"
+        return obj.buyer_name or "مشتري خارجي"
 
     def validate_items(self, value):
         if not value:
@@ -85,13 +91,22 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items")
-        student = validated_data["student"]
-        payment_method = validated_data.get("payment_method", Order.PaymentMethod.CASH)
+        student = validated_data.pop("student", None)
+        buyer_name = validated_data.pop("buyer_name", None)
+        buyer_phone = validated_data.pop("buyer_phone", None)
+        buyer_email = validated_data.pop("buyer_email", None)
+        payment_method = validated_data.pop("payment_method", Order.PaymentMethod.CASH)
+
+        if not student and not buyer_name:
+            raise serializers.ValidationError("يجب تحديد طالب أو تزويد بيانات المشتري الخارجي لإنشاء الطلب.")
 
         with transaction.atomic():
             # Create a placeholder order to get ID and update it later with total_amount
             order = Order.objects.create(
                 student=student,
+                buyer_name=buyer_name,
+                buyer_phone=buyer_phone,
+                buyer_email=buyer_email,
                 total_amount=0.00,
                 payment_method=payment_method,
                 **validated_data
@@ -155,31 +170,32 @@ class OrderSerializer(serializers.ModelSerializer):
             # Update total amount
             order.total_amount = total_amount
 
-            # Create an invoice in Maidan billing system
-            # Since Maidan Invoice requires a due date, let's set it to today
-            due_date = timezone.now().date()
-            
-            # Tax calculations (standard 15% like membership plan, or let's use subtotal equal to total_amount)
-            tax_rate = 15.0  # standard
-            subtotal = total_amount / (1 + (tax_rate / 100))
-            tax_amount = total_amount - subtotal
+            # Create an invoice in Maidan billing system if the order belongs to a student
+            if student:
+                # Since Maidan Invoice requires a due date, let's set it to today
+                due_date = timezone.now().date()
+                
+                # Tax calculations (standard 15% like membership plan, or let's use subtotal equal to total_amount)
+                tax_rate = Decimal("15.0")  # standard
+                subtotal = total_amount / (Decimal("1.0") + (tax_rate / Decimal("100.0")))
+                tax_amount = total_amount - subtotal
 
-            invoice = Invoice.objects.create(
-                student=student,
-                subtotal=subtotal,
-                discount_amount=0,
-                tax_rate=tax_rate,
-                tax_amount=tax_amount,
-                total_amount=total_amount,
-                amount_paid=0.00,
-                currency=product.currency,
-                status=Invoice.Status.PENDING,
-                due_date=due_date,
-                is_recurring=False,
-                notes=f"فاتورة طلب متجر #{order.id}"
-            )
+                invoice = Invoice.objects.create(
+                    student=student,
+                    subtotal=subtotal,
+                    discount_amount=0,
+                    tax_rate=tax_rate,
+                    tax_amount=tax_amount,
+                    total_amount=total_amount,
+                    amount_paid=0.00,
+                    currency=product.currency,
+                    status=Invoice.Status.PENDING,
+                    due_date=due_date,
+                    is_recurring=False,
+                    notes=f"فاتورة طلب متجر #{order.id}"
+                )
 
-            order.invoice = invoice
-            order.save()
+                order.invoice = invoice
+                order.save()
 
             return order

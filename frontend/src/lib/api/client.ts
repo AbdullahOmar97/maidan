@@ -99,6 +99,7 @@ export const api = {
   
   // Tenants (Academy Settings)
   tenants: {
+    publicInfo: () => apiClient.get("/academy/public-info/", { skipAuth: true }),
     me: () => apiClient.get("/academy/me/"),
     updateMe: (data: unknown) => {
       const isFormData = data instanceof FormData;
@@ -305,6 +306,7 @@ export const api = {
   store: {
     products: {
       list: () => apiClient.get("/store/products/"),
+      listPublic: () => apiClient.get("/store/products/", { skipAuth: true }),
       get: (id: number) => apiClient.get(`/store/products/${id}/`),
       create: (data: unknown) => apiClient.post("/store/products/", data),
       update: (id: number, data: unknown) => apiClient.patch(`/store/products/${id}/`, data),
@@ -315,6 +317,7 @@ export const api = {
       list: () => apiClient.get("/store/orders/"),
       get: (id: number) => apiClient.get(`/store/orders/${id}/`),
       create: (data: unknown) => apiClient.post("/store/orders/", data),
+      createPublic: (data: unknown) => apiClient.post("/store/orders/", data, { skipAuth: true }),
       updateStatus: (id: number, data: { status?: string; payment_status?: string }) =>
         apiClient.post(`/store/orders/${id}/update-status/`, data),
       cancel: (id: number) => apiClient.post(`/store/orders/${id}/cancel/`),
