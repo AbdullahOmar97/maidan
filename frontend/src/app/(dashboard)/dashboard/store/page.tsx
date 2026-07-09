@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { api } from "@/lib/api/client";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -542,7 +543,7 @@ export default function StorePage() {
                         </span>
                       </td>
                       <td className="py-4 px-5 text-left">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-2 justify-end items-center">
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 touch-target"
@@ -551,7 +552,7 @@ export default function StorePage() {
                           </button>
                           
                           {/* Quick change status select */}
-                          <select
+                          <Select
                             defaultValue={order.status}
                             onChange={(e) =>
                               updateOrderStatusMutation.mutate({
@@ -559,14 +560,15 @@ export default function StorePage() {
                                 data: { status: e.target.value },
                               })
                             }
-                            className="bg-white/5 border border-white/10 hover:border-primary text-white text-xs font-bold px-2 py-1 rounded-lg"
+                            wrapperClassName="w-32"
+                            className="py-1.5 px-3 pe-8 text-xs font-bold bg-white/5 border-white/10 hover:border-primary/30 rounded-lg text-white"
                           >
                             <option value="pending">معلق</option>
                             <option value="processing">جاري التجهيز</option>
                             <option value="ready">جاهز للاستلام</option>
                             <option value="completed">مكتمل</option>
                             <option value="cancelled">ملغى</option>
-                          </select>
+                          </Select>
 
                           {order.payment_status !== "paid" && (
                             <button
