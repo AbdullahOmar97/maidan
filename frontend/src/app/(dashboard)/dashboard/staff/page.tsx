@@ -14,6 +14,10 @@ import { StaffPermissionsModal } from "@/components/dashboard/StaffPermissionsMo
 import { EditStaffModal } from "@/components/dashboard/EditStaffModal";
 import { AddStaffModal, NewStaffFormData, INITIAL_STAFF_FORM } from "@/components/dashboard/AddStaffModal";
 import { cn } from "@/lib/utils";
+import { SalaryConfigTab } from "@/components/dashboard/staff/SalaryConfigTab";
+import { PayrollTab } from "@/components/dashboard/staff/PayrollTab";
+import { DocumentsTab } from "@/components/dashboard/staff/DocumentsTab";
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,6 +51,7 @@ export default function StaffPage() {
   const [permissionsTarget, setPermissionsTarget] = useState<StaffMember | null>(null);
   const [editTarget, setEditTarget] = useState<StaffMember | null>(null);
   const [newStaffForm, setNewStaffForm] = useState<NewStaffFormData | null>(null);
+  const [activeTab, setActiveTab] = useState("list");
 
   // ---------------------------------------------------------------------------
   // Queries
@@ -136,95 +141,124 @@ export default function StaffPage() {
           </button>
         </PageHeader>
 
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-semibold text-lg">قائمة الموظفين</h2>
-            <ShieldCheck className="w-5 h-5 text-primary" />
-          </div>
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-border/40 gap-1 pb-px overflow-x-auto custom-scrollbar">
+          {[
+            { id: "list", label: "فريق العمل" },
+            { id: "salary-config", label: "إعدادات الرواتب" },
+            { id: "payroll", label: "مسيرات الرواتب" },
+            { id: "documents", label: "ملفات الموظفين" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-5 py-3 text-xs font-black uppercase tracking-wider relative transition-all whitespace-nowrap border-b-2 border-transparent",
+                activeTab === tab.id
+                  ? "text-primary border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:border-border"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
-                <tr>
-                  <th className="px-4 py-3 rounded-s-lg font-medium text-start whitespace-nowrap">الاسم</th>
-                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الدور</th>
-                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الفرع</th>
-                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">التواصل</th>
-                  <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الحالة</th>
-                  <th className="px-4 py-3 rounded-e-lg font-medium text-end whitespace-nowrap">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  [...Array(4)].map((_, i) => (
-                    <tr key={i} className="border-b border-border/50 last:border-0">
-                      {[32, 20, 24, 40, 16, 8].map((w, j) => (
-                        <td key={j} className={cn("px-4 py-4", j === 5 ? "text-end" : "text-start")}>
-                          <div className={cn("shimmer h-5 rounded", `w-${w}`, j === 5 && "ms-auto")} />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : staffData?.results?.length === 0 ? (
+        {activeTab === "list" && (
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-semibold text-lg">قائمة الموظفين</h2>
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground uppercase bg-secondary/50">
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                      لا يوجد موظفين مسجلين
-                    </td>
+                    <th className="px-4 py-3 rounded-s-lg font-medium text-start whitespace-nowrap">الاسم</th>
+                    <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الدور</th>
+                    <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الفرع</th>
+                    <th className="px-4 py-3 font-medium text-start whitespace-nowrap">التواصل</th>
+                    <th className="px-4 py-3 font-medium text-start whitespace-nowrap">الحالة</th>
+                    <th className="px-4 py-3 rounded-e-lg font-medium text-end whitespace-nowrap">الإجراءات</th>
                   </tr>
-                ) : (
-                  staffData?.results?.map((member) => (
-                    <StaffRow
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    [...Array(4)].map((_, i) => (
+                      <tr key={i} className="border-b border-border/50 last:border-0">
+                        {[32, 20, 24, 40, 16, 8].map((w, j) => (
+                          <td key={j} className={cn("px-4 py-4", j === 5 ? "text-end" : "text-start")}>
+                            <div className={cn("shimmer h-5 rounded", `w-${w}`, j === 5 && "ms-auto")} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : staffData?.results?.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                        لا يوجد موظفين مسجلين
+                      </td>
+                    </tr>
+                  ) : (
+                    staffData?.results?.map((member) => (
+                      <StaffRow
+                        key={member.id}
+                        member={member}
+                        onEdit={() => setEditTarget(member)}
+                        onManagePermissions={() => setPermissionsTarget(member)}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden">
+              {isLoading ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-secondary/10 border border-border/40 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="shimmer w-12 h-12 rounded-xl shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="shimmer h-4 rounded w-1/2" />
+                          <div className="shimmer h-3 rounded w-3/4" />
+                        </div>
+                      </div>
+                      <div className="shimmer h-8 rounded-xl w-full" />
+                      <div className="flex gap-2">
+                        <div className="shimmer h-9 rounded-xl flex-1" />
+                        <div className="shimmer h-9 rounded-xl flex-1" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : staffData?.results?.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  لا يوجد موظفين مسجلين
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {staffData?.results?.map((member) => (
+                    <StaffCard
                       key={member.id}
                       member={member}
                       onEdit={() => setEditTarget(member)}
                       onManagePermissions={() => setPermissionsTarget(member)}
                     />
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+        )}
 
-          {/* Mobile Card View */}
-          <div className="block md:hidden">
-            {isLoading ? (
-              <div className="grid grid-cols-1 gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-secondary/10 border border-border/40 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="shimmer w-12 h-12 rounded-xl shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <div className="shimmer h-4 rounded w-1/2" />
-                        <div className="shimmer h-3 rounded w-3/4" />
-                      </div>
-                    </div>
-                    <div className="shimmer h-8 rounded-xl w-full" />
-                    <div className="flex gap-2">
-                      <div className="shimmer h-9 rounded-xl flex-1" />
-                      <div className="shimmer h-9 rounded-xl flex-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : staffData?.results?.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground">
-                لا يوجد موظفين مسجلين
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {staffData?.results?.map((member) => (
-                  <StaffCard
-                    key={member.id}
-                    member={member}
-                    onEdit={() => setEditTarget(member)}
-                    onManagePermissions={() => setPermissionsTarget(member)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        {activeTab === "salary-config" && <SalaryConfigTab />}
+        {activeTab === "payroll" && <PayrollTab />}
+        {activeTab === "documents" && <DocumentsTab />}
 
         {/* Modals */}
         {newStaffForm && (

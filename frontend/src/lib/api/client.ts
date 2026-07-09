@@ -279,6 +279,48 @@ export const api = {
     get: (id: string) => apiClient.get(`/staff/${id}/`),
     create: (data: unknown) => apiClient.post("/staff/", data),
     update: (id: string, data: unknown) => apiClient.patch(`/staff/${id}/`, data),
+    
+    salaryConfigs: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/salary-configs/", { params }),
+      update: (id: number, data: unknown) =>
+        apiClient.patch(`/staff/salary-configs/${id}/`, data),
+    },
+
+    payrollRuns: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/payroll-runs/", { params }),
+      get: (id: number) =>
+        apiClient.get(`/staff/payroll-runs/${id}/`),
+      create: (data: { year: number; month: number; notes?: string }) =>
+        apiClient.post("/staff/payroll-runs/", data),
+      delete: (id: number) =>
+        apiClient.delete(`/staff/payroll-runs/${id}/`),
+      recalculate: (id: number) =>
+        apiClient.post(`/staff/payroll-runs/${id}/recalculate/`),
+      approve: (id: number) =>
+        apiClient.post(`/staff/payroll-runs/${id}/approve/`),
+      markPaid: (id: number) =>
+        apiClient.post(`/staff/payroll-runs/${id}/mark_paid/`),
+    },
+
+    payslips: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/payslips/", { params }),
+      update: (id: number, data: unknown) =>
+        apiClient.patch(`/staff/payslips/${id}/`, data),
+    },
+
+    documents: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/documents/", { params }),
+      create: (data: FormData) =>
+        apiClient.post("/staff/documents/", data, {
+          headers: { "Content-Type": undefined },
+        }),
+      delete: (id: number) =>
+        apiClient.delete(`/staff/documents/${id}/`),
+    },
   },
 
   // Platform (Global Admin)
