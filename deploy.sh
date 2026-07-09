@@ -17,7 +17,7 @@ fi
 
 # 1. Pull the latest code
 echo "[$(date)] Configuring safe directory for Git..."
-git config --global --add safe.directory /home/ubuntu/maidan
+git config --system --add safe.directory /home/ubuntu/maidan
 
 echo "[$(date)] Pulling latest code from GitHub..."
 git pull origin main

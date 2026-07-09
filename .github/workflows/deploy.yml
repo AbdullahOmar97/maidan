@@ -30,7 +30,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-0ad4417b87ab6dfa4" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["git config --global --add safe.directory /home/ubuntu/maidan", "bash /home/ubuntu/maidan/deploy.sh"]' \
+            --parameters 'commands=["git config --system --add safe.directory /home/ubuntu/maidan", "bash /home/ubuntu/maidan/deploy.sh"]' \
             --comment "Deploy via GitHub Actions" \
             --query "Command.CommandId" \
             --output text)
