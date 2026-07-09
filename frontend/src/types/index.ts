@@ -361,3 +361,54 @@ export interface NotificationLog {
   status: "queued" | "sent" | "delivered" | "failed";
   created_at: string;
 }
+
+// =============================================================================
+// Store & E-Commerce Types
+// =============================================================================
+export interface ProductOption {
+  id: number;
+  name: string;
+  value: string;
+  additional_price: string;
+  stock: number;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  currency: string;
+  image: string | null;
+  is_active: boolean;
+  options: ProductOption[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: number;
+  product: number;
+  product_name: string;
+  option: number | null;
+  option_value: string | null;
+  quantity: number;
+  unit_price: string;
+  total_price: string;
+}
+
+export interface Order {
+  id: number;
+  student: number;
+  student_name: string;
+  status: "pending" | "processing" | "ready" | "completed" | "cancelled";
+  payment_method: "cash" | "online";
+  payment_status: "pending" | "paid" | "refunded" | "failed";
+  invoice: number | null;
+  invoice_number: string | null;
+  total_amount: string;
+  notes: string;
+  items: OrderItem[];
+  created_at: string;
+  updated_at: string;
+}

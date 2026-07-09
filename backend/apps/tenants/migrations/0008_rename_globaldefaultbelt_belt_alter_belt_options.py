@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("attendance", "0001_initial"),
-        ("belts", "0002_delete_beltrank"),
         ("tenants", "0007_seed_jordanian_default_belts"),
     ]
 

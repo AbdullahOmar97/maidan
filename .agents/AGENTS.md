@@ -35,3 +35,18 @@ When discussing platform scaling, estimating costs, or proposing infrastructure 
 3. **Cost Reference Script**:
    - The primary implementation and source of truth for cost calculations is located at [scratch/aws_costs.py](file:///\\wsl.localhost\Ubuntu-24.04\home\abdullah\maidan\scratch\aws_costs.py). 
    - If updates are made to infrastructure sizing or AWS prices, ensure that script is kept up to date.
+
+## Django Migrations Guardrails
+
+To prevent "Lazy Reference" errors, circular dependencies, or `ValueError` during database migrations when modifying models, follow these guidelines:
+
+1. **Decouple Before Deleting**:
+   - Never delete a model (`DeleteModel` operation) in the same migration step where ForeignKeys or ManyToMany fields in other models are still referencing it.
+   - **Step 1**: Modify referencing fields (ForeignKeys) in other models to point to the new model (or set `null=True`, `blank=True`) and run `makemigrations`.
+   - **Step 2**: Delete the target model in a subsequent, separate migration.
+
+2. **Prevent Circular Dependencies**:
+   - Ensure app migrations do not create circular dependencies in their `dependencies = [...]` block. If App A migration depends on App B, and App B depends on App A, split the migrations into separate, smaller files.
+
+3. **Verify Migrations Locally**:
+   - Always run system checks and migrations locally (`make migrate` or dry-run) to ensure Django is able to resolve the dependency graph without errors.

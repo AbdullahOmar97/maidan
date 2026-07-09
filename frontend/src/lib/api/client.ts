@@ -300,6 +300,26 @@ export const api = {
       reject: (id: number, data: { admin_notes: string }) => apiClient.post(`/platform/subscription-requests/${id}/reject/`, data),
     },
   },
+  
+  // Store (Club E-Commerce)
+  store: {
+    products: {
+      list: () => apiClient.get("/store/products/"),
+      get: (id: number) => apiClient.get(`/store/products/${id}/`),
+      create: (data: unknown) => apiClient.post("/store/products/", data),
+      update: (id: number, data: unknown) => apiClient.patch(`/store/products/${id}/`, data),
+      delete: (id: number) => apiClient.delete(`/store/products/${id}/`),
+      addOption: (id: number, data: unknown) => apiClient.post(`/store/products/${id}/options/`, data),
+    },
+    orders: {
+      list: () => apiClient.get("/store/orders/"),
+      get: (id: number) => apiClient.get(`/store/orders/${id}/`),
+      create: (data: unknown) => apiClient.post("/store/orders/", data),
+      updateStatus: (id: number, data: { status?: string; payment_status?: string }) =>
+        apiClient.post(`/store/orders/${id}/update-status/`, data),
+      cancel: (id: number) => apiClient.post(`/store/orders/${id}/cancel/`),
+    },
+  },
 
 };
 

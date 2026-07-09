@@ -15,6 +15,7 @@ class GlobalDefaultBeltAdmin(admin.ModelAdmin):
         "min_months_since_last",
         "is_active",
     )
+    list_display_links = ("martial_art",)
     list_editable = (
         "name",
         "name_ar",
