@@ -7,7 +7,8 @@ import {
   ArrowRight, Phone, Mail, MapPin, Calendar, Award,
   CreditCard, ClipboardList, Edit, Loader2, AlertCircle,
   User, History, Download, Plus, Sparkles, ChevronLeft,
-  Trash2, FileText, Search, UserMinus, UserPlus, Receipt
+  Trash2, FileText, Search, UserMinus, UserPlus, Receipt,
+  Users
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -468,7 +469,7 @@ export default function FamilyDetailPage() {
 
       {/* Delete Family Confirmation */}
       {isDeleteModalOpen && (
-        <Modal onClose={() => setIsDeleteModalOpen(false)}>
+        <Modal open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
           <ModalHeader
             title="حذف العائلة"
             subtitle={family.name}
@@ -506,7 +507,7 @@ export default function FamilyDetailPage() {
 
       {/* Remove Member Confirmation */}
       {memberToRemove && (
-        <Modal onClose={() => setMemberToRemove(null)}>
+        <Modal open={!!memberToRemove} onClose={() => setMemberToRemove(null)}>
           <ModalHeader
             title="فصل العضو عن العائلة"
             subtitle={memberToRemove.full_name}

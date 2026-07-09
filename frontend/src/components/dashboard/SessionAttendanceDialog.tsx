@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
-import { parseApiError } from "@/lib/utils";
+import { parseApiError, cn } from "@/lib/utils";
 import { Loader2, Users, X, Clock, Trash2, Search, UserPlus, CheckCircle } from "lucide-react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { useDebounce } from "@/lib/hooks/use-debounce";
