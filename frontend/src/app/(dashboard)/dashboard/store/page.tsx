@@ -469,7 +469,7 @@ export default function StorePage() {
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => setSelectedOrder(order)}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 touch-target"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 touch-target"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -546,7 +546,7 @@ export default function StorePage() {
                         <div className="flex gap-2 justify-end items-center">
                           <button
                             onClick={() => setSelectedOrder(order)}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 touch-target"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 touch-target"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
