@@ -23,6 +23,9 @@ git pull origin main
 echo "[$(date)] Pruning docker builder cache..."
 docker builder prune -f
 
+echo "[$(date)] Stopping and removing conflicting containers..."
+docker compose -f docker-compose.prod.yml down --remove-orphans
+
 echo "[$(date)] Rebuilding frontend container without cache..."
 docker compose -f docker-compose.prod.yml build --no-cache frontend
 
