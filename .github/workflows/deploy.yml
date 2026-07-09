@@ -30,7 +30,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-0ad4417b87ab6dfa4" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["cd /home/ubuntu/maidan", "sudo -u ubuntu git reset --hard", "sudo -u ubuntu git clean -fd", "sudo -u ubuntu bash /home/ubuntu/maidan/deploy.sh"]' \
+            --parameters 'commands=["cd /home/ubuntu/maidan", "sudo -u ubuntu git reset --hard", "sudo -u ubuntu git clean -fd", "sudo -u ubuntu git pull origin main", "sudo -u ubuntu bash /home/ubuntu/maidan/deploy.sh"]' \
             --comment "Deploy via GitHub Actions" \
             --query "Command.CommandId" \
             --output text)
