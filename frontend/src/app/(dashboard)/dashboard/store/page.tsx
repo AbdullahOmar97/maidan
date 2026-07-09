@@ -72,7 +72,7 @@ export default function StorePage() {
     queryKey: ["store", "products"],
     queryFn: async () => {
       const res = await api.store.products.list();
-      return res.data;
+      return Array.isArray(res.data) ? res.data : (res.data as any).results || [];
     },
   });
 
@@ -80,7 +80,7 @@ export default function StorePage() {
     queryKey: ["store", "orders"],
     queryFn: async () => {
       const res = await api.store.orders.list();
-      return res.data;
+      return Array.isArray(res.data) ? res.data : (res.data as any).results || [];
     },
   });
 
