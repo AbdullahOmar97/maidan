@@ -702,44 +702,52 @@ export default function StorePage() {
       {cartOpen && typeof window !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Overlay */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCartOpen(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300" onClick={() => setCartOpen(false)} />
 
           {/* Drawer Content */}
-          <div className="relative w-full max-w-md h-full bg-[#0d0e12] border-r border-white/5 p-6 flex flex-col justify-between animate-slide-in">
-            <div>
-              <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                <button onClick={() => setCartOpen(false)} className="text-muted-foreground hover:text-white p-1">
-                  <X className="w-6 h-6" />
+          <div className="relative w-full max-w-md h-full bg-card/95 backdrop-blur-xl border-r border-border/60 shadow-2xl p-6 flex flex-col justify-between animate-in slide-in-from-right duration-300">
+            <div className="flex flex-col h-full overflow-hidden">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 border-b border-border/40 pb-4">
+                <button 
+                  onClick={() => setCartOpen(false)} 
+                  className="w-8 h-8 rounded-xl bg-muted/50 border border-border/50 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all active:scale-90"
+                >
+                  <X className="w-4 h-4" />
                 </button>
-                <h3 className="font-black text-xl text-white flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
+                <h3 className="font-black text-xl text-foreground flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-primary" />
                   سلة التسوق
                 </h3>
               </div>
 
-              {cart.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-3 opacity-40" />
-                  <p className="text-muted-foreground font-bold">سلة التسوق فارغة حالياً.</p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-                  {cart.map((item, idx) => {
+              {/* Items List */}
+              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-4 pb-4">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                    <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 animate-pulse">
+                      <ShoppingBag className="w-10 h-10 text-primary" />
+                    </div>
+                    <p className="text-foreground font-black text-lg">سلة التسوق فارغة</p>
+                    <p className="text-muted-foreground text-xs mt-1">تصفح المتجر وأضف بعض المنتجات لشرائها.</p>
+                  </div>
+                ) : (
+                  cart.map((item, idx) => {
                     const price = getItemPrice(item.product, item.option);
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl gap-4"
+                        className="group flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 border border-border/40 rounded-2xl gap-4 transition-all duration-200"
                       >
-                        <div className="flex-1">
-                          <h4 className="font-bold text-white text-sm">{item.product.name}</h4>
+                        <div className="flex-1 space-y-1">
+                          <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">{item.product.name}</h4>
                           {item.option && (
-                            <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-muted-foreground mt-1 inline-block">
+                            <span className="text-[10px] font-bold bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg text-primary">
                               {item.option.name}: {item.option.value}
                             </span>
                           )}
-                          <p className="text-xs text-primary font-bold mt-1">
-                            {formatCurrency(price, item.product.currency)}
+                          <p className="text-xs text-muted-foreground font-semibold mt-1">
+                            سعر القطعة: <span className="text-foreground font-bold">{formatCurrency(price, item.product.currency)}</span>
                           </p>
                         </div>
 
@@ -747,58 +755,66 @@ export default function StorePage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateCartQty(idx, -1)}
-                            className="w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center active:scale-90"
+                            className="w-7 h-7 rounded-lg bg-muted border border-border/80 hover:bg-border text-foreground font-bold flex items-center justify-center transition-all active:scale-90"
                           >
                             -
                           </button>
-                          <span className="text-sm font-bold text-white w-5 text-center">{item.quantity}</span>
+                          <span className="text-sm font-black text-foreground w-6 text-center">{item.quantity}</span>
                           <button
                             onClick={() => updateCartQty(idx, 1)}
-                            className="w-7 h-7 rounded bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center active:scale-90"
+                            className="w-7 h-7 rounded-lg bg-muted border border-border/80 hover:bg-border text-foreground font-bold flex items-center justify-center transition-all active:scale-90"
                           >
                             +
                           </button>
                           <button
                             onClick={() => removeFromCart(idx)}
-                            className="p-1.5 rounded text-red-400 hover:bg-red-500/10 mr-2"
+                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors mr-1"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                )}
+              </div>
             </div>
 
+            {/* Footer Summary & Checkout */}
             {cart.length > 0 && (
-              <div className="border-t border-white/5 pt-4 space-y-4">
+              <div className="border-t border-border/40 pt-4 space-y-4">
                 {/* Notes input */}
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1.5">ملاحظات الطلب:</label>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-muted-foreground">ملاحظات إضافية على الطلب:</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="مثال: تفضيل مقاس معين أو موعد الاستلام..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none min-h-[60px] resize-none"
+                    className="w-full bg-muted/40 border border-border/80 rounded-xl p-3 text-sm text-foreground focus:border-primary/50 focus:outline-none min-h-[60px] resize-none transition-all placeholder:text-muted-foreground/30"
                   />
                 </div>
 
-                <div className="flex justify-between items-center text-sm font-black text-white">
-                  <span>المجموع الإجمالي</span>
-                  <span className="text-xl text-primary">{formatCurrency(getCartTotal(), "JOD")}</span>
+                {/* Summary Card */}
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <span className="text-xs text-muted-foreground font-bold">المجموع الإجمالي</span>
+                    <p className="text-xs text-muted-foreground">{cart.length} منتجات في السلة</p>
+                  </div>
+                  <span className="text-2xl font-black text-primary">{formatCurrency(getCartTotal(), "JOD")}</span>
                 </div>
 
                 <button
                   onClick={checkout}
                   disabled={placeOrderMutation.isPending}
-                  className="w-full bg-primary hover:bg-primary/95 text-white py-3 rounded-xl text-base font-black transition-all active:scale-95 touch-target flex items-center justify-center gap-2"
+                  className="w-full btn-primary py-3.5 text-base shadow-xl shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 group"
                 >
                   {placeOrderMutation.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "تأكيد الطلب والشراء"
+                    <>
+                      <span>تأكيد الطلب والشراء</span>
+                      <ShoppingCart className="w-5 h-5 group-hover:translate-x-[-4px] transition-transform" />
+                    </>
                   )}
                 </button>
               </div>
