@@ -19,38 +19,33 @@ fi
 echo "[$(date)] Pulling latest code from GitHub..."
 git pull origin main
 
-# 2. Rebuild and restart the container services
-echo "[$(date)] Pruning docker builder cache..."
-docker builder prune -f
+# 2. Build updated images first while the site remains online (uses build cache for high speed)
+echo "[$(date)] Building updated docker images..."
+docker compose -f docker-compose.prod.yml build
 
-echo "[$(date)] Stopping and removing conflicting containers..."
-docker compose -f docker-compose.prod.yml down --remove-orphans
-
-echo "[$(date)] Rebuilding frontend container without cache..."
-docker compose -f docker-compose.prod.yml build --no-cache frontend
-
-echo "[$(date)] Rebuilding and starting docker containers..."
-docker compose -f docker-compose.prod.yml up -d --build
+# 3. Swap containers in-place with minimal downtime (usually < 2 seconds)
+echo "[$(date)] Recreating containers with new images..."
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 echo "[$(date)] Reloading Nginx to refresh container DNS resolution..."
 docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
 
-# 3. Apply database migrations
+# 4. Apply database migrations
 echo "[$(date)] Applying shared database migrations..."
 docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate_schemas --shared
 
 echo "[$(date)] Applying tenant database migrations..."
 docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate_schemas
 
-# 4. Collect static files (Run as root user to avoid permission errors on mounted volumes)
+# 5. Collect static files (Run as root user to avoid permission errors on mounted volumes)
 echo "[$(date)] Collecting Django static files..."
 docker compose -f docker-compose.prod.yml exec -T -u root backend python manage.py collectstatic --noinput
 
-# 5. Clear Redis Cache (optional but recommended on updates)
+# 6. Clear Redis Cache (optional but recommended on updates)
 echo "[$(date)] Flushing Redis cache..."
 docker compose -f docker-compose.prod.yml exec -T redis redis-cli -a "${REDIS_PASSWORD}" flushall
 
-# 6. Verify Health Check
+# 7. Verify Health Check
 echo "[$(date)] Waiting 5 seconds for services to settle..."
 sleep 5
 echo "[$(date)] Verifying system health status..."
