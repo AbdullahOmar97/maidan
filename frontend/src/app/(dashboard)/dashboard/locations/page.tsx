@@ -563,14 +563,14 @@ export default function LocationsPage() {
           <ModalFooter>
             <button
               onClick={() => setDeletingLocation(null)}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-secondary transition-all font-medium text-sm text-white"
+              className="flex-1 btn-secondary"
             >
               تراجع
             </button>
             <button
               onClick={() => deletingLocation && deleteLocationMutation.mutate(deletingLocation.id)}
               disabled={deleteLocationMutation.isPending}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-white font-bold hover:bg-destructive/90 transition-all flex items-center justify-center gap-2 text-sm"
+              className="flex-1 btn-danger"
             >
               {deleteLocationMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

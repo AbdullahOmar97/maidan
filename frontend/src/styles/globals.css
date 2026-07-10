@@ -253,6 +253,19 @@
   }
   .tab-pill-active { @apply border-primary text-primary; }
 
+  /* ── Premium Buttons (DRY) ── */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-black px-6 py-2.5 text-sm rounded-xl transition-all duration-200 active:scale-95 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 shrink-0;
+  }
+
+  .btn-secondary {
+    @apply bg-white/5 border border-white/10 text-white font-bold px-6 py-2.5 text-sm rounded-xl transition-all duration-200 active:scale-95 hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 shrink-0;
+  }
+
+  .btn-danger {
+    @apply bg-destructive text-white font-bold px-6 py-2.5 text-sm rounded-xl transition-all duration-200 active:scale-95 hover:bg-destructive/90 hover:shadow-lg hover:shadow-destructive/25 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 shrink-0;
+  }
+
   /* ── Scrollbars ── */
   .custom-scrollbar::-webkit-scrollbar { @apply w-1.5 h-1.5; }
   .custom-scrollbar::-webkit-scrollbar-track { @apply bg-transparent; }
@@ -298,6 +311,7 @@
   .light .text-gradient { @apply bg-gradient-to-r from-foreground via-foreground/90 to-primary text-transparent; }
   .light .sidebar-item { @apply hover:bg-primary/5 hover:text-primary; }
   .light .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-300 hover:bg-slate-400; }
+  .light .btn-secondary { @apply bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200; }
   .light .shimmer::after { background: linear-gradient(90deg, transparent, rgba(15,23,42,0.05), transparent); }
   .light .filter-input {
     @apply bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400

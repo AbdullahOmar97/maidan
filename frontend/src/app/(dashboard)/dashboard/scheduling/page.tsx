@@ -388,14 +388,14 @@ export default function SchedulingPage() {
             <button 
               type="button"
               onClick={handleCloseModal}
-              className="px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
+              className="btn-secondary"
             >
               إلغاء
             </button>
             <button 
               type="submit"
               form="add-schedule-form"
-              className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              className="btn-primary"
             >
               {editingScheduleId !== null ? "حفظ التعديلات" : "حفظ الحصة"}
             </button>

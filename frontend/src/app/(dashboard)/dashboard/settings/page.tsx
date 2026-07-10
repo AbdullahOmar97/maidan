@@ -1121,7 +1121,7 @@ export default function SettingsPage() {
                           setShowPlanModal(false);
                           setRequestReason("");
                         }}
-                        className="px-6 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black hover:bg-white/5 active:scale-95 transition-all"
+                        className="btn-secondary"
                       >
                         إلغاء
                       </button>
@@ -1147,7 +1147,7 @@ export default function SettingsPage() {
                             setSubmittingPlanRequest(false);
                           }
                         }}
-                        className="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center gap-2"
+                        className="btn-primary"
                       >
                         {submittingPlanRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : "إرسال الطلب الآن"}
                       </button>

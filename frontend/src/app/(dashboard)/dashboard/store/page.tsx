@@ -858,7 +858,7 @@ export default function StorePage() {
         <ModalFooter>
           <button
             onClick={() => setProductModalOpen(false)}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+            className="btn-secondary"
           >
             إلغاء
           </button>
@@ -871,7 +871,7 @@ export default function StorePage() {
               }
             }}
             disabled={createProductMutation.isPending || updateProductMutation.isPending}
-            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
+            className="btn-primary"
           >
             {(createProductMutation.isPending || updateProductMutation.isPending) && (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -943,7 +943,7 @@ export default function StorePage() {
         <ModalFooter>
           <button
             onClick={() => setOptionModalOpen(false)}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+            className="btn-secondary"
           >
             إلغاء
           </button>
@@ -954,7 +954,7 @@ export default function StorePage() {
               }
             }}
             disabled={addOptionMutation.isPending}
-            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
+            className="btn-primary"
           >
             {addOptionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             حفظ الخيار
@@ -1028,7 +1028,7 @@ export default function StorePage() {
         <ModalFooter>
           <button
             onClick={() => setSelectedOrder(null)}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+            className="btn-secondary"
           >
             إلغاء
           </button>

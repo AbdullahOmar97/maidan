@@ -372,7 +372,7 @@ export default function TenantsPage() {
               setSelectedRequest(null);
               setAdminNotes("");
             }}
-            className="px-6 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black hover:bg-white/5 active:scale-95 transition-all"
+            className="btn-secondary"
           >
             إلغاء
           </button>
@@ -380,8 +380,9 @@ export default function TenantsPage() {
             disabled={processing || (modalType === "reject" && !adminNotes.trim())}
             onClick={handleAction}
             className={cn(
-              "px-6 py-2.5 rounded-xl text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center gap-2",
-              modalType === "approve" ? "bg-emerald-500" : "bg-red-500"
+              modalType === "approve"
+                ? "btn-primary bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20"
+                : "btn-danger"
             )}
           >
             {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : modalType === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}
