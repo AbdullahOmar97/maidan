@@ -332,6 +332,7 @@
   .light [class*="border-white/"] { border-color: hsl(var(--border) / 0.85); }
   .light [class*="hover:text-white"]:hover { color: hsl(var(--foreground)); }
   .light [class*="hover:bg-white/"]:hover { background-color: hsl(var(--secondary) / 0.75); }
+  .light .group:hover [class*="group-hover:text-white"]:not([class*="group-hover:bg-primary"]) { color: hsl(var(--foreground)) !important; }
 
   .light .auth-page .gradient-brand { color: #fff; }
   .light .auth-page [class*="text-white"]:not([class*="gradient-brand"]) { color: #fff !important; }
