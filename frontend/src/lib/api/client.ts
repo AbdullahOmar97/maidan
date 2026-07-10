@@ -276,6 +276,8 @@ export const api = {
     templates: () => apiClient.get("/messaging/templates/"),
     logs: (params?: Record<string, unknown>) =>
       apiClient.get("/messaging/logs/", { params }),
+    read: (id: number) => apiClient.post(`/messaging/logs/${id}/read/`),
+    readAll: () => apiClient.post("/messaging/logs/read_all/"),
     campaigns: {
       list: () => apiClient.get("/messaging/campaigns/"),
       create: (data: unknown) => apiClient.post("/messaging/campaigns/", data),

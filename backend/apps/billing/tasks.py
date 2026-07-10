@@ -196,6 +196,14 @@ def process_dunning_suspensions(schema_name: str):
             student.save(update_fields=["status", "notes"])
             suspended_count += 1
 
+            # Dispatch internal in-app notification
+            from apps.messaging.utils import create_in_app_notification
+            create_in_app_notification(
+                subject="تعليق حساب تلقائي",
+                content=f"تم تعليق حساب الطالب {student.full_name} تلقائياً لتأخر سداد الفاتورة #{invoice.invoice_number} المستحقة منذ {invoice.due_date}.",
+                student=student
+            )
+
             # Send WhatsApp notification
             message = (
                 f"عزيزي {student.full_name}،\n"

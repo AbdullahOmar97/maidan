@@ -358,7 +358,8 @@ export interface NotificationLog {
   recipient_email: string;
   channel: "whatsapp" | "email" | "sms" | "in_app";
   content: string;
-  status: "queued" | "sent" | "delivered" | "failed";
+  status: "queued" | "sent" | "delivered" | "failed" | "read";
+  subject?: string;
   created_at: string;
 }
 

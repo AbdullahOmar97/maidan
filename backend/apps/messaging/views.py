@@ -38,8 +38,29 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = NotificationLog.objects.select_related("student").order_by("-created_at")
     serializer_class = NotificationLogSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
-    filter_backends = [filters.SearchFilter]
+    from django_filters.rest_framework import DjangoFilterBackend
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ["status", "channel", "student_id"]
+
+    @action(detail=True, methods=["post"])
+    def read(self, request, pk=None):
+        """Mark a single notification as read."""
+        from django.utils import timezone
+        notification = self.get_object()
+        notification.status = NotificationLog.Status.READ
+        notification.read_at = timezone.now()
+        notification.save(update_fields=["status", "read_at"])
+        return Response({"status": "success"})
+
+    @action(detail=False, methods=["post"])
+    def read_all(self, request):
+        """Mark all in_app notifications as read."""
+        from django.utils import timezone
+        self.get_queryset().filter(channel="in_app", status="sent").update(
+            status=NotificationLog.Status.READ,
+            read_at=timezone.now()
+        )
+        return Response({"status": "success"})
 
 
 class BroadcastCampaignViewSet(viewsets.ModelViewSet):

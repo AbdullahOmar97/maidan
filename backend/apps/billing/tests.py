@@ -103,4 +103,5 @@ class DunningSuspensionTestCase(TestCase):
         self.assertIn("عذراً، هذا الحساب معلق بسبب مستحقات مالية غير مدفوعة", response.data["error"])
 
     def tearDown(self):
-        self.tenant.delete()
+        with schema_context("public"):
+            self.tenant.delete()

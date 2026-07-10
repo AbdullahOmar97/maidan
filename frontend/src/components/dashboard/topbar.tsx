@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import {
-  Bell, LogOut, Moon, Sun, Search, Shield, Menu, X,
+  Bell, LogOut, Moon, Sun, Search, Shield, Menu, X, Check, Inbox
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { Session } from "next-auth";
-import { UserRole } from "@/types";
+import { UserRole, PaginatedResponse, NotificationLog } from "@/types";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 interface TopBarProps {
   user: Session["user"];
@@ -27,6 +29,60 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const queryClient = useQueryClient();
   const role = (user as any)?.role as UserRole;
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Fetch in-app notifications
+  const { data: notificationsData } = useQuery<PaginatedResponse<NotificationLog>>({
+    queryKey: ["notifications", "in_app"],
+    queryFn: () =>
+      api.messaging
+        .logs({ channel: "in_app", ordering: "-created_at" })
+        .then((r: any) => r.data),
+    refetchInterval: 15000, // Poll every 15 seconds
+  });
+  const notifications = notificationsData?.results || [];
+  const unreadCount = notifications.filter((n) => n.status === "sent").length;
+
+  // Mutations
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => api.messaging.read(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "in_app"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => api.messaging.readAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "in_app"] });
+      toast.success("تم تحديد جميع الإشعارات كمقروءة.");
+    },
+  });
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!(e.target as Element).closest("#notifications-container")) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [notificationsOpen]);
+
+  // Relative time helper
+  const formatRelativeTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const diffMs = new Date().getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "الآن";
+    if (diffMins < 60) return `منذ ${diffMins} د`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `منذ ${diffHrs} س`;
+    return d.toLocaleDateString("ar-EG", { month: "short", day: "numeric" });
+  };
 
   // Avoid “missing navbar” after client-side navigation: mobile search overlay was left open.
   useEffect(() => {
@@ -152,17 +208,82 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
           </button>
 
           {/* Notifications */}
-          <button
-            id="notifications-btn"
-            className="touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all relative active:scale-90"
-            aria-label="الإشعارات"
-          >
-            <Bell className="w-4 h-4" aria-hidden="true" />
-            <span
-              className="absolute top-2 end-2 w-2 h-2 rounded-full bg-primary glow-primary border-2 border-[#0f172a]"
-              aria-label="لديك إشعارات جديدة"
-            />
-          </button>
+          <div id="notifications-container" className="relative">
+            <button
+              id="notifications-btn"
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className={cn(
+                "touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all relative active:scale-90",
+                notificationsOpen && "bg-white/10 text-white"
+              )}
+              aria-label="الإشعارات"
+            >
+              <Bell className="w-4 h-4" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span
+                  className="absolute top-2.5 end-2.5 w-2 h-2 rounded-full bg-primary glow-primary border-2 border-[#0f172a]"
+                  aria-label="لديك إشعارات جديدة"
+                />
+              )}
+            </button>
+
+            {/* Dropdown Menu */}
+            {notificationsOpen && (
+              <div className="absolute end-0 mt-2 w-80 glass-card border border-white/10 rounded-2xl shadow-2xl p-4 overflow-hidden z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200" dir="rtl">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <h4 className="text-xs font-black text-white">الإشعارات الواردة</h4>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAllReadMutation.mutate()}
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Check className="w-3 h-3" />
+                      تحديد الكل كمقروء
+                    </button>
+                  )}
+                </div>
+
+                {/* Notification List */}
+                <div className="max-h-72 overflow-y-auto py-2 space-y-2 divide-y divide-white/[0.03]">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">
+                      <Inbox className="w-8 h-8 mb-2 opacity-25" />
+                      <p className="text-xs">لا توجد إشعارات حالياً.</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => notif.status === "sent" && markReadMutation.mutate(notif.id)}
+                        className={cn(
+                          "pt-2 flex gap-3 text-xs leading-normal transition-all cursor-pointer",
+                          notif.status === "sent" ? "text-white font-bold" : "text-muted-foreground hover:text-white"
+                        )}
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-black text-xs text-white truncate max-w-[150px]">
+                              {notif.subject || "تنبيه النظام"}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+                              {formatRelativeTime(notif.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                            {notif.content}
+                          </p>
+                        </div>
+                        {notif.status === "sent" && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 self-center" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Separator */}

@@ -232,6 +232,12 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
 
         # Validate student status
         if student.status == Student.Status.SUSPENDED:
+            from apps.messaging.utils import create_in_app_notification
+            create_in_app_notification(
+                subject="محاولة دخول مرفوضة",
+                content=f"حاول الطالب معلق الحساب {student.full_name} تسجيل الحضور لحصة اليوم وتم حظره.",
+                student=student
+            )
             return Response(
                 {"error": "عذراً، هذا الحساب معلق بسبب مستحقات مالية غير مدفوعة. يرجى مراجعة الإدارة."},
                 status=status.HTTP_403_FORBIDDEN

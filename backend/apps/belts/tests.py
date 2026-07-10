@@ -11,16 +11,17 @@ from apps.belts.models import Belt, StudentBelt, BeltExam, ExamCandidate
 class BeltExamTestCase(TestCase):
     def setUp(self):
         # 1. Create a tenant for schema context testing
-        self.tenant = Tenant.objects.create(
-            schema_name="test_belts",
-            name="Test Academy",
-            status="active"
-        )
-        self.domain = Domain.objects.create(
-            domain="belts.localhost",
-            tenant=self.tenant,
-            is_primary=True
-        )
+        with schema_context("public"):
+            self.tenant = Tenant.objects.create(
+                schema_name="test_belts",
+                name="Test Academy",
+                status="active"
+            )
+            self.domain = Domain.objects.create(
+                domain="belts.localhost",
+                tenant=self.tenant,
+                is_primary=True
+            )
 
         with schema_context(self.tenant.schema_name):
             # 2. Create Location
@@ -130,4 +131,5 @@ class BeltExamTestCase(TestCase):
             self.assertFalse(old_belt.is_current)
 
     def tearDown(self):
-        self.tenant.delete()
+        with schema_context("public"):
+            self.tenant.delete()

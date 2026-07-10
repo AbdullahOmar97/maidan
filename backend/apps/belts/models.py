@@ -152,3 +152,9 @@ class ExamCandidate(models.Model):
                     is_current=True,
                     notes=f"تمت الترقية بنجاح عبر اختبار: {self.exam.name}. {self.instructor_notes}".strip()
                 )
+                from apps.messaging.utils import create_in_app_notification
+                create_in_app_notification(
+                    subject="ترقية حزام ناجحة",
+                    content=f"تمت ترقية الطالب {self.student.full_name} تلقائياً إلى حزام {self.target_belt.name} بعد اجتياز الاختبار بنجاح.",
+                    student=self.student
+                )
