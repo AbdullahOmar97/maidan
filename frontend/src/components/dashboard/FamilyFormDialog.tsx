@@ -51,6 +51,10 @@ export default function FamilyFormDialog({ isOpen, onClose, existing, onSuccess 
         : api.families.create(data),
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["families"] });
+      if (isEdit && existing) {
+        queryClient.invalidateQueries({ queryKey: ["family", String(existing.id)] });
+        queryClient.invalidateQueries({ queryKey: ["family", existing.id] });
+      }
       toast.success(isEdit ? "تم تحديث بيانات العائلة بنجاح" : "تم إنشاء العائلة بنجاح");
       onSuccess?.(res.data);
       onClose();
