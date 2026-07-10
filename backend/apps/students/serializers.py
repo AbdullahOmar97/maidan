@@ -143,7 +143,7 @@ class FamilyDetailSerializer(FamilySerializer):
         return FamilyMemberSerializer(qs, many=True, context=self.context).data
 
     def get_stats(self, obj):
-        from django.db.models import Sum, Q
+        from django.db.models import Sum, Q, F
         members = obj.members.all()
         member_ids = list(members.values_list("id", flat=True))
 
@@ -156,7 +156,7 @@ class FamilyDetailSerializer(FamilySerializer):
         total_billed = invoices.aggregate(t=Sum("total_amount"))["t"] or 0
         outstanding = invoices.filter(
             status__in=["pending", "overdue"]
-        ).aggregate(t=Sum("amount_due"))["t"] or 0
+        ).aggregate(t=Sum(F("total_amount") - F("amount_paid")))["t"] or 0
 
         # Attendance count (last 90 days)
         from apps.attendance.models import AttendanceRecord
