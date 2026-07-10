@@ -1,6 +1,7 @@
 "use client";
 import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { 
@@ -326,7 +327,7 @@ export default function TenantsPage() {
       )}
 
       {/* Confirmation Modal */}
-      {modalType && selectedRequest && (
+      {modalType && selectedRequest && typeof window !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-white/5">
             <div className="flex items-center gap-3">
@@ -382,7 +383,8 @@ export default function TenantsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
     </PermissionGuard>

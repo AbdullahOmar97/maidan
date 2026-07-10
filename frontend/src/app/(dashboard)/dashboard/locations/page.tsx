@@ -12,6 +12,7 @@ import { AxiosError } from "axios";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import React, { FormEvent, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ROLE_LABELS } from "@/lib/constants";
 import Link from "next/link";
 
@@ -546,7 +547,7 @@ export default function LocationsPage() {
         </Modal>
 
         {/* Delete Confirmation Modal */}
-        {deletingLocation && (
+        {deletingLocation && typeof window !== "undefined" && createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="flex flex-col items-center text-center">
@@ -581,7 +582,8 @@ export default function LocationsPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </PermissionGuard>

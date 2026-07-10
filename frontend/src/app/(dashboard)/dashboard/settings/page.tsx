@@ -2,6 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -1054,7 +1055,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Upgrade Request Modal */}
-              {showPlanModal && selectedNewPlan && (
+              {showPlanModal && selectedNewPlan && typeof window !== "undefined" && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                   <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-white/10">
                     <div className="flex items-center gap-3">
@@ -1146,7 +1147,8 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           )}

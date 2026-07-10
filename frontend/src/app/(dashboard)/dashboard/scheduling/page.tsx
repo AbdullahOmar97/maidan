@@ -2,6 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -271,7 +272,7 @@ export default function SchedulingPage() {
       </div>
 
       {/* Add Schedule Modal */}
-      {isModalOpen && (
+      {isModalOpen && typeof window !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card w-full max-w-lg rounded-2xl border shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b flex items-center justify-between">
@@ -407,7 +408,8 @@ export default function SchedulingPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
     </PermissionGuard>
