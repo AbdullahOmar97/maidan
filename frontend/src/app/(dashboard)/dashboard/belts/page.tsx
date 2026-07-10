@@ -8,9 +8,12 @@ import { useState } from "react";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
 import BeltRankDialog from "@/components/dashboard/BeltRankDialog";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import ExamsTab from "@/components/dashboard/ExamsTab";
+import { cn } from "@/lib/utils";
 
 
 export default function BeltsPage() {
+  const [activeTab, setActiveTab] = useState<"ranks" | "exams">("ranks");
   const [promotionDialog, setPromotionDialog] = useState<{
     isOpen: boolean;
     studentId?: number;
@@ -52,7 +55,29 @@ export default function BeltsPage() {
         icon={Award}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Tab switcher */}
+      <div className="flex border-b border-white/5 gap-1 pb-px overflow-x-auto text-right" dir="rtl">
+        {[
+          { id: "ranks", label: "نظام الأحزمة والترقيات" },
+          { id: "exams", label: "اختبارات الترقيات" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={cn(
+              "px-5 py-3 text-xs font-black uppercase tracking-wider relative transition-all whitespace-nowrap border-b-2",
+              activeTab === tab.id
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-white"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "ranks" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Ranks */}
         <div className="lg:col-span-1 glass-card p-6 space-y-4">
           <div className="flex items-center justify-between mb-4">
@@ -207,6 +232,9 @@ export default function BeltsPage() {
           )}
         </div>
       </div>
+      ) : (
+        <ExamsTab />
+      )}
 
       {promotionDialog.isOpen && (
         <PromoteStudentDialog

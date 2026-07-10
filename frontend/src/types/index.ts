@@ -413,3 +413,34 @@ export interface Order {
   created_at: string;
   updated_at: string;
 }
+
+export interface BeltExam {
+  id: number;
+  name: string;
+  date: string;
+  martial_art: string;
+  location: number;
+  location_name: string;
+  notes: string;
+  candidates_count: number;
+  created_at: string;
+}
+
+export interface ExamCandidate {
+  id: number;
+  exam: number;
+  student: number;
+  student_name: string;
+  student_photo: string | null;
+  current_belt_name: string;
+  current_belt_color: string;
+  target_belt: number;
+  target_belt_name: string;
+  target_belt_color: string;
+  technical_grade: string;
+  instructor_notes: string;
+  status: "pending" | "passed" | "failed";
+  graded_by_id: string | null;
+  graded_at: string | null;
+  created_at: string;
+}

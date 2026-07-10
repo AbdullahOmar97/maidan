@@ -225,6 +225,18 @@ export const api = {
     deleteRank: (id: number) => apiClient.delete(`/belts/ranks/${id}/`),
     eligibility: () => apiClient.get("/belts/eligibility/"),
     promote: (data: unknown) => apiClient.post("/belts/promotions/", data),
+    exams: {
+      list: () => apiClient.get("/belts/exams/"),
+      retrieve: (id: number) => apiClient.get(`/belts/exams/${id}/`),
+      create: (data: unknown) => apiClient.post("/belts/exams/", data),
+      update: (id: number, data: unknown) => apiClient.patch(`/belts/exams/${id}/`, data),
+      delete: (id: number) => apiClient.delete(`/belts/exams/${id}/`),
+      candidates: (id: number) => apiClient.get(`/belts/exams/${id}/candidates/`),
+      addCandidates: (id: number, data: { student_ids: number[]; target_belt_id: number }) =>
+        apiClient.post(`/belts/exams/${id}/add-candidates/`, data),
+      grade: (id: number, data: { candidate_id: number; technical_grade: string; instructor_notes: string; status: "pending" | "passed" | "failed" }) =>
+        apiClient.post(`/belts/exams/${id}/grade/`, data),
+    },
   },
 
   // Billing

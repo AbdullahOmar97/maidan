@@ -80,3 +80,75 @@ class PromotionEligibility(models.Model):
 
     def __str__(self):
         return f"{self.student} — eligible: {self.is_eligible}"
+
+
+class BeltExam(models.Model):
+    """SaaS tenant-scoped promotion exam event."""
+
+    name = models.CharField(max_length=200)
+    date = models.DateField()
+    martial_art = models.CharField(max_length=100, default="BJJ")
+    location = models.ForeignKey("students.Location", on_delete=models.CASCADE, related_name="belt_exams")
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.name} on {self.date} ({self.martial_art})"
+
+
+class ExamCandidate(models.Model):
+    """Student candidate registered for a promotion exam."""
+
+    class Result(models.TextChoices):
+        PENDING = "pending", "Pending Evaluation"
+        PASSED = "passed", "Passed & Promoted"
+        FAILED = "failed", "Retry Recommended"
+
+    exam = models.ForeignKey(BeltExam, on_delete=models.CASCADE, related_name="candidates")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="exam_candidacies")
+    target_belt = models.ForeignKey(Belt, on_delete=models.PROTECT, related_name="exam_candidates")
+    
+    technical_grade = models.CharField(max_length=10, blank=True)  # e.g., "A+", "B", "95"
+    instructor_notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Result.choices, default=Result.PENDING)
+    
+    graded_by_id = models.UUIDField(null=True, blank=True)
+    graded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["student__first_name", "student__last_name"]
+        unique_together = ("exam", "student")
+
+    def __str__(self):
+        return f"{self.student.first_name} {self.student.last_name} for {self.target_belt.name} in {self.exam.name}"
+
+    def save(self, *args, **kwargs):
+        from django.db import transaction
+        from django.utils import timezone
+        from apps.belts.models import StudentBelt
+
+        # Check if status is transitioning to PASSED
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            old_status = ExamCandidate.objects.filter(pk=self.pk).values_list("status", flat=True).first()
+
+        with transaction.atomic():
+            if self.status == self.Result.PASSED:
+                self.graded_at = timezone.now()
+            super().save(*args, **kwargs)
+
+            # If transitioned to PASSED, automatically promote student
+            if self.status == self.Result.PASSED and (is_new or old_status != self.Result.PASSED):
+                StudentBelt.objects.create(
+                    student=self.student,
+                    belt_rank=self.target_belt,
+                    promoted_at=self.exam.date,
+                    promoted_by_id=self.graded_by_id,
+                    is_current=True,
+                    notes=f"تمت الترقية بنجاح عبر اختبار: {self.exam.name}. {self.instructor_notes}".strip()
+                )
