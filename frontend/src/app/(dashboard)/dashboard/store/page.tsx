@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api/client";
@@ -697,7 +699,7 @@ export default function StorePage() {
       )}
 
       {/* SHOPPING CART DRAWER */}
-      {cartOpen && (
+      {cartOpen && typeof window !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Overlay */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCartOpen(false)} />
@@ -802,248 +804,236 @@ export default function StorePage() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* PRODUCT MODAL */}
-      {productModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setProductModalOpen(false)} />
-          <div className="relative w-full max-w-md bg-[#0d0e12] border border-white/5 rounded-2xl p-6 space-y-4">
-            <h3 className="font-black text-lg text-white">
-              {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
-            </h3>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">اسم المنتج:</label>
-                <input
-                  type="text"
-                  value={productForm.name}
-                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">الوصف:</label>
-                <textarea
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none min-h-[80px]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">السعر الأساسي (JOD):</label>
-                <input
-                  type="number"
-                  value={productForm.price}
-                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={productForm.is_active}
-                  onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
-                  className="rounded bg-white/5 border-white/10 text-primary focus:ring-primary w-4 h-4"
-                />
-                <label htmlFor="is_active" className="text-xs font-bold text-white">المنتج متاح للبيع (نشط)</label>
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-end pt-2">
-              <button
-                onClick={() => setProductModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => {
-                  if (editingProduct) {
-                    updateProductMutation.mutate({ id: editingProduct.id, data: productForm });
-                  } else {
-                    createProductMutation.mutate(productForm);
-                  }
-                }}
-                disabled={createProductMutation.isPending || updateProductMutation.isPending}
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
-              >
-                {(createProductMutation.isPending || updateProductMutation.isPending) && (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                )}
-                حفظ المنتج
-              </button>
-            </div>
+      <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} size="sm">
+        <ModalHeader
+          title={editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
+          onClose={() => setProductModalOpen(false)}
+        />
+        <ModalBody className="space-y-3">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">اسم المنتج:</label>
+            <input
+              type="text"
+              value={productForm.name}
+              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">الوصف:</label>
+            <textarea
+              value={productForm.description}
+              onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none min-h-[80px]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">السعر الأساسي (JOD):</label>
+            <input
+              type="number"
+              value={productForm.price}
+              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={productForm.is_active}
+              onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
+              className="rounded bg-white/5 border-white/10 text-primary focus:ring-primary w-4 h-4"
+            />
+            <label htmlFor="is_active" className="text-xs font-bold text-white">المنتج متاح للبيع (نشط)</label>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setProductModalOpen(false)}
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={() => {
+              if (editingProduct) {
+                updateProductMutation.mutate({ id: editingProduct.id, data: productForm });
+              } else {
+                createProductMutation.mutate(productForm);
+              }
+            }}
+            disabled={createProductMutation.isPending || updateProductMutation.isPending}
+            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
+          >
+            {(createProductMutation.isPending || updateProductMutation.isPending) && (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            )}
+            حفظ المنتج
+          </button>
+        </ModalFooter>
+      </Modal>
 
       {/* OPTION MODAL */}
-      {optionModalOpen && optionProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOptionModalOpen(false)} />
-          <div className="relative w-full max-w-md bg-[#0d0e12] border border-white/5 rounded-2xl p-6 space-y-4">
-            <h3 className="font-black text-lg text-white">
-              إضافة مقاس/خيار للمنتج: <span className="text-primary">{optionProduct.name}</span>
-            </h3>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">نوع الخيار:</label>
-                <input
-                  type="text"
-                  value={optionForm.name}
-                  onChange={(e) => setOptionForm({ ...optionForm, name: e.target.value })}
-                  placeholder="مثال: الحجم، اللون..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">قيمة الخيار:</label>
-                <input
-                  type="text"
-                  value={optionForm.value}
-                  onChange={(e) => setOptionForm({ ...optionForm, value: e.target.value })}
-                  placeholder="مثال: M, L, XL, أحمر..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">فارق السعر الإضافي (JOD):</label>
-                <input
-                  type="number"
-                  value={optionForm.additional_price}
-                  onChange={(e) => setOptionForm({ ...optionForm, additional_price: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">كمية المخزون المتاحة:</label>
-                <input
-                  type="number"
-                  value={optionForm.stock}
-                  onChange={(e) => setOptionForm({ ...optionForm, stock: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1">حد تنبيه انخفاض المخزون:</label>
-                <input
-                  type="number"
-                  value={optionForm.min_stock_threshold}
-                  onChange={(e) => setOptionForm({ ...optionForm, min_stock_threshold: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-end pt-2">
-              <button
-                onClick={() => setOptionModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => {
-                  addOptionMutation.mutate({ id: optionProduct.id, data: optionForm });
-                }}
-                disabled={addOptionMutation.isPending}
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
-              >
-                {addOptionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                حفظ الخيار
-              </button>
-            </div>
+      <Modal open={optionModalOpen && !!optionProduct} onClose={() => setOptionModalOpen(false)} size="sm">
+        <ModalHeader
+          title={`إضافة مقاس/خيار للمنتج: ${optionProduct?.name ?? ""}`}
+          onClose={() => setOptionModalOpen(false)}
+        />
+        <ModalBody className="space-y-3">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">نوع الخيار:</label>
+            <input
+              type="text"
+              value={optionForm.name}
+              onChange={(e) => setOptionForm({ ...optionForm, name: e.target.value })}
+              placeholder="مثال: الحجم، اللون..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">قيمة الخيار:</label>
+            <input
+              type="text"
+              value={optionForm.value}
+              onChange={(e) => setOptionForm({ ...optionForm, value: e.target.value })}
+              placeholder="مثال: M, L, XL, أحمر..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">فارق السعر الإضافي (JOD):</label>
+            <input
+              type="number"
+              value={optionForm.additional_price}
+              onChange={(e) => setOptionForm({ ...optionForm, additional_price: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">كمية المخزون المتاحة:</label>
+            <input
+              type="number"
+              value={optionForm.stock}
+              onChange={(e) => setOptionForm({ ...optionForm, stock: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">حد تنبيه انخفاض المخزون:</label>
+            <input
+              type="number"
+              value={optionForm.min_stock_threshold}
+              onChange={(e) => setOptionForm({ ...optionForm, min_stock_threshold: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setOptionModalOpen(false)}
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={() => {
+              if (optionProduct) {
+                addOptionMutation.mutate({ id: optionProduct.id, data: optionForm });
+              }
+            }}
+            disabled={addOptionMutation.isPending}
+            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold touch-target flex items-center gap-2"
+          >
+            {addOptionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            حفظ الخيار
+          </button>
+        </ModalFooter>
+      </Modal>
 
       {/* ORDER DETAILS MODAL */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedOrder(null)} />
-          <div className="relative w-full max-w-lg bg-[#0d0e12] border border-white/5 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-white/5 pb-3">
-              <button onClick={() => setSelectedOrder(null)} className="text-muted-foreground hover:text-white p-1">
-                <X className="w-5 h-5" />
-              </button>
-              <h3 className="font-black text-lg text-white">تفاصيل الطلب #{selectedOrder.id}</h3>
-            </div>
+      <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)} size="md">
+        <ModalHeader
+          title={`تفاصيل الطلب #${selectedOrder?.id ?? ""}`}
+          onClose={() => setSelectedOrder(null)}
+        />
+        <ModalBody className="space-y-6">
+          {selectedOrder && (
+            <>
+              <div className="grid grid-cols-2 gap-4 text-sm text-white">
+                <div>
+                  <p className="text-xs text-muted-foreground">اسم الطالب</p>
+                  <p className="font-bold mt-1">{selectedOrder.student_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">تاريخ الطلب</p>
+                  <p className="font-bold mt-1">{formatDate(selectedOrder.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">طريقة الدفع</p>
+                  <p className="font-bold mt-1">{selectedOrder.payment_method === "online" ? "دفع إلكتروني" : "دفع يدوي/نقدي"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">رقم الفاتورة</p>
+                  <p className="font-bold mt-1 text-primary">{selectedOrder.invoice_number || "-"}</p>
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm text-white">
-              <div>
-                <p className="text-xs text-muted-foreground">اسم الطالب</p>
-                <p className="font-bold mt-1">{selectedOrder.student_name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">تاريخ الطلب</p>
-                <p className="font-bold mt-1">{formatDate(selectedOrder.created_at)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">طريقة الدفع</p>
-                <p className="font-bold mt-1">{selectedOrder.payment_method === "online" ? "دفع إلكتروني" : "دفع يدوي/نقدي"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">رقم الفاتورة</p>
-                <p className="font-bold mt-1 text-primary">{selectedOrder.invoice_number || "-"}</p>
-              </div>
-            </div>
+              {selectedOrder.notes && (
+                <div className="bg-white/5 p-3 rounded-xl">
+                  <p className="text-xs text-muted-foreground">ملاحظات الطالب:</p>
+                  <p className="text-sm mt-1">{selectedOrder.notes}</p>
+                </div>
+              )}
 
-            {selectedOrder.notes && (
-              <div className="bg-white/5 p-3 rounded-xl">
-                <p className="text-xs text-muted-foreground">ملاحظات الطالب:</p>
-                <p className="text-sm mt-1">{selectedOrder.notes}</p>
-              </div>
-            )}
-
-            {/* Items list */}
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-muted-foreground">المنتجات المطلوبة:</p>
-              <div className="border border-white/5 rounded-xl overflow-hidden divide-y divide-white/5">
-                {selectedOrder.items?.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-3 text-sm text-white bg-white/[0.01]">
-                    <div>
-                      <p className="font-bold">{item.product_name}</p>
-                      {item.option_value && (
-                        <span className="text-[10px] text-muted-foreground">الحجم/الخيار: {item.option_value}</span>
-                      )}
+              {/* Items list */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-muted-foreground">المنتجات المطلوبة:</p>
+                <div className="border border-white/5 rounded-xl overflow-hidden divide-y divide-white/5">
+                  {selectedOrder.items?.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 text-sm text-white bg-white/[0.01]">
+                      <div>
+                        <p className="font-bold">{item.product_name}</p>
+                        {item.option_value && (
+                          <span className="text-[10px] text-muted-foreground">الحجم/الخيار: {item.option_value}</span>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold">{item.quantity} x {formatCurrency(parseFloat(item.unit_price), "JOD")}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">الإجمالي: {formatCurrency(parseFloat(item.total_price), "JOD")}</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold">{item.quantity} x {formatCurrency(parseFloat(item.unit_price), "JOD")}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">الإجمالي: {formatCurrency(parseFloat(item.total_price), "JOD")}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="flex justify-between items-center border-t border-white/5 pt-4">
-              <span className="text-sm font-bold text-muted-foreground">إجمالي قيمة الطلب</span>
-              <span className="text-xl font-black text-primary">{formatCurrency(parseFloat(selectedOrder.total_amount), "JOD")}</span>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                <span className="text-sm font-bold text-muted-foreground">إجمالي قيمة الطلب</span>
+                <span className="text-xl font-black text-primary">{formatCurrency(parseFloat(selectedOrder.total_amount), "JOD")}</span>
+              </div>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setSelectedOrder(null)}
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-bold touch-target"
+          >
+            إلغاء
+          </button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
