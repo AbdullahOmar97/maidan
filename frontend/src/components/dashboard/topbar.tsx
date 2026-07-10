@@ -229,7 +229,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
             {/* Dropdown Menu */}
             {notificationsOpen && (
-              <div className="absolute end-0 mt-2 w-80 bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 overflow-hidden z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200" dir="rtl">
+              <div className="absolute end-0 mt-2 w-80 bg-card border border-white/10 rounded-2xl shadow-2xl p-4 overflow-hidden z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200" dir="rtl">
                 {/* Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-white/5">
                   <h4 className="text-xs font-black text-white">الإشعارات الواردة</h4>
