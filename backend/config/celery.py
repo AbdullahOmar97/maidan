@@ -23,6 +23,10 @@ app.conf.beat_schedule = {
         "task": "apps.billing.tasks.check_all_overdue_invoices",
         "schedule": crontab(hour=8, minute=0),
     },
+    "process-dunning-suspensions": {
+        "task": "apps.billing.tasks.process_all_dunning_suspensions",
+        "schedule": crontab(hour=8, minute=30),
+    },
     # Billing: Send renewal reminders 7 days before expiry
     "send-renewal-reminders": {
         "task": "apps.billing.tasks.send_all_renewal_reminders",

@@ -199,7 +199,7 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         phone = data.get("phone")
         
         # Build query filter
-        q_filter = Q(status__in=["active", "trial"])
+        q_filter = Q()
         if student_id:
             q_filter &= Q(id=student_id)
         elif student_number:
@@ -216,7 +216,7 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
             student = Student.objects.select_related("location").get(q_filter)
         except Student.DoesNotExist:
             return Response(
-                {"error": "هذا الطالب غير مسجل، حسابه غير نشط، أو البيانات غير صحيحة."},
+                {"error": "هذا الطالب غير مسجل أو البيانات غير صحيحة."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except Student.MultipleObjectsReturned:
@@ -227,6 +227,18 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
                 )
             return Response(
                 {"error": "حدث خطأ أثناء تحديد بيانات الطالب."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate student status
+        if student.status == Student.Status.SUSPENDED:
+            return Response(
+                {"error": "عذراً، هذا الحساب معلق بسبب مستحقات مالية غير مدفوعة. يرجى مراجعة الإدارة."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if student.status not in [Student.Status.ACTIVE, Student.Status.TRIAL]:
+            return Response(
+                {"error": "عذراً، هذا الحساب غير نشط حالياً."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

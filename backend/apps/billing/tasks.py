@@ -166,3 +166,67 @@ def send_all_renewal_reminders():
         send_renewal_reminders.delay(schema_name)
         dispatched += 1
     return {"dispatched": dispatched}
+
+
+@shared_task(queue="billing")
+def process_dunning_suspensions(schema_name: str):
+    """Suspend students with invoices overdue by > 7 days, and notify them."""
+    from apps.billing.models import Invoice
+    from apps.students.models import Student
+    from apps.messaging.models import get_whatsapp_provider, NotificationLog
+    from django.utils import timezone
+    from datetime import timedelta
+
+    with schema_context(schema_name):
+        seven_days_ago = timezone.now().date() - timedelta(days=7)
+        # Find unpaid overdue invoices older than 7 days, whose student is active
+        overdue_invoices = Invoice.objects.filter(
+            status="overdue",
+            due_date__lte=seven_days_ago,
+            student__status="active"
+        ).select_related("student")
+
+        suspended_count = 0
+        provider = get_whatsapp_provider()
+
+        for invoice in overdue_invoices:
+            student = invoice.student
+            student.status = Student.Status.SUSPENDED
+            student.notes = ((student.notes or "") + f"\n[SYSTEM] تم تعليق الحساب تلقائياً لتأخر السداد للفاتورة #{invoice.invoice_number}.").strip()
+            student.save(update_fields=["status", "notes"])
+            suspended_count += 1
+
+            # Send WhatsApp notification
+            message = (
+                f"عزيزي {student.full_name}،\n"
+                f"نود إعلامك بأنه تم تعليق اشتراكك مؤقتاً لتأخر سداد الفاتورة رقم {invoice.invoice_number} المستحقة منذ {invoice.due_date}.\n"
+                f"الرجاء سداد المبلغ المتبقي ({invoice.total_amount} {invoice.currency}) لتنشيط حسابك.\n"
+                f"شكراً — فريق MAIDAN"
+            )
+            phone = student.whatsapp or student.phone
+            if phone:
+                try:
+                    result = provider.send_message(phone, message)
+                    NotificationLog.objects.create(
+                        student=student,
+                        recipient_phone=phone,
+                        channel="whatsapp",
+                        content=message,
+                        status="sent" if result.get("status") == "sent" else "failed",
+                        provider_response=result,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send dunning suspension alert to student {student.id} @{schema_name}: {e}")
+
+        logger.info(f"[{schema_name}] Suspended {suspended_count} students due to unpaid overdue invoices (>7 days)")
+        return {"schema": schema_name, "suspended_count": suspended_count}
+
+
+@shared_task(queue="billing")
+def process_all_dunning_suspensions():
+    """Periodic task: enqueue dunning suspension checks per tenant."""
+    dispatched = 0
+    for schema_name in active_tenant_schema_names():
+        process_dunning_suspensions.delay(schema_name)
+        dispatched += 1
+    return {"dispatched": dispatched}

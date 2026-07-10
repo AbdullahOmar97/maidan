@@ -246,3 +246,25 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
         is_recurring=(plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME),
         created_by_id=instance.created_by_id,
     )
+
+
+@receiver(post_save, sender=Invoice)
+def reactivate_student_on_invoice_payment(sender, instance, **kwargs):
+    """
+    Check if a student whose status is SUSPENDED has paid off all overdue invoices.
+    If so, automatically restore their status to ACTIVE.
+    """
+    student = instance.student
+    if student.status == Student.Status.SUSPENDED:
+        # Check if they have any remaining overdue invoices older than 7 days
+        from datetime import timedelta
+        seven_days_ago = tz.now().date() - timedelta(days=7)
+        has_overdue = Invoice.objects.filter(
+            student=student,
+            status="overdue",
+            due_date__lte=seven_days_ago
+        ).exists()
+        
+        if not has_overdue:
+            student.status = Student.Status.ACTIVE
+            student.save(update_fields=["status"])
