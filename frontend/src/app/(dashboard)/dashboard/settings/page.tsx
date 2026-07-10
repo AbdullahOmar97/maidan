@@ -588,42 +588,41 @@ export default function SettingsPage() {
                     <button
                       disabled={!selectedNewOwner}
                       onClick={() => setShowTransferConfirm(true)}
-                      className="px-6 py-2.5 rounded-lg bg-destructive text-white text-sm font-bold shadow-lg hover:bg-destructive/90 transition-all disabled:opacity-50"
+                      className="btn-danger"
                     >
                       بدء إجراء نقل الملكية
                     </button>
                   </div>
 
-                  {showTransferConfirm && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                      <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-destructive/30">
-                        <div className="flex items-center gap-3 text-destructive">
-                          <AlertTriangle className="w-8 h-8" />
-                          <h2 className="text-xl font-bold">تأكيد نقل الملكية</h2>
-                        </div>
-                        <p className="text-sm leading-relaxed">
-                          هل أنت متأكد تماماً من رغبتك في نقل ملكية النادي إلى **{staff.find(s => s.id === selectedNewOwner)?.full_name}**؟
-                          <br /><br />
-                          لا يمكن التراجع عن هذا الإجراء إلا بواسطة المالك الجديد.
-                        </p>
-                        <div className="flex justify-end gap-3 pt-2">
-                          <button
-                            onClick={() => setShowTransferConfirm(false)}
-                            className="px-6 py-2 rounded-lg border border-border hover:bg-secondary transition-all"
-                          >
-                            إلغاء
-                          </button>
-                          <button
-                            disabled={transferring}
-                            onClick={handleTransferOwnership}
-                            className="px-6 py-2 rounded-lg bg-destructive text-white font-bold hover:bg-destructive/90 flex items-center gap-2 disabled:opacity-50"
-                          >
-                            {transferring ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، انقل الملكية الآن"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <Modal open={showTransferConfirm} onClose={() => setShowTransferConfirm(false)} size="sm">
+                    <ModalHeader
+                      icon={<AlertTriangle className="w-5 h-5 text-destructive animate-pulse" />}
+                      title="تأكيد نقل الملكية"
+                      onClose={() => setShowTransferConfirm(false)}
+                    />
+                    <ModalBody>
+                      <p className="text-sm leading-relaxed text-white text-start">
+                        هل أنت متأكد تماماً من رغبتك في نقل ملكية النادي إلى **{staff.find(s => s.id === selectedNewOwner)?.full_name}**؟
+                        <br /><br />
+                        لا يمكن التراجع عن هذا الإجراء إلا بواسطة المالك الجديد.
+                      </p>
+                    </ModalBody>
+                    <ModalFooter>
+                      <button
+                        onClick={() => setShowTransferConfirm(false)}
+                        className="btn-secondary"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        disabled={transferring}
+                        onClick={handleTransferOwnership}
+                        className="btn-danger"
+                      >
+                        {transferring ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، انقل الملكية الآن"}
+                      </button>
+                    </ModalFooter>
+                  </Modal>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
