@@ -84,7 +84,9 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
     onSuccess: () => {
       toast.success("تم حفظ التقييم وتحديث حالة الترقية بنجاح.");
       refetchCandidates();
-      queryClient.invalidateQueries({ queryKey: ["belts", "eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["belts"] });
       queryClient.invalidateQueries({ queryKey: ["student-belt"] });
     },
     onError: () => toast.error("حدث خطأ أثناء حفظ تقييم الطالب."),

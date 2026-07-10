@@ -33,7 +33,10 @@ export default function LinkFamilyDialog({ studentId, studentName, isOpen, onClo
   const mutation = useMutation({
     mutationFn: (familyId: number) => api.families.addMember(familyId, studentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student", String(studentId)] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["family"] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
       toast.success(`تم ربط ${studentName} بعائلة ${selectedFamily?.name} بنجاح`);
       setSearch("");
       setSelectedFamily(null);

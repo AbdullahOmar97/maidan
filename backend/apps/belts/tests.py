@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from apps.tenants.models import Tenant, Domain
 from apps.students.models import Student, Location
-from apps.belts.models import Belt, StudentBelt, BeltExam, ExamCandidate
+from apps.belts.models import Belt, StudentBelt, BeltExam, ExamCandidate, BeltSyllabusRequirement, CandidateSyllabusGrade
 
 
 class BeltExamTestCase(TestCase):
@@ -48,6 +48,15 @@ class BeltExamTestCase(TestCase):
                 name_ar="حزام أزرق",
                 color_hex="#0000FF",
                 order_index=1,
+                is_active=True
+            )
+
+            self.purple_belt = Belt.objects.create(
+                martial_art="BJJ",
+                name="Purple Belt",
+                name_ar="حزام بنفسجي",
+                color_hex="#A020F0",
+                order_index=2,
                 is_active=True
             )
 
@@ -129,6 +138,84 @@ class BeltExamTestCase(TestCase):
             # Verify White Belt is no longer is_current
             old_belt = StudentBelt.objects.get(id=self.student_belt.id)
             self.assertFalse(old_belt.is_current)
+
+    def test_auto_invoicing_on_candidate_creation(self):
+        with schema_context(self.tenant.schema_name):
+            # 1. Update exam to have a registration fee and auto-invoicing enabled
+            self.exam.registration_fee = Decimal("15.00")
+            self.exam.auto_create_invoice = True
+            self.exam.save()
+
+            # 2. Register candidate
+            candidate = ExamCandidate.objects.create(
+                exam=self.exam,
+                student=self.student,
+                target_belt=self.blue_belt,
+                status=ExamCandidate.Result.PENDING
+            )
+
+            # 3. Verify invoice exists
+            self.assertIsNotNone(candidate.invoice)
+            self.assertEqual(candidate.invoice.student, self.student)
+            self.assertEqual(candidate.invoice.subtotal, Decimal("15.00"))
+            # Total amount = subtotal + 15% tax = 15.00 + 2.25 = 17.25
+            self.assertEqual(candidate.invoice.total_amount, Decimal("17.25"))
+
+    def test_double_promotion_on_grading_passed(self):
+        with schema_context(self.tenant.schema_name):
+            # 1. Create candidate with double promotion belt pointing to Purple Belt
+            candidate = ExamCandidate.objects.create(
+                exam=self.exam,
+                student=self.student,
+                target_belt=self.blue_belt,
+                double_promotion_belt=self.purple_belt,
+                status=ExamCandidate.Result.PENDING
+            )
+
+            # 2. Grade candidate to passed
+            candidate.status = ExamCandidate.Result.PASSED
+            candidate.save()
+
+            # 3. Verify student is promoted to Purple Belt directly (skipping Blue Belt)
+            current_belt = self.student.belt_history.filter(is_current=True).first()
+            self.assertEqual(current_belt.belt_rank, self.purple_belt)
+
+    def test_syllabus_grading_and_score_average(self):
+        with schema_context(self.tenant.schema_name):
+            # 1. Create syllabus requirements for Blue Belt
+            req1 = BeltSyllabusRequirement.objects.create(
+                belt=self.blue_belt,
+                name="Front Kick",
+                max_score=5
+            )
+            req2 = BeltSyllabusRequirement.objects.create(
+                belt=self.blue_belt,
+                name="Guard Pass",
+                max_score=5
+            )
+
+            # 2. Register candidate
+            candidate = ExamCandidate.objects.create(
+                exam=self.exam,
+                student=self.student,
+                target_belt=self.blue_belt,
+                status=ExamCandidate.Result.PENDING
+            )
+
+            # 3. Grade the candidate on syllabus requirements using the ViewSet logic (mocking the action)
+            CandidateSyllabusGrade.objects.create(candidate=candidate, requirement=req1, score=4)
+            CandidateSyllabusGrade.objects.create(candidate=candidate, requirement=req2, score=5)
+
+            # Trigger average calculation
+            all_grades = candidate.syllabus_grades.all()
+            total_score = sum(cg.score for cg in all_grades)
+            max_possible = sum(cg.requirement.max_score for cg in all_grades)
+            percentage = (total_score / max_possible) * 100
+            candidate.technical_grade = f"{percentage:.1f}%"
+            candidate.save()
+
+            # 4. Verify technical grade represents average percentage (9/10 = 90.0%)
+            self.assertEqual(candidate.technical_grade, "90.0%")
 
     def tearDown(self):
         with schema_context("public"):

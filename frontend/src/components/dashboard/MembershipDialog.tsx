@@ -43,8 +43,9 @@ export default function MembershipDialog({
   const membershipMutation = useMutation({
     mutationFn: (data: any) => api.billing.memberships.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student", studentId.toString()] });
-      queryClient.invalidateQueries({ queryKey: ["billing", "memberships"] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
       toast.success("تم إضافة باقة الاشتراك بنجاح");
       onClose();
     },

@@ -90,6 +90,10 @@ class BeltExam(models.Model):
     martial_art = models.CharField(max_length=100, default="BJJ")
     location = models.ForeignKey("students.Location", on_delete=models.CASCADE, related_name="belt_exams")
     notes = models.TextField(blank=True)
+    
+    registration_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    auto_create_invoice = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -111,6 +115,13 @@ class ExamCandidate(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="exam_candidacies")
     target_belt = models.ForeignKey(Belt, on_delete=models.PROTECT, related_name="exam_candidates")
     
+    invoice = models.ForeignKey(
+        "billing.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="exam_candidates"
+    )
+    double_promotion_belt = models.ForeignKey(
+        Belt, on_delete=models.SET_NULL, null=True, blank=True, related_name="double_promoted_candidates"
+    )
+
     technical_grade = models.CharField(max_length=10, blank=True)  # e.g., "A+", "B", "95"
     instructor_notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Result.choices, default=Result.PENDING)
@@ -140,13 +151,29 @@ class ExamCandidate(models.Model):
         with transaction.atomic():
             if self.status == self.Result.PASSED:
                 self.graded_at = timezone.now()
+
+            # Handle Auto-Invoice creation for new candidate registrations
+            if is_new and self.exam.auto_create_invoice and self.exam.registration_fee > 0 and not self.invoice:
+                from apps.billing.models import Invoice
+                from decimal import Decimal
+                invoice = Invoice.objects.create(
+                    student=self.student,
+                    subtotal=self.exam.registration_fee,
+                    tax_rate=Decimal("15.00"),  # Standard VAT
+                    status=Invoice.Status.PENDING,
+                    due_date=self.exam.date,
+                    notes=f"رسوم التسجيل في اختبار الترقية: {self.exam.name}",
+                )
+                self.invoice = invoice
+
             super().save(*args, **kwargs)
 
             # If transitioned to PASSED, automatically promote student
             if self.status == self.Result.PASSED and (is_new or old_status != self.Result.PASSED):
+                final_belt = self.double_promotion_belt or self.target_belt
                 StudentBelt.objects.create(
                     student=self.student,
-                    belt_rank=self.target_belt,
+                    belt_rank=final_belt,
                     promoted_at=self.exam.date,
                     promoted_by_id=self.graded_by_id,
                     is_current=True,
@@ -155,6 +182,36 @@ class ExamCandidate(models.Model):
                 from apps.messaging.utils import create_in_app_notification
                 create_in_app_notification(
                     subject="ترقية حزام ناجحة",
-                    content=f"تمت ترقية الطالب {self.student.full_name} تلقائياً إلى حزام {self.target_belt.name} بعد اجتياز الاختبار بنجاح.",
+                    content=f"تمت ترقية الطالب {self.student.full_name} تلقائياً إلى حزام {final_belt.name} بعد اجتياز الاختبار بنجاح.",
                     student=self.student
                 )
+
+
+class BeltSyllabusRequirement(models.Model):
+    """Syllabus movement or technical requirement defined for a belt rank."""
+    belt = models.ForeignKey(Belt, on_delete=models.CASCADE, related_name="syllabus_requirements")
+    name = models.CharField(max_length=200)
+    name_ar = models.CharField(max_length=200, blank=True)
+    max_score = models.PositiveIntegerField(default=5)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.belt.name} - {self.name}"
+
+
+class CandidateSyllabusGrade(models.Model):
+    """Evaluation score for a specific syllabus requirement for a candidate."""
+    candidate = models.ForeignKey(ExamCandidate, on_delete=models.CASCADE, related_name="syllabus_grades")
+    requirement = models.ForeignKey(BeltSyllabusRequirement, on_delete=models.CASCADE, related_name="grades")
+    score = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("candidate", "requirement")
+
+    def __str__(self):
+        return f"{self.candidate} - {self.requirement.name}: {self.score}"

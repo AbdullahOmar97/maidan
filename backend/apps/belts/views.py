@@ -4,11 +4,21 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from shared.permissions import IsStaff, IsTenantOwnerOrManager
 from apps.students.models import Student
-from .models import Belt, StudentBelt, PromotionEligibility, BeltExam, ExamCandidate
+from .models import (
+    Belt,
+    StudentBelt,
+    PromotionEligibility,
+    BeltExam,
+    ExamCandidate,
+    BeltSyllabusRequirement,
+    CandidateSyllabusGrade,
+)
 from .serializers import (
     BeltExamSerializer,
     ExamCandidateSerializer,
     ExamCandidateBulkCreateSerializer,
+    BeltSyllabusRequirementSerializer,
+    CandidateSyllabusGradeSerializer,
 )
 
 
@@ -52,6 +62,13 @@ class BeltRankViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter]
     filterset_fields = ["martial_art"]
+
+
+class BeltSyllabusRequirementViewSet(viewsets.ModelViewSet):
+    queryset = BeltSyllabusRequirement.objects.all()
+    serializer_class = BeltSyllabusRequirementSerializer
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    filterset_fields = ["belt"]
 
 
 class StudentBeltViewSet(viewsets.ModelViewSet):
@@ -123,6 +140,7 @@ class BeltExamViewSet(viewsets.ModelViewSet):
         technical_grade = request.data.get("technical_grade", "")
         instructor_notes = request.data.get("instructor_notes", "")
         result_status = request.data.get("status")
+        double_promotion_belt_id = request.data.get("double_promotion_belt_id")
 
         if not candidate_id:
             return Response({"error": "يجب تحديد المرشح للاختبار."}, status=status.HTTP_400_BAD_REQUEST)
@@ -135,10 +153,64 @@ class BeltExamViewSet(viewsets.ModelViewSet):
         except ExamCandidate.DoesNotExist:
             return Response({"error": "المرشح غير موجود في هذا اختبار."}, status=status.HTTP_404_NOT_FOUND)
 
+        if double_promotion_belt_id:
+            try:
+                double_belt = Belt.objects.get(id=double_promotion_belt_id)
+                candidate.double_promotion_belt = double_belt
+            except Belt.DoesNotExist:
+                return Response({"error": "الحزام الاستثنائي المحدد غير موجود."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            candidate.double_promotion_belt = None
+
         candidate.technical_grade = technical_grade
         candidate.instructor_notes = instructor_notes
         candidate.status = result_status
         candidate.graded_by_id = request.user.id
         candidate.save()
+
+        return Response(ExamCandidateSerializer(candidate).data)
+
+    @action(detail=True, methods=["post"], url_path="grade-syllabus")
+    def grade_syllabus(self, request, pk=None):
+        exam = self.get_object()
+        candidate_id = request.data.get("candidate_id")
+        grades_data = request.data.get("grades", [])
+
+        if not candidate_id:
+            return Response({"error": "يجب تحديد المرشح للاختبار."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            candidate = exam.candidates.get(id=candidate_id)
+        except ExamCandidate.DoesNotExist:
+            return Response({"error": "المرشح غير موجود في هذا اختبار."}, status=status.HTTP_404_NOT_FOUND)
+
+        from django.db import transaction
+        with transaction.atomic():
+            for g in grades_data:
+                req_id = g.get("requirement_id")
+                score = g.get("score", 0)
+                notes = g.get("notes", "")
+                if not req_id:
+                    continue
+                try:
+                    req = BeltSyllabusRequirement.objects.get(id=req_id, belt=candidate.target_belt)
+                except BeltSyllabusRequirement.DoesNotExist:
+                    continue
+                 
+                CandidateSyllabusGrade.objects.update_or_create(
+                    candidate=candidate,
+                    requirement=req,
+                    defaults={"score": score, "notes": notes}
+                )
+
+            # Recalculate average technical grade if scores are numeric
+            all_grades = candidate.syllabus_grades.all()
+            if all_grades.exists():
+                total_score = sum(cg.score for cg in all_grades)
+                max_possible = sum(cg.requirement.max_score for cg in all_grades)
+                if max_possible > 0:
+                    percentage = (total_score / max_possible) * 100
+                    candidate.technical_grade = f"{percentage:.1f}%"
+                    candidate.save(update_fields=["technical_grade"])
 
         return Response(ExamCandidateSerializer(candidate).data)

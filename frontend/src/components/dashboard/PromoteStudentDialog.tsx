@@ -43,7 +43,8 @@ export default function PromoteStudentDialog({
   const promotionMutation = useMutation({
     mutationFn: (data: any) => api.belts.promote(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student", studentId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["belts"] });
       onClose();
     },
