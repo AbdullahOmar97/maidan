@@ -12,7 +12,6 @@ import { AxiosError } from "axios";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import React, { FormEvent, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { ROLE_LABELS } from "@/lib/constants";
 import Link from "next/link";
 
@@ -547,44 +546,40 @@ export default function LocationsPage() {
         </Modal>
 
         {/* Delete Confirmation Modal */}
-        {deletingLocation && typeof window !== "undefined" && createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4 text-destructive">
-                  <Trash2 className="w-8 h-8" />
-                </div>
-                <h2 className="text-xl font-bold">حذف الفرع؟</h2>
-                <p className="text-muted-foreground mt-2">
-                  هل أنت متأكد من حذف فرع <span className="text-foreground font-bold font-mono">"{deletingLocation.name}"</span>؟
-                  <br />
-                  هذا الإجراء قد يؤثر على بيانات الطلاب المسجلين في هذا الفرع.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeletingLocation(null)}
-                  className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-secondary transition-all font-medium"
-                >
-                  تراجع
-                </button>
-                <button
-                  onClick={() => deleteLocationMutation.mutate(deletingLocation.id)}
-                  disabled={deleteLocationMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-xl bg-destructive text-white font-bold hover:bg-destructive/90 transition-all flex items-center justify-center gap-2"
-                >
-                  {deleteLocationMutation.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "تأكيد الحذف"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        <Modal open={!!deletingLocation} onClose={() => setDeletingLocation(null)} size="sm">
+          <ModalHeader
+            icon={<Trash2 className="w-5 h-5" />}
+            iconColor="bg-destructive/10 text-destructive shadow-none"
+            title="حذف الفرع؟"
+            onClose={() => setDeletingLocation(null)}
+          />
+          <ModalBody className="space-y-4 text-center">
+            <p className="text-muted-foreground text-sm">
+              هل أنت متأكد من حذف فرع <span className="text-foreground font-bold font-mono">"{deletingLocation?.name}"</span>؟
+              <br />
+              هذا الإجراء قد يؤثر على بيانات الطلاب المسجلين في هذا الفرع.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <button
+              onClick={() => setDeletingLocation(null)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-border hover:bg-secondary transition-all font-medium text-sm text-white"
+            >
+              تراجع
+            </button>
+            <button
+              onClick={() => deletingLocation && deleteLocationMutation.mutate(deletingLocation.id)}
+              disabled={deleteLocationMutation.isPending}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-white font-bold hover:bg-destructive/90 transition-all flex items-center justify-center gap-2 text-sm"
+            >
+              {deleteLocationMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "تأكيد الحذف"
+              )}
+            </button>
+          </ModalFooter>
+        </Modal>
       </div>
     </PermissionGuard>
   );

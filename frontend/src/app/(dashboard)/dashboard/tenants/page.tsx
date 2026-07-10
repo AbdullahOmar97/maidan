@@ -1,7 +1,7 @@
 "use client";
 import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
-import { createPortal } from "react-dom";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { 
@@ -327,17 +327,22 @@ export default function TenantsPage() {
       )}
 
       {/* Confirmation Modal */}
-      {modalType && selectedRequest && typeof window !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md glass-card p-6 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-white/5">
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-black text-white">
-                {modalType === "approve" ? "تأكيد قبول طلب الترقية" : "تأكيد رفض طلب الترقية"}
-              </h2>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
+      <Modal open={!!modalType} onClose={() => {
+        setModalType(null);
+        setSelectedRequest(null);
+        setAdminNotes("");
+      }} size="sm">
+        <ModalHeader
+          icon={<Shield className="w-5 h-5" />}
+          title={modalType === "approve" ? "تأكيد قبول طلب الترقية" : "تأكيد رفض طلب الترقية"}
+          onClose={() => {
+            setModalType(null);
+            setSelectedRequest(null);
+            setAdminNotes("");
+          }}
+        />
+        <ModalBody className="space-y-4">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-start text-xs">
               <p className="text-muted-foreground">الأكاديمية: <strong className="text-white font-bold">{selectedRequest.tenant_name}</strong></p>
               <p className="text-muted-foreground">الباقة المطلوبة: <strong className="text-white font-bold">{selectedRequest.new_plan_name}</strong></p>
               {modalType === "approve" && (
@@ -359,33 +364,30 @@ export default function TenantsPage() {
                 onChange={(e) => setAdminNotes(e.target.value)}
               />
             </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setModalType(null);
-                  setSelectedRequest(null);
-                  setAdminNotes("");
-                }}
-                className="px-6 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black hover:bg-white/5 active:scale-95 transition-all"
-              >
-                إلغاء
-              </button>
-              <button
-                disabled={processing || (modalType === "reject" && !adminNotes.trim())}
-                onClick={handleAction}
-                className={cn(
-                  "px-6 py-2.5 rounded-xl text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center gap-2",
-                  modalType === "approve" ? "bg-emerald-500" : "bg-red-500"
-                )}
-              >
-                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : modalType === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => {
+              setModalType(null);
+              setSelectedRequest(null);
+              setAdminNotes("");
+            }}
+            className="px-6 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black hover:bg-white/5 active:scale-95 transition-all"
+          >
+            إلغاء
+          </button>
+          <button
+            disabled={processing || (modalType === "reject" && !adminNotes.trim())}
+            onClick={handleAction}
+            className={cn(
+              "px-6 py-2.5 rounded-xl text-white text-xs font-black hover:opacity-90 active:scale-95 transition-all flex items-center gap-2",
+              modalType === "approve" ? "bg-emerald-500" : "bg-red-500"
+            )}
+          >
+            {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : modalType === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}
+          </button>
+        </ModalFooter>
+      </Modal>
     </div>
     </PermissionGuard>
   );

@@ -2,7 +2,7 @@
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import React, { useState } from "react";
-import { createPortal } from "react-dom";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
@@ -272,20 +272,14 @@ export default function SchedulingPage() {
       </div>
 
       {/* Add Schedule Modal */}
-      {isModalOpen && typeof window !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-lg rounded-2xl border shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-xl font-bold">
-                {editingScheduleId !== null ? "تعديل قالب الحصة" : "إضافة قالب حصة جديد"}
-              </h2>
-              <button onClick={handleCloseModal} className="text-muted-foreground hover:text-foreground">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto">
-              <form id="add-schedule-form" onSubmit={handleSubmit} className="space-y-4">
+      <Modal open={isModalOpen} onClose={handleCloseModal} size="md">
+        <ModalHeader
+          title={editingScheduleId !== null ? "تعديل قالب الحصة" : "إضافة قالب حصة جديد"}
+          onClose={handleCloseModal}
+        />
+        
+        <ModalBody>
+          <form id="add-schedule-form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">نوع الحصة *</label>
@@ -375,42 +369,39 @@ export default function SchedulingPage() {
                     onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 20 })}
                   />
                 </div>
-              </form>
-            </div>
-            
-            <div className="p-6 border-t bg-secondary/20 flex items-center justify-between mt-auto">
-              {editingScheduleId !== null ? (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="px-4 py-2 rounded-lg font-medium text-destructive hover:bg-destructive/10 transition-colors"
-                >
-                  حذف
-                </button>
-              ) : (
-                <div />
-              )}
-              <div className="flex items-center gap-3">
-                <button 
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
-                >
-                  إلغاء
-                </button>
-                <button 
-                  type="submit"
-                  form="add-schedule-form"
-                  className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-                >
-                  {editingScheduleId !== null ? "حفظ التعديلات" : "حفظ الحصة"}
-                </button>
-              </div>
-            </div>
+          </form>
+        </ModalBody>
+        
+        <ModalFooter>
+          {editingScheduleId !== null ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="px-4 py-2 rounded-lg font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              حذف
+            </button>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={handleCloseModal}
+              className="px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
+            >
+              إلغاء
+            </button>
+            <button 
+              type="submit"
+              form="add-schedule-form"
+              className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            >
+              {editingScheduleId !== null ? "حفظ التعديلات" : "حفظ الحصة"}
+            </button>
           </div>
-        </div>,
-        document.body
-      )}
+        </ModalFooter>
+      </Modal>
       </div>
     </PermissionGuard>
   );
