@@ -52,7 +52,7 @@ function FamilyCard({ family, onEditClick }: { family: Family; onEditClick: (f: 
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
           {family.primary_contact_phone && (
-            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-white/80 transition-colors">
+            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors">
               <div className="w-6 h-6 rounded-xl bg-white/5 flex items-center justify-center text-primary/70 group-hover:bg-primary/20 group-hover:text-primary transition-all">
                 <Phone className="w-3 h-3" />
               </div>
@@ -60,7 +60,7 @@ function FamilyCard({ family, onEditClick }: { family: Family; onEditClick: (f: 
             </div>
           )}
           {family.primary_contact_email && (
-            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-white/80 transition-colors max-w-[200px]">
+            <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors max-w-[200px]">
               <div className="w-6 h-6 rounded-xl bg-white/5 flex items-center justify-center text-primary/70 group-hover:bg-primary/20 group-hover:text-primary transition-all">
                 <Mail className="w-3 h-3" />
               </div>
