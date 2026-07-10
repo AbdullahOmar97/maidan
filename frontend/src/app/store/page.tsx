@@ -371,7 +371,7 @@ export default function PublicStorePage() {
                     <div>
                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">السعر يبدأ من</p>
                       <p className="text-xl font-black text-primary mt-1">
-                        {formatCurrency(product.price, currency)}
+                        {formatCurrency(parseFloat(product.price), currency)}
                       </p>
                     </div>
 

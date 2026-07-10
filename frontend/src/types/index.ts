@@ -371,6 +371,7 @@ export interface ProductOption {
   value: string;
   additional_price: string;
   stock: number;
+  min_stock_threshold: number;
 }
 
 export interface Product {

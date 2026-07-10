@@ -10,7 +10,7 @@ from .models import Product, ProductOption, Order, OrderItem
 class ProductOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductOption
-        fields = ["id", "name", "value", "additional_price", "stock"]
+        fields = ["id", "name", "value", "additional_price", "stock", "min_stock_threshold"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

@@ -38,6 +38,7 @@ class ProductOption(models.Model):
     value = models.CharField(max_length=50)  # e.g., "M", "L", "Red"
     additional_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock = models.PositiveIntegerField(default=0)
+    min_stock_threshold = models.PositiveIntegerField(default=3)
 
     class Meta:
         unique_together = ("product", "name", "value")

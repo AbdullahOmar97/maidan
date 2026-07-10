@@ -28,6 +28,7 @@ import {
   Truck,
   XCircle,
   Eye,
+  AlertTriangle,
 } from "lucide-react";
 import type { Product, Order, ProductOption } from "@/types";
 
@@ -62,6 +63,7 @@ export default function StorePage() {
     value: "",
     additional_price: "0.00",
     stock: "10",
+    min_stock_threshold: "3",
   });
 
   // Order Detail Modal State
@@ -77,7 +79,17 @@ export default function StorePage() {
     },
   });
 
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
+  const lowStockOptions = products.flatMap((product) =>
+    (product.options || [])
+      .filter((opt) => opt.stock <= (opt.min_stock_threshold ?? 3))
+      .map((opt) => ({
+        ...opt,
+        productName: product.name,
+        currency: product.currency,
+      }))
+  );
+
+  const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>( {
     queryKey: ["store", "orders"],
     queryFn: async () => {
       const res = await api.store.orders.list();
@@ -311,6 +323,32 @@ export default function StorePage() {
         )}
       </div>
 
+      {/* Low Stock Warning Banner for Staff */}
+      {isStaff && lowStockOptions.length > 0 && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-red-400">
+            <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
+            <h4 className="font-black text-sm">تنبيه انخفاض المخزون: هناك {lowStockOptions.length} خياراً اقتربت من النفاد!</h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {lowStockOptions.map((opt) => (
+              <div key={opt.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex justify-between items-center text-xs">
+                <div className="text-right">
+                  <p className="font-bold text-white">{opt.productName}</p>
+                  <p className="text-muted-foreground mt-0.5">{opt.name}: {opt.value}</p>
+                </div>
+                <div className="text-left">
+                  <span className="px-2 py-1 rounded-md bg-red-500/20 text-red-400 font-bold">
+                    المتبقي: {opt.stock}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1">حد التنبيه: {opt.min_stock_threshold ?? 3}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* TAB 1: PRODUCT CATALOG */}
       {activeTab === "catalog" && (
         <div>
@@ -388,7 +426,7 @@ export default function StorePage() {
                                   <span
                                     className={cn(
                                       "text-[9px] mt-0.5",
-                                      opt.stock < 3 ? "text-amber-400 font-bold" : "text-emerald-400"
+                                      opt.stock <= (opt.min_stock_threshold ?? 3) ? "text-amber-400 font-bold" : "text-emerald-400"
                                     )}
                                   >
                                     {isOutOfStock ? "نفذ" : `متاح: ${opt.stock}`}
@@ -629,7 +667,7 @@ export default function StorePage() {
                   <button
                     onClick={() => {
                       setOptionProduct(product);
-                      setOptionForm({ name: "الحجم", value: "", additional_price: "0.00", stock: "10" });
+                      setOptionForm({ name: "الحجم", value: "", additional_price: "0.00", stock: "10", min_stock_threshold: "3" });
                       setOptionModalOpen(true);
                     }}
                     className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-primary text-white text-xs font-bold transition-all active:scale-95 touch-target"
@@ -894,6 +932,16 @@ export default function StorePage() {
                   type="number"
                   value={optionForm.stock}
                   onChange={(e) => setOptionForm({ ...optionForm, stock: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">حد تنبيه انخفاض المخزون:</label>
+                <input
+                  type="number"
+                  value={optionForm.min_stock_threshold}
+                  onChange={(e) => setOptionForm({ ...optionForm, min_stock_threshold: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
                 />
               </div>
