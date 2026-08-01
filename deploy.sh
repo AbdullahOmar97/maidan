@@ -25,7 +25,7 @@ docker compose -f docker-compose.prod.yml build
 
 # 3. Swap containers in-place with minimal downtime (usually < 2 seconds)
 echo "[$(date)] Recreating containers with new images..."
-docker compose -f docker-compose.prod.yml up -d --remove-orphans
+docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
 echo "[$(date)] Reloading Nginx to refresh container DNS resolution..."
 docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
@@ -39,7 +39,7 @@ docker compose -f docker-compose.prod.yml exec -T backend python manage.py migra
 
 # 5. Collect static files (Run as root user to avoid permission errors on mounted volumes)
 echo "[$(date)] Collecting Django static files..."
-docker compose -f docker-compose.prod.yml exec -T -u root backend python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml exec -T -u root backend python manage.py collectstatic --noinput --clear
 
 # 6. Clear Redis Cache (optional but recommended on updates)
 echo "[$(date)] Flushing Redis cache..."
