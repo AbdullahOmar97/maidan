@@ -55,17 +55,10 @@ class TenantStatusMiddleware:
                     }
                 }, status=status.HTTP_403_FORBIDDEN)
 
-            # Check for expiration (both trial and subscription)
+            # Check for expiration (both trial and subscription unified)
             now = timezone.now()
-            
-            # 1. Check subscription end date
-            is_expired = False
-            if tenant.subscription_end_date and tenant.subscription_end_date < now:
-                is_expired = True
-            
-            # 2. Check trial end date if on trial
-            if tenant.on_trial and tenant.trial_ends_at and tenant.trial_ends_at < now:
-                is_expired = True
+            end_date = tenant.subscription_end_date or tenant.trial_ends_at
+            is_expired = bool(end_date and end_date < now)
 
             if is_expired:
                 # Auto-update status to expired if it wasn't already

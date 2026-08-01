@@ -113,16 +113,23 @@ class Tenant(TenantMixin):
     auto_create_schema = True
 
     def save(self, *args, **kwargs):
+        from django.utils import timezone
+        from datetime import timedelta
+
         if self.status == self.SubscriptionStatus.TRIAL:
             self.on_trial = True
             self.is_active = True
-            if not self.trial_ends_at:
-                from django.utils import timezone
-                from datetime import timedelta
-                self.trial_ends_at = timezone.now() + timedelta(days=14)
+            if not self.subscription_end_date and not self.trial_ends_at:
+                self.subscription_end_date = timezone.now() + timedelta(days=14)
+            elif not self.subscription_end_date and self.trial_ends_at:
+                self.subscription_end_date = self.trial_ends_at
+            self.trial_ends_at = self.subscription_end_date
         elif self.status == self.SubscriptionStatus.ACTIVE:
             self.on_trial = False
-            self.trial_ends_at = None
+            self.trial_ends_at = self.subscription_end_date
+        else:
+            if self.subscription_end_date:
+                self.trial_ends_at = self.subscription_end_date
 
         super().save(*args, **kwargs)
 

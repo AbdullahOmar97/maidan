@@ -137,7 +137,7 @@ class TenantAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Tenant Identity", {"fields": ("name", "business_name", "slug", "schema_name")}),
         ("Contact", {"fields": ("email", "phone")}),
-        ("Subscription", {"fields": ("plan", "status", "is_active", "subscription_end_date", "on_trial", "trial_ends_at")}),
+        ("Subscription", {"fields": ("plan", "status", "is_active", "subscription_end_date", "on_trial")}),
         ("Branding", {"fields": ("logo",)}),
         (
             "Locale",
@@ -160,8 +160,8 @@ class TenantAdmin(admin.ModelAdmin):
             tenant.status = Tenant.SubscriptionStatus.TRIAL
             tenant.is_active = True
             tenant.on_trial = True
-            if not tenant.trial_ends_at:
-                tenant.trial_ends_at = timezone.now() + timedelta(days=14)
+            if not tenant.subscription_end_date:
+                tenant.subscription_end_date = timezone.now() + timedelta(days=14)
             tenant.save()
             count += 1
         self.message_user(request, f"تم تفعيل الفترة التجريبية لـ {count} أكاديمية بنجاح.")

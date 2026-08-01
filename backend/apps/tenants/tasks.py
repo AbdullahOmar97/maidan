@@ -10,13 +10,15 @@ def check_expired_trials():
     """
     Find trial accounts that have exceeded their trial period and mark them as expired.
     """
+    from django.db.models import Q
     from apps.tenants.models import Tenant
     
     now = timezone.now()
     expired_tenants = Tenant.objects.filter(
         is_active=True,
-        status=Tenant.SubscriptionStatus.TRIAL,
-        trial_ends_at__lt=now
+        status=Tenant.SubscriptionStatus.TRIAL
+    ).filter(
+        Q(subscription_end_date__lt=now) | Q(trial_ends_at__lt=now)
     )
     count = 0
     for tenant in expired_tenants:

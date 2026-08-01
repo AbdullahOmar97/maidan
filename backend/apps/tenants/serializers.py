@@ -30,7 +30,7 @@ class TenantSerializer(serializers.ModelSerializer):
         model = Tenant
         fields = [
             "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
-            "is_active", "status", "plan", "on_trial", "trial_ends_at", "trial_days_remaining",
+            "is_active", "status", "plan", "subscription_end_date", "on_trial", "trial_ends_at", "trial_days_remaining",
             "logo", "default_language",
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input",
@@ -39,9 +39,10 @@ class TenantSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "slug", "schema_name", "created_at"]
 
     def get_trial_days_remaining(self, obj):
-        if obj.status == Tenant.SubscriptionStatus.TRIAL and obj.trial_ends_at:
+        end_date = obj.subscription_end_date or obj.trial_ends_at
+        if obj.status == Tenant.SubscriptionStatus.TRIAL and end_date:
             from django.utils import timezone
-            delta = obj.trial_ends_at - timezone.now()
+            delta = end_date - timezone.now()
             return max(0, delta.days)
         return None
 
