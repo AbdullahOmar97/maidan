@@ -23,9 +23,15 @@ git pull origin main
 echo "[$(date)] Building updated docker images..."
 docker compose -f docker-compose.prod.yml build
 
-# 3. Swap containers in-place with minimal downtime (usually < 2 seconds)
+# 3. Swap containers in-place with minimal downtime
+echo "[$(date)] Pruning stopped containers..."
+docker container prune -f
+
 echo "[$(date)] Recreating containers with new images..."
-docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+echo "[$(date)] Waiting 5 seconds for container network and DNS to settle..."
+sleep 5
 
 echo "[$(date)] Reloading Nginx to refresh container DNS resolution..."
 docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
