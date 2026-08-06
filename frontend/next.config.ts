@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "minio" },
+      { protocol: "https", hostname: "maidanjo.duckdns.org" },
+      { protocol: "https", hostname: "*.maidanjo.duckdns.org" },
+      { protocol: "http", hostname: "*.maidanjo.duckdns.org" },
+      { protocol: "https", hostname: "*.s3.amazonaws.com" },
     ],
   },
   async rewrites() {
