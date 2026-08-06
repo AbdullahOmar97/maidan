@@ -22,7 +22,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::182399710468:role/GitHubActions-MAIDAN-Deploy
-          aws-region: eu-north-1
+          aws-region: eu-central-1
 
       - name: Trigger Deployment and Fetch Logs
         run: |
