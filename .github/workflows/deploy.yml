@@ -37,12 +37,26 @@ jobs:
             
           echo "Command sent successfully. ID: $COMMAND_ID"
           echo "Waiting for target instance resolution..."
-          sleep 5
 
-          TARGET_INSTANCE_ID=$(aws ssm list-command-invocations \
-            --command-id "$COMMAND_ID" \
-            --query "CommandInvocations[0].InstanceId" \
-            --output text)
+          TARGET_INSTANCE_ID="None"
+          for i in {1..12}; do
+            sleep 5
+            TARGET_INSTANCE_ID=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --query "CommandInvocations[0].InstanceId" \
+              --output text)
+            if [ "$TARGET_INSTANCE_ID" != "None" ] && [ -n "$TARGET_INSTANCE_ID" ]; then
+              break
+            fi
+          done
+
+          if [ "$TARGET_INSTANCE_ID" == "None" ] || [ -z "$TARGET_INSTANCE_ID" ]; then
+            echo "❌ ERROR: No active instance found matching tag 'Environment=production'."
+            echo "Please verify:"
+            echo "1. The EC2 instance has tag Key: Environment, Value: production"
+            echo "2. SSM Agent is running on the instance"
+            exit 1
+          fi
 
           echo "Target Instance ID: $TARGET_INSTANCE_ID"
           echo "Waiting for the server to finish execution..."
