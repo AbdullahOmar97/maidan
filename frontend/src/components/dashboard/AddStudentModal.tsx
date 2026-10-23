@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Loader2, AlertCircle, Sparkles, MapPin,
-  Phone, Mail, User, Info, CheckCircle2
+  Phone, Mail, User, Info, CheckCircle2,
+  Camera, X
 } from "lucide-react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, ErrorBanner } from "@/components/ui/form-field";
@@ -26,6 +27,10 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
   const [error, setError] = useState("");
   const topRef = useRef<HTMLDivElement>(null);
 
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -38,6 +43,8 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
   useEffect(() => {
     if (isOpen) {
+      setPhoto(null);
+      setPhotoPreview(null);
       api.locations.list()
         .then((res: any) => {
           const locationData = res.data.results || res.data;
@@ -56,6 +63,26 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
     }
   }, [isOpen]);
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("حجم الصورة يجب ألا يتجاوز 5 ميجابايت");
+        return;
+      }
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.location_id) {
@@ -68,7 +95,18 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
     setIsSubmitting(true);
 
     try {
-      await api.students.create(formData);
+      if (photo) {
+        const data = new FormData();
+        Object.entries(formData).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") {
+            data.append(k, String(v));
+          }
+        });
+        data.append("photo", photo);
+        await api.students.create(data);
+      } else {
+        await api.students.create(formData);
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -100,6 +138,47 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
         <ModalBody className="space-y-4">
           <div ref={topRef} />
           <ErrorBanner message={error} />
+
+          {/* Photo Picker */}
+          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div className="relative group">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center shrink-0">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="معاينة الصورة" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-6 h-6 text-muted-foreground/60" />
+                )}
+              </div>
+              {photoPreview && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white mb-1">صورة الطالب (اختياري)</p>
+              <p className="text-[10px] text-muted-foreground mb-2">PNG أو JPG، بحد أقصى 5 ميجابايت</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold transition-all"
+              >
+                {photoPreview ? "تغيير الصورة" : "اختر صورة"}
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="الاسم الأول" required>

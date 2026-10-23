@@ -4,7 +4,7 @@ import { Select } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
-import { ArrowRight, UserPlus, Loader2, AlertCircle, Sparkles, MapPin, Phone, Mail, User, Info, CheckCircle2 } from "lucide-react";
+import { ArrowRight, UserPlus, Loader2, AlertCircle, Sparkles, MapPin, Phone, Mail, User, Info, CheckCircle2, Camera, X } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Location } from "@/types";
@@ -12,6 +12,7 @@ import { cn, parseApiError } from "@/lib/utils";
 import { InputWrapper } from "@/components/form-elements";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
+import { useRef } from "react";
 
 export default function NewStudentPage() {
   const router = useRouter();
@@ -19,6 +20,9 @@ export default function NewStudentPage() {
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -48,8 +52,28 @@ export default function NewStudentPage() {
       });
   }, []);
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("حجم الصورة يجب ألا يتجاوز 5 ميجابايت");
+        return;
+      }
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => api.students.create(data),
+    mutationFn: (data: FormData | typeof formData) => api.students.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       toast.success("تم إضافة الطالب بنجاح");
@@ -70,7 +94,18 @@ export default function NewStudentPage() {
     }
 
     setError("");
-    createMutation.mutate(formData);
+    if (photo) {
+      const data = new FormData();
+      Object.entries(formData).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") {
+          data.append(k, String(v));
+        }
+      });
+      data.append("photo", photo);
+      createMutation.mutate(data);
+    } else {
+      createMutation.mutate(formData);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -138,6 +173,47 @@ export default function NewStudentPage() {
                     <User className="w-4 h-4" />
                   </div>
                   <h3 className="text-lg font-black text-white">البيانات الشخصية</h3>
+                </div>
+
+                {/* Photo Picker */}
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                  <div className="relative group">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center shrink-0">
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="معاينة الصورة" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-muted-foreground/50" />
+                      )}
+                    </div>
+                    {photoPreview && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-2 -end-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white mb-1">صورة الطالب الشخصية (اختياري)</p>
+                    <p className="text-xs text-muted-foreground mb-3">تُستخدم الصورة في التعرف السريع والبطاقات واختبارات الأحزمة (بحد أقصى 5 ميجابايت)</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      className="hidden"
+                      onChange={handlePhotoChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all"
+                    >
+                      {photoPreview ? "تغيير الصورة" : "رفع صورة للطالب"}
+                    </button>
+                  </div>
                 </div>
 
 

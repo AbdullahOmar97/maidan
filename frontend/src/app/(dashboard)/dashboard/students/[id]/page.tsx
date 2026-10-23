@@ -9,7 +9,7 @@ import {
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
-  Filter, Clock, QrCode
+  Filter, Clock, QrCode, Camera, Upload
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -81,7 +81,7 @@ export default function StudentDetailPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<Student>) => api.students.update(studentId, data),
+    mutationFn: (data: Partial<Student> | FormData) => api.students.update(studentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["student", id] });
       queryClient.invalidateQueries({ queryKey: ["students"] });
@@ -93,6 +93,35 @@ export default function StudentDetailPage() {
       setEditError(parseApiError(err, "حدث خطأ أثناء تحديث بيانات الطالب."));
     },
   });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append("photo", file);
+      return api.students.update(studentId, formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student", id] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      toast.success("تم تحديث صورة الطالب بنجاح");
+    },
+    onError: (err: any) => {
+      console.error("Upload photo error:", err);
+      toast.error(parseApiError(err, "فشل رفع الصورة. يرجى التأكد من أن الملف صورة صحيحة."));
+    },
+  });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("حجم الصورة يجب ألا يتجاوز 5 ميجابايت");
+        return;
+      }
+      uploadPhotoMutation.mutate(file);
+    }
+    e.target.value = "";
+  };
 
   const deleteNoteMutation = useMutation({
     mutationFn: (noteId: number) => api.students.notes.delete(studentId, noteId),
@@ -314,7 +343,7 @@ export default function StudentDetailPage() {
 
           <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
             <div className="relative group/avatar">
-              <div className="w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-white/10 group-hover/avatar:border-primary/40 transition-colors shadow-2xl relative z-10">
+              <div className="w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-white/10 group-hover/avatar:border-primary/40 transition-colors shadow-2xl relative z-10 group/img">
                 {student.photo_url ? (
                   <img
                     src={student.photo_url}
@@ -326,7 +355,35 @@ export default function StudentDetailPage() {
                     {student.first_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
                 )}
+
+                {/* Upload Hover Overlay */}
+                <label
+                  htmlFor="student-photo-upload"
+                  className={cn(
+                    "absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5 cursor-pointer opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 text-white text-[11px] font-black",
+                    uploadPhotoMutation.isPending && "opacity-100 cursor-wait"
+                  )}
+                  title="تغيير صورة الطالب"
+                >
+                  {uploadPhotoMutation.isPending ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  ) : (
+                    <>
+                      <Camera className="w-6 h-6 text-primary" />
+                      <span>تغيير الصورة</span>
+                    </>
+                  )}
+                </label>
+                <input
+                  id="student-photo-upload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  onChange={handlePhotoSelect}
+                  disabled={uploadPhotoMutation.isPending}
+                />
               </div>
+
               <div className={cn(
                 "absolute -bottom-2 -end-2 w-8 h-8 rounded-2xl border-4 border-[#0f172a] shadow-xl z-20 flex items-center justify-center",
                 student.status === "active" ? "bg-emerald-500 shadow-emerald-500/30" :

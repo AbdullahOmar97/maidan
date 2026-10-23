@@ -444,14 +444,20 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
 
     @action(detail=False, methods=["get"])
     def stats(self, request):
-        """Quick stats summary for dashboard."""
-        from django.db.models import Count
-        qs = self.get_queryset()
+        """Quick stats summary for dashboard and student list with filter support."""
+        from django.db.models import Count, Q
+        base_qs = self.get_queryset()
+        filter_params = request.query_params.copy()
+        filter_params.pop("status", None)
+        if hasattr(self, "filterset_class") and self.filterset_class:
+            qs = self.filterset_class(filter_params, queryset=base_qs, request=request).qs
+        else:
+            qs = base_qs
         stats = qs.aggregate(
             total=Count("id"),
-            active=Count("id", filter=__import__("django.db.models", fromlist=["Q"]).Q(status="active")),
-            trials=Count("id", filter=__import__("django.db.models", fromlist=["Q"]).Q(status="trial")),
-            leads=Count("id", filter=__import__("django.db.models", fromlist=["Q"]).Q(status="lead")),
+            active=Count("id", filter=Q(status="active")),
+            trials=Count("id", filter=Q(status="trial")),
+            leads=Count("id", filter=Q(status="lead")),
         )
         return Response(stats)
 

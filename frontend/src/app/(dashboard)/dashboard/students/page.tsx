@@ -187,8 +187,8 @@ export default function StudentsPage() {
   });
 
   const { data: stats } = useQuery({
-    queryKey: ["students", "stats"],
-    queryFn: () => api.students.stats().then((r) => r.data),
+    queryKey: ["students", "stats", { location: locationId }],
+    queryFn: () => api.students.stats({ location: locationId || undefined }).then((r) => r.data),
   });
 
   return (
