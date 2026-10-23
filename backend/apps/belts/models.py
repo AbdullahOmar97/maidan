@@ -58,8 +58,15 @@ class StudentBelt(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_current:
-            # Ensure only one current belt per student
-            StudentBelt.objects.filter(student=self.student, is_current=True).update(is_current=False)
+            # Ensure only one current belt per student per martial art program
+            martial_art = self.belt_rank.martial_art if self.belt_rank_id else None
+            filter_kwargs = {"student": self.student, "is_current": True}
+            if martial_art:
+                filter_kwargs["belt_rank__martial_art"] = martial_art
+            qs = StudentBelt.objects.filter(**filter_kwargs)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            qs.update(is_current=False)
         super().save(*args, **kwargs)
 
 
