@@ -2,12 +2,16 @@
 MAIDAN — Billing App Views + Serializers + URLs
 """
 
+import calendar
+from datetime import datetime, date, timedelta
+
 from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 from shared.permissions import (
@@ -17,7 +21,7 @@ from shared.permissions import (
     CanVoidInvoice, CanApplyDiscount, CanMarkInvoicePaid,
     BranchScopedMixin,
 )
-from .models import Invoice, Membership, MembershipPlan
+from .models import Invoice, Membership, MembershipPlan, ExpenseCategory, Expense
 from apps.payments.models import Payment, get_payment_provider
 from apps.students.models import Student
 
@@ -269,16 +273,9 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from datetime import timedelta
         new_start = membership.end_date or timezone.now().date()
         plan = membership.plan
-        # Compute new end_date based on billing cycle
-        cycle_days = {
-            "weekly": 7, "monthly": 30, "quarterly": 90,
-            "semi_annual": 180, "annual": 365,
-        }
-        days = cycle_days.get(plan.billing_cycle, 30)
-        new_end = new_start + timedelta(days=days)
+        new_end = Membership.compute_end_date(new_start, plan.billing_cycle)
 
         new_membership = Membership.objects.create(
             student=membership.student,
@@ -311,12 +308,142 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         return Response({"message": "تم إيقاف الاشتراك مؤقتاً."})
 
 
+def parse_period_dates(period=None, start_date=None, end_date=None):
+    """
+    Parse a named period or explicit date range into (start_date, end_date).
+    Supports: today, yesterday, this_week, last_week, this_month, last_month,
+    last_30_days, last_90_days, this_quarter, this_year, last_year, all, or custom dates.
+    """
+    today = timezone.now().date()
+
+    if start_date or end_date:
+        s_date = None
+        e_date = None
+        if start_date:
+            try:
+                s_date = datetime.strptime(str(start_date).strip(), "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                pass
+        if end_date:
+            try:
+                e_date = datetime.strptime(str(end_date).strip(), "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                pass
+        return s_date, e_date
+
+    if not period or period == "all":
+        return None, None
+    if period == "today":
+        return today, today
+    if period == "yesterday":
+        yesterday = today - timedelta(days=1)
+        return yesterday, yesterday
+    if period == "this_week":
+        start_week = today - timedelta(days=today.weekday())
+        end_week = start_week + timedelta(days=6)
+        return start_week, end_week
+    if period == "last_week":
+        start_this_week = today - timedelta(days=today.weekday())
+        start_last_week = start_this_week - timedelta(days=7)
+        end_last_week = start_this_week - timedelta(days=1)
+        return start_last_week, end_last_week
+    if period == "this_month":
+        start_month = today.replace(day=1)
+        last_day = calendar.monthrange(today.year, today.month)[1]
+        end_month = today.replace(day=last_day)
+        return start_month, end_month
+    if period == "last_month":
+        first_this_month = today.replace(day=1)
+        end_last_month = first_this_month - timedelta(days=1)
+        start_last_month = end_last_month.replace(day=1)
+        return start_last_month, end_last_month
+    if period == "last_30_days":
+        return today - timedelta(days=30), today
+    if period == "last_90_days":
+        return today - timedelta(days=90), today
+    if period == "this_quarter":
+        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
+        start_quarter = today.replace(month=quarter_start_month, day=1)
+        quarter_end_month = quarter_start_month + 2
+        last_day = calendar.monthrange(today.year, quarter_end_month)[1]
+        end_quarter = today.replace(month=quarter_end_month, day=last_day)
+        return start_quarter, end_quarter
+    if period == "this_year":
+        return today.replace(month=1, day=1), today.replace(month=12, day=31)
+    if period == "last_year":
+        return today.replace(year=today.year - 1, month=1, day=1), today.replace(year=today.year - 1, month=12, day=31)
+
+    return None, None
+
+
+class InvoiceFilter(django_filters.FilterSet):
+    status = django_filters.CharFilter(field_name="status")
+    student_id = django_filters.NumberFilter(field_name="student_id")
+    location = django_filters.NumberFilter(field_name="student__location_id")
+    location_id = django_filters.NumberFilter(field_name="student__location_id")
+    plan = django_filters.NumberFilter(field_name="membership__plan_id")
+    plan_id = django_filters.NumberFilter(field_name="membership__plan_id")
+    is_recurring = django_filters.BooleanFilter(field_name="is_recurring")
+
+    date_from = django_filters.CharFilter(method="filter_date_from")
+    date_to = django_filters.CharFilter(method="filter_date_to")
+    start_date = django_filters.CharFilter(method="filter_date_from")
+    end_date = django_filters.CharFilter(method="filter_date_to")
+    period = django_filters.CharFilter(method="filter_period")
+    date_by = django_filters.CharFilter(method="filter_noop")
+
+    def filter_noop(self, queryset, name, value):
+        return queryset
+
+    def _get_target_field(self):
+        date_by = self.data.get("date_by", "created_at")
+        if date_by == "due_date":
+            return "due_date"
+        if date_by == "paid_at":
+            return "paid_at__date"
+        return "created_at__date"
+
+    def filter_date_from(self, queryset, name, value):
+        if not value:
+            return queryset
+        field = self._get_target_field()
+        try:
+            d = datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+            return queryset.filter(**{f"{field}__gte": d})
+        except (ValueError, TypeError):
+            return queryset
+
+    def filter_date_to(self, queryset, name, value):
+        if not value:
+            return queryset
+        field = self._get_target_field()
+        try:
+            d = datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+            return queryset.filter(**{f"{field}__lte": d})
+        except (ValueError, TypeError):
+            return queryset
+
+    def filter_period(self, queryset, name, value):
+        if not value or value == "all":
+            return queryset
+        if self.data.get("start_date") or self.data.get("end_date") or self.data.get("date_from") or self.data.get("date_to"):
+            return queryset
+        start, end = parse_period_dates(period=value)
+        field = self._get_target_field()
+        qs = queryset
+        if start:
+            qs = qs.filter(**{f"{field}__gte": start})
+        if end:
+            qs = qs.filter(**{f"{field}__lte": end})
+        return qs
+
+
 class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     serializer_class = InvoiceSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["status", "student_id", "is_recurring"]
-    search_fields = ["invoice_number", "student__first_name", "student__last_name"]
+    filterset_class = InvoiceFilter
+    search_fields = ["invoice_number", "student__first_name", "student__last_name", "student__phone"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -364,8 +491,6 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
         UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
         with transaction.atomic():
-            # Clear outer join relationships (select_related) before select_for_update
-            # to avoid PostgreSQL 'FOR UPDATE cannot be applied to the nullable side of an outer join' error.
             invoice = (
                 self.get_queryset()
                 .select_related(None)
@@ -405,22 +530,62 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
-        """Revenue summary for dashboard."""
-        qs = self.get_queryset()
+        """Revenue and invoice summary with period, date range, location, and plan filtering."""
+        base_qs = self.get_queryset()
+
+        # Build filter parameters without 'status' so all status buckets remain visible for the filtered scope
+        filter_params = request.query_params.copy()
+        filter_params.pop("status", None)
+
+        invoice_filter = InvoiceFilter(filter_params, queryset=base_qs, request=request)
+        filtered_qs = invoice_filter.qs
+
         today = timezone.now().date()
         tenant = getattr(request, "tenant", None)
         currency = tenant.default_currency if tenant else "JOD"
+
+        # Resolve active period bounds
+        period = request.query_params.get("period", "this_month")
+        start_param = request.query_params.get("start_date") or request.query_params.get("date_from")
+        end_param = request.query_params.get("end_date") or request.query_params.get("date_to")
+        resolved_start, resolved_end = parse_period_dates(period, start_param, end_param)
+
+        paid_qs = filtered_qs.filter(status=Invoice.Status.PAID)
+        pending_qs = filtered_qs.filter(status__in=[Invoice.Status.PENDING, Invoice.Status.PARTIALLY_PAID])
+        overdue_qs = filtered_qs.filter(
+            Q(status=Invoice.Status.OVERDUE) |
+            (Q(status__in=[Invoice.Status.PENDING, Invoice.Status.PARTIALLY_PAID]) & Q(due_date__lt=today))
+        )
+
+        total_paid = paid_qs.aggregate(s=Sum("amount_paid"))["s"] or paid_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_pending = pending_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_overdue = overdue_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_invoiced = filtered_qs.exclude(status=Invoice.Status.VOID).aggregate(s=Sum("total_amount"))["s"] or 0
+        invoice_count = filtered_qs.exclude(status=Invoice.Status.VOID).count()
+
+        denom = float(total_paid) + float(total_pending) + float(total_overdue)
+        collected_pct = round((float(total_paid) / denom) * 100, 1) if denom > 0 else 0.0
+
+        # Backwards compatibility paid_this_month
+        paid_this_month = base_qs.filter(
+            status=Invoice.Status.PAID,
+            paid_at__month=today.month,
+            paid_at__year=today.year,
+        ).aggregate(s=Sum("total_amount"))["s"] or 0
+
         return Response({
-            "total_paid": qs.filter(status="paid").aggregate(s=Sum("total_amount"))["s"] or 0,
-            "total_pending": qs.filter(status="pending").aggregate(s=Sum("total_amount"))["s"] or 0,
-            "total_overdue": qs.filter(status="overdue").aggregate(s=Sum("total_amount"))["s"] or 0,
-            "overdue_count": qs.filter(status="overdue").count(),
-            "paid_this_month": qs.filter(
-                status="paid",
-                paid_at__month=today.month,
-                paid_at__year=today.year,
-            ).aggregate(s=Sum("total_amount"))["s"] or 0,
+            "total_paid": float(total_paid),
+            "total_pending": float(total_pending),
+            "total_overdue": float(total_overdue),
+            "overdue_count": overdue_qs.count(),
+            "total_invoiced": float(total_invoiced),
+            "invoice_count": invoice_count,
+            "collection_rate": collected_pct,
+            "paid_this_month": float(paid_this_month),
             "currency": currency,
+            "period": period,
+            "start_date": str(resolved_start) if resolved_start else None,
+            "end_date": str(resolved_end) if resolved_end else None,
         })
 
 
@@ -484,4 +649,341 @@ class PaymentViewSet(viewsets.ModelViewSet):
             "transaction_id": result.transaction_id,
             "error": result.error_message,
             "metadata": result.metadata,
+        })
+
+
+# ---------------------------------------------------------------------------
+# Expense & Outflow Accounting Serializers & ViewSets
+# ---------------------------------------------------------------------------
+
+class ExpenseCategorySerializer(serializers.ModelSerializer):
+    expenses_count = serializers.IntegerField(read_only=True, default=0)
+    total_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
+
+    class Meta:
+        model = ExpenseCategory
+        fields = [
+            "id", "name", "code", "description",
+            "is_system", "is_active", "sort_order",
+            "expenses_count", "total_amount",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "is_system", "created_at", "updated_at"]
+
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source="category.name")
+    location_name = serializers.ReadOnlyField(source="location.name")
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment_method_display = serializers.CharField(source="get_payment_method_display", read_only=True)
+
+    class Meta:
+        model = Expense
+        fields = [
+            "id", "expense_number", "title",
+            "category", "category_name",
+            "location", "location_name",
+            "vendor_name", "vendor_tax_number", "invoice_reference",
+            "amount", "tax_rate", "tax_amount", "total_amount", "currency",
+            "payment_method", "payment_method_display", "payment_reference",
+            "expense_date", "payment_date",
+            "status", "status_display",
+            "receipt_url", "is_recurring", "notes",
+            "created_by_id", "approved_by_id", "paid_by_id",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "expense_number", "tax_amount", "total_amount", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        amount = attrs.get("amount", getattr(self.instance, "amount", 0))
+        tax_rate = attrs.get("tax_rate", getattr(self.instance, "tax_rate", 0))
+        if amount and tax_rate is not None:
+            tax_amount = round(amount * (tax_rate / 100), 2)
+            attrs["tax_amount"] = tax_amount
+            attrs["total_amount"] = amount + tax_amount
+        return attrs
+
+
+class ExpenseFilter(django_filters.FilterSet):
+    status = django_filters.CharFilter(field_name="status")
+    category = django_filters.NumberFilter(field_name="category_id")
+    category_id = django_filters.NumberFilter(field_name="category_id")
+    location = django_filters.NumberFilter(field_name="location_id")
+    location_id = django_filters.NumberFilter(field_name="location_id")
+    payment_method = django_filters.CharFilter(field_name="payment_method")
+    is_recurring = django_filters.BooleanFilter(field_name="is_recurring")
+
+    date_from = django_filters.CharFilter(method="filter_date_from")
+    date_to = django_filters.CharFilter(method="filter_date_to")
+    start_date = django_filters.CharFilter(method="filter_date_from")
+    end_date = django_filters.CharFilter(method="filter_date_to")
+    period = django_filters.CharFilter(method="filter_period")
+
+    def filter_date_from(self, queryset, name, value):
+        if not value:
+            return queryset
+        try:
+            d = datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+            return queryset.filter(expense_date__gte=d)
+        except (ValueError, TypeError):
+            return queryset
+
+    def filter_date_to(self, queryset, name, value):
+        if not value:
+            return queryset
+        try:
+            d = datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+            return queryset.filter(expense_date__lte=d)
+        except (ValueError, TypeError):
+            return queryset
+
+    def filter_period(self, queryset, name, value):
+        if not value or value == "all":
+            return queryset
+        if self.data.get("start_date") or self.data.get("end_date") or self.data.get("date_from") or self.data.get("date_to"):
+            return queryset
+        start, end = parse_period_dates(period=value)
+        qs = queryset
+        if start:
+            qs = qs.filter(expense_date__gte=start)
+        if end:
+            qs = qs.filter(expense_date__lte=end)
+        return qs
+
+
+DEFAULT_EXPENSE_CATEGORIES = [
+    {"name": "إيجار ومرافق المقر", "code": "rent", "description": "إيجار الصالات والمقرات ومرافق الأكاديمية", "sort_order": 1},
+    {"name": "كهرباء ومياه وإنترنت", "code": "utilities", "description": "فواتير الخدمات والاتصالات", "sort_order": 2},
+    {"name": "شراء وصيانة معدات", "code": "equipment", "description": "بسطات، قفازات، أدوات تدريب وصيانة أجهزة", "sort_order": 3},
+    {"name": "مستلزمات وضيافة", "code": "supplies", "description": "ضيافة أولياء الأمور والطلاب وقرطاسية", "sort_order": 4},
+    {"name": "تسويق وإعلانات", "code": "marketing", "description": "حملات السوشيال ميديا والتصوير والطباعة", "sort_order": 5},
+    {"name": "اشتراكات وبرمجيات", "code": "software", "description": "تطبيقات وأنظمة وسيرفرات", "sort_order": 6},
+    {"name": "بطولات ومعسكرات", "code": "events", "description": "رسوم اشتراك البطولات ومصروفات السفر", "sort_order": 7},
+    {"name": "رسوم وتراخيص حكومية", "code": "fees", "description": "تراخيص الاتحادات والرسوم البنكية", "sort_order": 8},
+    {"name": "أجور ومكافآت متنوعة", "code": "salaries", "description": "أتعاب مدربين زائرين ومكافآت إضافية", "sort_order": 9},
+    {"name": "مصاريف تشغيلية متنوعة", "code": "other", "description": "أي نفقات تشغيلية أخرى", "sort_order": 10},
+]
+
+
+class ExpenseCategoryViewSet(viewsets.ModelViewSet):
+    queryset = ExpenseCategory.objects.all()
+    serializer_class = ExpenseCategorySerializer
+    permission_classes = [permissions.IsAuthenticated, CanManageBilling]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "code", "description"]
+    ordering = ["sort_order", "name"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not qs.exists():
+            for cat in DEFAULT_EXPENSE_CATEGORIES:
+                ExpenseCategory.objects.create(is_system=True, **cat)
+            qs = super().get_queryset()
+        return qs.annotate(
+            expenses_count=Count("expenses"),
+            total_amount=Sum("expenses__total_amount", filter=Q(expenses__status=Expense.Status.PAID))
+        )
+
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    queryset = Expense.objects.select_related("category", "location").all()
+    serializer_class = ExpenseSerializer
+    permission_classes = [permissions.IsAuthenticated, CanManageBilling]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ExpenseFilter
+    search_fields = ["title", "expense_number", "vendor_name", "invoice_reference", "notes"]
+    ordering = ["-expense_date", "-created_at"]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by_id=self.request.user.id)
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        expense = self.get_object()
+        expense.status = Expense.Status.APPROVED
+        expense.approved_by_id = request.user.id
+        expense.save(update_fields=["status", "approved_by_id", "updated_at"])
+        return Response(self.get_serializer(expense).data)
+
+    @action(detail=True, methods=["post"])
+    def mark_paid(self, request, pk=None):
+        expense = self.get_object()
+        expense.status = Expense.Status.PAID
+        expense.paid_by_id = request.user.id
+        if not expense.payment_date:
+            expense.payment_date = timezone.now().date()
+        payment_method = request.data.get("payment_method")
+        if payment_method:
+            expense.payment_method = payment_method
+        payment_reference = request.data.get("payment_reference")
+        if payment_reference:
+            expense.payment_reference = payment_reference
+        expense.save(update_fields=["status", "paid_by_id", "payment_date", "payment_method", "payment_reference", "updated_at"])
+        return Response(self.get_serializer(expense).data)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        expense = self.get_object()
+        expense.status = Expense.Status.CANCELLED
+        expense.save(update_fields=["status", "updated_at"])
+        return Response(self.get_serializer(expense).data)
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """KPI summary for expenses across periods and locations."""
+        base_qs = self.get_queryset()
+        filter_params = request.query_params.copy()
+        filter_params.pop("status", None)
+
+        exp_filter = ExpenseFilter(filter_params, queryset=base_qs, request=request)
+        filtered_qs = exp_filter.qs
+
+        tenant = getattr(request, "tenant", None)
+        currency = tenant.default_currency if tenant else "JOD"
+
+        paid_qs = filtered_qs.filter(status=Expense.Status.PAID)
+        pending_qs = filtered_qs.filter(status__in=[Expense.Status.PENDING, Expense.Status.APPROVED])
+        draft_qs = filtered_qs.filter(status=Expense.Status.DRAFT)
+
+        total_paid = paid_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_tax_paid = paid_qs.aggregate(s=Sum("tax_amount"))["s"] or 0
+        total_pending = pending_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_draft = draft_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+
+        category_breakdown = list(
+            paid_qs.values("category__id", "category__name")
+            .annotate(total=Sum("total_amount"), count=Count("id"))
+            .order_by("-total")[:8]
+        )
+
+        return Response({
+            "total_paid": float(total_paid),
+            "total_tax_paid": float(total_tax_paid),
+            "total_pending": float(total_pending),
+            "total_draft": float(total_draft),
+            "count_paid": paid_qs.count(),
+            "count_pending": pending_qs.count(),
+            "currency": currency,
+            "category_breakdown": [
+                {
+                    "category_id": item["category__id"],
+                    "category_name": item["category__name"],
+                    "total": float(item["total"]),
+                    "count": item["count"],
+                    "pct": round((float(item["total"]) / float(total_paid) * 100), 1) if float(total_paid) > 0 else 0,
+                }
+                for item in category_breakdown
+            ],
+        })
+
+    @action(detail=False, methods=["get"])
+    def cash_flow(self, request):
+        """
+        Executive Financial Statement & Cash Flow Analysis:
+        Compares Inflows (Student Revenue Collections) vs Outflows (Operational Expenses, Staff Payroll, Advances).
+        """
+        from apps.billing.models import Invoice
+        from apps.staff.models import StaffPayslip, StaffAdvance
+
+        period = request.query_params.get("period", "this_month")
+        start_param = request.query_params.get("start_date") or request.query_params.get("date_from")
+        end_param = request.query_params.get("end_date") or request.query_params.get("date_to")
+        start, end = parse_period_dates(period, start_param, end_param)
+
+        location_id = request.query_params.get("location_id") or request.query_params.get("location")
+
+        tenant = getattr(request, "tenant", None)
+        currency = tenant.default_currency if tenant else "JOD"
+
+        # 1. Inflows (Revenues Collected)
+        inv_qs = Invoice.objects.filter(status__in=[Invoice.Status.PAID, Invoice.Status.PARTIALLY_PAID])
+        if location_id:
+            inv_qs = inv_qs.filter(student__location_id=location_id)
+        if start:
+            inv_qs = inv_qs.filter(Q(paid_at__date__gte=start) | (Q(paid_at__isnull=True) & Q(created_at__date__gte=start)))
+        if end:
+            inv_qs = inv_qs.filter(Q(paid_at__date__lte=end) | (Q(paid_at__isnull=True) & Q(created_at__date__lte=end)))
+
+        total_inflows = inv_qs.aggregate(s=Sum("amount_paid"))["s"] or inv_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        inflows_count = inv_qs.count()
+
+        # 2. Operational Expenses
+        exp_qs = Expense.objects.filter(status=Expense.Status.PAID)
+        if location_id:
+            exp_qs = exp_qs.filter(location_id=location_id)
+        if start:
+            exp_qs = exp_qs.filter(expense_date__gte=start)
+        if end:
+            exp_qs = exp_qs.filter(expense_date__lte=end)
+
+        total_operating_expenses = exp_qs.aggregate(s=Sum("total_amount"))["s"] or 0
+        total_tax_expenses = exp_qs.aggregate(s=Sum("tax_amount"))["s"] or 0
+        expenses_count = exp_qs.count()
+
+        # 3. Staff Payroll Outflows
+        payslip_qs = StaffPayslip.objects.filter(status="paid")
+        if start:
+            payslip_qs = payslip_qs.filter(Q(payment_date__gte=start) | (Q(payment_date__isnull=True) & Q(created_at__date__gte=start)))
+        if end:
+            payslip_qs = payslip_qs.filter(Q(payment_date__lte=end) | (Q(payment_date__isnull=True) & Q(created_at__date__lte=end)))
+
+        total_payroll = payslip_qs.aggregate(s=Sum("net_salary"))["s"] or 0
+        payroll_count = payslip_qs.count()
+
+        # 4. Staff Disbursed Advances Outflows
+        adv_qs = StaffAdvance.objects.filter(status__in=[StaffAdvance.Status.DISBURSED, StaffAdvance.Status.REPAID])
+        if start:
+            adv_qs = adv_qs.filter(disbursed_at__date__gte=start)
+        if end:
+            adv_qs = adv_qs.filter(disbursed_at__date__lte=end)
+
+        total_advances = adv_qs.aggregate(s=Sum("amount"))["s"] or 0
+        advances_count = adv_qs.count()
+
+        # 5. Grand Outflows & Net Cash Flow
+        total_outflows = float(total_operating_expenses) + float(total_payroll) + float(total_advances)
+        inflows_float = float(total_inflows)
+        net_cash_flow = inflows_float - total_outflows
+
+        profit_margin = round((net_cash_flow / inflows_float * 100), 1) if inflows_float > 0 else 0.0
+        operating_expense_ratio = round((total_outflows / inflows_float * 100), 1) if inflows_float > 0 else 0.0
+
+        categories_breakdown = list(
+            exp_qs.values("category__name")
+            .annotate(total=Sum("total_amount"), count=Count("id"))
+            .order_by("-total")
+        )
+
+        return Response({
+            "period": period,
+            "start_date": str(start) if start else None,
+            "end_date": str(end) if end else None,
+            "currency": currency,
+            "inflows": {
+                "total": inflows_float,
+                "count": inflows_count,
+            },
+            "outflows": {
+                "total": total_outflows,
+                "operating_expenses": float(total_operating_expenses),
+                "operating_expenses_count": expenses_count,
+                "tax_amount": float(total_tax_expenses),
+                "payroll": float(total_payroll),
+                "payroll_count": payroll_count,
+                "advances": float(total_advances),
+                "advances_count": advances_count,
+            },
+            "net_cash_flow": round(net_cash_flow, 2),
+            "is_surplus": net_cash_flow >= 0,
+            "profit_margin_pct": profit_margin,
+            "operating_expense_ratio": operating_expense_ratio,
+            "categories_breakdown": [
+                {
+                    "name": item["category__name"],
+                    "total": float(item["total"]),
+                    "count": item["count"],
+                    "pct": round((float(item["total"]) / float(total_operating_expenses) * 100), 1) if float(total_operating_expenses) > 0 else 0,
+                }
+                for item in categories_breakdown
+            ],
         })

@@ -139,11 +139,21 @@ export const api = {
     kioskSearch: (search: string, locationId?: number) =>
       apiClient.get("/students/kiosk_search/", { params: { search, location_id: locationId } }),
     get: (id: number) => apiClient.get(`/students/${id}/`),
-    create: (data: unknown) => apiClient.post("/students/", data),
-    update: (id: number, data: unknown) =>
-      apiClient.patch(`/students/${id}/`, data),
+    create: (data: unknown) => {
+      const isFormData = data instanceof FormData;
+      return apiClient.post("/students/", data, {
+        headers: isFormData ? { "Content-Type": undefined } : {},
+      });
+    },
+    update: (id: number, data: unknown) => {
+      const isFormData = data instanceof FormData;
+      return apiClient.patch(`/students/${id}/`, data, {
+        headers: isFormData ? { "Content-Type": undefined } : {},
+      });
+    },
     delete: (id: number) => apiClient.delete(`/students/${id}/`),
-    stats: () => apiClient.get("/students/stats/"),
+    stats: (params?: Record<string, unknown>) =>
+      apiClient.get("/students/stats/", { params }),
     checkin: (id: number) =>
       apiClient.post(`/students/${id}/quick_checkin/`),
     attendanceHistory: (id: number) =>
@@ -263,7 +273,8 @@ export const api = {
         apiClient.get("/billing/invoices/", { params }),
       get: (id: number) => apiClient.get(`/billing/invoices/${id}/`),
       create: (data: unknown) => apiClient.post("/billing/invoices/", data),
-      summary: () => apiClient.get("/billing/invoices/summary/"),
+      summary: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/invoices/summary/", { params }),
       overdue: () => apiClient.get("/billing/invoices/overdue/"),
       markPaid: (id: number, data?: { payment_method?: string; note?: string }) =>
         apiClient.post(`/billing/invoices/${id}/mark_paid/`, data ?? {}),
@@ -272,6 +283,29 @@ export const api = {
     },
     payments: {
       initiate: (data: unknown) => apiClient.post("/billing/payments/initiate/", data),
+    },
+    expenseCategories: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/expense-categories/", { params }),
+      create: (data: unknown) => apiClient.post("/billing/expense-categories/", data),
+      update: (id: number, data: unknown) => apiClient.patch(`/billing/expense-categories/${id}/`, data),
+      delete: (id: number) => apiClient.delete(`/billing/expense-categories/${id}/`),
+    },
+    expenses: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/expenses/", { params }),
+      get: (id: number) => apiClient.get(`/billing/expenses/${id}/`),
+      create: (data: unknown) => apiClient.post("/billing/expenses/", data),
+      update: (id: number, data: unknown) => apiClient.patch(`/billing/expenses/${id}/`, data),
+      delete: (id: number) => apiClient.delete(`/billing/expenses/${id}/`),
+      approve: (id: number) => apiClient.post(`/billing/expenses/${id}/approve/`),
+      markPaid: (id: number, data?: { payment_method?: string; payment_reference?: string }) =>
+        apiClient.post(`/billing/expenses/${id}/mark_paid/`, data ?? {}),
+      cancel: (id: number) => apiClient.post(`/billing/expenses/${id}/cancel/`),
+      summary: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/expenses/summary/", { params }),
+      cashFlow: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/expenses/cash_flow/", { params }),
     },
   },
 
@@ -338,6 +372,29 @@ export const api = {
         }),
       delete: (id: number) =>
         apiClient.delete(`/staff/documents/${id}/`),
+    },
+
+    advances: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/advances/", { params }),
+      get: (id: number) =>
+        apiClient.get(`/staff/advances/${id}/`),
+      create: (data: unknown) =>
+        apiClient.post("/staff/advances/", data),
+      update: (id: number, data: unknown) =>
+        apiClient.patch(`/staff/advances/${id}/`, data),
+      delete: (id: number) =>
+        apiClient.delete(`/staff/advances/${id}/`),
+      approve: (id: number, data?: { notes?: string }) =>
+        apiClient.post(`/staff/advances/${id}/approve/`, data ?? {}),
+      reject: (id: number, data?: { reason?: string }) =>
+        apiClient.post(`/staff/advances/${id}/reject/`, data ?? {}),
+      disburse: (id: number, data?: { note?: string }) =>
+        apiClient.post(`/staff/advances/${id}/disburse/`, data ?? {}),
+      recordRepayment: (id: number, data: { amount: number; repayment_method?: string; notes?: string }) =>
+        apiClient.post(`/staff/advances/${id}/record_repayment/`, data),
+      summary: (params?: Record<string, unknown>) =>
+        apiClient.get("/staff/advances/summary/", { params }),
     },
   },
 

@@ -248,6 +248,21 @@ export interface Invoice {
   created_at: string;
 }
 
+export interface BillingSummary {
+  total_paid: number;
+  total_pending: number;
+  total_overdue: number;
+  overdue_count: number;
+  total_invoiced: number;
+  invoice_count: number;
+  collection_rate: number;
+  paid_this_month: number;
+  currency: string;
+  period?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
 export interface AttendanceRecord {
   id: number;
   session_id: number;
@@ -445,3 +460,160 @@ export interface ExamCandidate {
   graded_at: string | null;
   created_at: string;
 }
+
+export type StaffAdvanceStatus = "pending" | "approved" | "rejected" | "disbursed" | "repaid" | "cancelled";
+export type StaffAdvanceRepaymentType = "single" | "installment";
+
+export interface StaffAdvanceRepayment {
+  id: number;
+  advance: number;
+  payslip: number | null;
+  amount: number;
+  repayment_date: string;
+  repayment_method: "payroll_deduction" | "cash" | "bank_transfer" | "other";
+  notes: string;
+  recorded_by_id: string | null;
+  created_at: string;
+}
+
+export interface StaffAdvance {
+  id: number;
+  staff_member: number;
+  staff_name: string;
+  staff_email: string;
+  staff_role: string;
+  amount: number;
+  currency: string;
+  request_date: string;
+  disbursement_date: string | null;
+  status: StaffAdvanceStatus;
+  status_display?: string;
+  repayment_type: StaffAdvanceRepaymentType;
+  repayment_type_display?: string;
+  installments_count: number;
+  monthly_installment: number;
+  total_repaid: number;
+  remaining_amount: number;
+  reason: string;
+  rejection_reason: string;
+  notes: string;
+  approved_by_id: string | null;
+  approved_at: string | null;
+  repayments?: StaffAdvanceRepayment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffAdvanceSummary {
+  total_active_advances: number;
+  total_disbursed_in_period: number;
+  total_repaid_in_period: number;
+  pending_count: number;
+  active_count: number;
+  currency: string;
+  period?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Expense & Cash Flow Types (Outflows)
+// ---------------------------------------------------------------------------
+export type ExpenseStatus = "draft" | "pending" | "approved" | "paid" | "cancelled";
+export type ExpensePaymentMethod = "cash" | "bank_transfer" | "card" | "check" | "other";
+
+export interface ExpenseCategory {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+  is_system: boolean;
+  is_active: boolean;
+  sort_order: number;
+  expenses_count?: number;
+  total_amount?: string | number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Expense {
+  id: number;
+  expense_number: string;
+  title: string;
+  category: number;
+  category_name: string;
+  location: number | null;
+  location_name: string | null;
+  vendor_name: string;
+  vendor_tax_number: string;
+  invoice_reference: string;
+  amount: string | number;
+  tax_rate: string | number;
+  tax_amount: string | number;
+  total_amount: string | number;
+  currency: string;
+  payment_method: ExpensePaymentMethod;
+  payment_method_display?: string;
+  payment_reference: string;
+  expense_date: string;
+  payment_date: string | null;
+  status: ExpenseStatus;
+  status_display?: string;
+  receipt_url: string;
+  is_recurring: boolean;
+  notes: string;
+  created_by_id: string | null;
+  approved_by_id: string | null;
+  paid_by_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseSummary {
+  total_paid: number;
+  total_tax_paid: number;
+  total_pending: number;
+  total_draft: number;
+  count_paid: number;
+  count_pending: number;
+  currency: string;
+  category_breakdown: Array<{
+    category_id: number;
+    category_name: string;
+    total: number;
+    count: number;
+    pct: number;
+  }>;
+}
+
+export interface CashFlowSummary {
+  period: string;
+  start_date: string | null;
+  end_date: string | null;
+  currency: string;
+  inflows: {
+    total: number;
+    count: number;
+  };
+  outflows: {
+    total: number;
+    operating_expenses: number;
+    operating_expenses_count: number;
+    tax_amount: number;
+    payroll: number;
+    payroll_count: number;
+    advances: number;
+    advances_count: number;
+  };
+  net_cash_flow: number;
+  is_surplus: boolean;
+  profit_margin_pct: number;
+  operating_expense_ratio: number;
+  categories_breakdown: Array<{
+    name: string;
+    total: number;
+    count: number;
+    pct: number;
+  }>;
+}
+

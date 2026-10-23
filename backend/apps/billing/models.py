@@ -98,6 +98,37 @@ class Membership(models.Model):
     def is_active(self):
         return self.status == self.Status.ACTIVE
 
+    @staticmethod
+    def compute_end_date(start_date, billing_cycle: str):
+        if not start_date or billing_cycle == MembershipPlan.BillingCycle.ONE_TIME:
+            return None
+        from datetime import timedelta
+        import calendar
+
+        def add_months(d, months: int):
+            month = d.month - 1 + months
+            year = d.year + month // 12
+            month = month % 12 + 1
+            day = min(d.day, calendar.monthrange(year, month)[1])
+            return d.replace(year=year, month=month, day=day)
+
+        if billing_cycle == MembershipPlan.BillingCycle.WEEKLY:
+            return start_date + timedelta(days=7)
+        if billing_cycle == MembershipPlan.BillingCycle.MONTHLY:
+            return add_months(start_date, 1)
+        if billing_cycle == MembershipPlan.BillingCycle.QUARTERLY:
+            return add_months(start_date, 3)
+        if billing_cycle == MembershipPlan.BillingCycle.SEMI_ANNUAL:
+            return add_months(start_date, 6)
+        if billing_cycle == MembershipPlan.BillingCycle.ANNUAL:
+            return add_months(start_date, 12)
+        return add_months(start_date, 1)
+
+    def save(self, *args, **kwargs):
+        if not self.end_date and self.start_date and self.plan_id:
+            self.end_date = self.compute_end_date(self.start_date, self.plan.billing_cycle)
+        super().save(*args, **kwargs)
+
 
 class Invoice(models.Model):
     """Invoice issued to a student for a membership or service."""
@@ -190,6 +221,136 @@ class Invoice(models.Model):
     @property
     def amount_due(self):
         return self.total_amount - self.amount_paid
+
+
+# ---------------------------------------------------------------------------
+# Expense & Outflow Accounting Models
+# ---------------------------------------------------------------------------
+
+class ExpenseCategory(models.Model):
+    """
+    Standardized Chart of Expense Accounts for Sports Academies.
+    Enables managerial categorization of all operational and capital outflows.
+    """
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+    is_system = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name_plural = "Expense Categories"
+
+    def __str__(self):
+        return self.name
+
+
+class Expense(models.Model):
+    """
+    Accounting Outflow / Disbursement Record (المصروفات والمدفوعات).
+    Tracks all operational, facility, and administrative expenses.
+    """
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending Approval"
+        APPROVED = "approved", "Approved"
+        PAID = "paid", "Paid"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class PaymentMethod(models.TextChoices):
+        CASH = "cash", "Cash"
+        BANK_TRANSFER = "bank_transfer", "Bank Transfer"
+        CARD = "card", "Credit/Debit Card"
+        CHECK = "check", "Check"
+        OTHER = "other", "Other"
+
+    expense_number = models.CharField(max_length=30, unique=True, blank=True)
+    title = models.CharField(max_length=255)
+    category = models.ForeignKey(ExpenseCategory, on_delete=models.PROTECT, related_name="expenses")
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, related_name="expenses")
+
+    vendor_name = models.CharField(max_length=200, blank=True)
+    vendor_tax_number = models.CharField(max_length=100, blank=True)
+    invoice_reference = models.CharField(max_length=100, blank=True)
+
+    # Financial Breakdown
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Net amount before tax
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # Gross total paid
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
+
+    # Payment info
+    payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.BANK_TRANSFER)
+    payment_reference = models.CharField(max_length=100, blank=True)
+
+    # Accounting Dates
+    expense_date = models.DateField()
+    payment_date = models.DateField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PAID)
+    receipt_url = models.CharField(max_length=500, blank=True)
+    is_recurring = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    # Audit & Approval Workflow
+    created_by_id = models.UUIDField(null=True, blank=True)
+    approved_by_id = models.UUIDField(null=True, blank=True)
+    paid_by_id = models.UUIDField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-expense_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["status", "expense_date"]),
+            models.Index(fields=["category", "status"]),
+            models.Index(fields=["location", "expense_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.expense_number} — {self.title} ({self.total_amount} {self.currency})"
+
+    def save(self, *args, **kwargs):
+        if not self.expense_number:
+            self._generate_expense_number()
+        if not self.tax_amount and self.tax_rate > 0:
+            self.tax_amount = round(self.amount * (self.tax_rate / 100), 2)
+        if not self.total_amount:
+            self.total_amount = self.amount + (self.tax_amount or 0)
+        if self.status == self.Status.PAID and not self.payment_date:
+            self.payment_date = self.expense_date
+        super().save(*args, **kwargs)
+
+    def _generate_expense_number(self):
+        from django.db import connection, transaction
+        from django.utils import timezone
+
+        year = timezone.now().year
+        prefix = f"EXP-{year}-"
+        lock_token = f"maidan:expense_seq:{year}"
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock_token])
+            last = (
+                Expense.objects.filter(expense_number__startswith=prefix)
+                .order_by("-expense_number")
+                .values_list("expense_number", flat=True)
+                .first()
+            )
+            if last:
+                try:
+                    seq = int(last.rsplit("-", 1)[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            else:
+                seq = 1
+            self.expense_number = f"{prefix}{seq:05d}"
 
 
 # ---------------------------------------------------------------------------

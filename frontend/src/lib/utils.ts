@@ -5,21 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = "JOD", locale = "ar-JO"): string {
+export function formatCurrency(amount: number | string, currency = "JOD", locale = "ar-JO"): string {
+  const num = typeof amount === "string" ? parseFloat(amount) || 0 : (amount ?? 0);
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(num);
 }
 
-export function formatDate(dateStr: string, locale = "ar-JO"): string {
+export function formatDate(dateStr?: string | null, locale = "ar-JO"): string {
+  if (!dateStr) return "غير محدد";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "غير محدد";
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
-  }).format(new Date(dateStr));
+  }).format(d);
 }
 
 export function formatRelativeTime(dateStr: string): string {
