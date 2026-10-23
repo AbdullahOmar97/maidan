@@ -163,6 +163,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
+      if (token.error === "RefreshAccessTokenError" || !token.accessToken) {
+        return null as any;
+      }
       session.user.id = token.id as string;
       (session.user as any).first_name = token.first_name;
       (session.user as any).last_name = token.last_name;
@@ -170,10 +173,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       (session.user as any).permissions = token.permissions;
       (session as any).role = token.role;
       (session as any).accessToken = token.accessToken;
+      (session as any).tenant = token.tenant;
       (session as any).error = token.error;
       return session;
     },
   },
+  trustHost: true,
   pages: {
     signIn: "/login",
     error: "/login",

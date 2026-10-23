@@ -124,12 +124,15 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        AUTH_URL: ${AUTH_URL}
         AUTH_SECRET: ${AUTH_SECRET}
         NEXT_PUBLIC_PLATFORM_DOMAIN: ${NEXT_PUBLIC_PLATFORM_DOMAIN}
     restart: always
     env_file:
       - .env
+    environment:
+      AUTH_URL: ""
+      NEXTAUTH_URL: ""
+      AUTH_TRUST_HOST: "true"
     deploy:
       resources:
         limits:

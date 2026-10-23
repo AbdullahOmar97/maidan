@@ -59,8 +59,12 @@ apiClient.interceptors.response.use(
     const errorCode = data?.error?.code;
 
     if (status === 401) {
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        import("next-auth/react")
+          .then(({ signOut }) => signOut({ redirect: false }))
+          .finally(() => {
+            window.location.href = "/login";
+          });
       }
     }
 

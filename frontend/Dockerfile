@@ -32,11 +32,11 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN mkdir -p public
-ARG AUTH_URL
 ARG AUTH_SECRET
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_PLATFORM_DOMAIN
+ENV AUTH_TRUST_HOST=true
 
 RUN pnpm build
 

@@ -97,7 +97,10 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
       if (themePref) localStorage.setItem("theme", themePref);
     }
     queryClient.clear();
-    await signOut({ callbackUrl: "/login" });
+    await signOut({ redirect: false });
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   };
 
   useEffect(() => { setMounted(true); }, []);
