@@ -49,7 +49,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
               />
             ) : (
               <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-2xl sm:text-3xl">
-                {student.first_name?.[0]?.toUpperCase() ?? "?"}
+                {student.full_name?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
           </div>

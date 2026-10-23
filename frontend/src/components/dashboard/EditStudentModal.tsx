@@ -48,22 +48,14 @@ export function EditStudentModal({
         <ModalBody className="space-y-4">
           <ErrorBanner message={error} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="الاسم الأول" required>
-              <Input
-                required
-                value={student.first_name}
-                onChange={(e) => set("first_name", e.target.value)}
-              />
-            </FormField>
-            <FormField label="الاسم الأخير" required>
-              <Input
-                required
-                value={student.last_name}
-                onChange={(e) => set("last_name", e.target.value)}
-              />
-            </FormField>
-          </div>
+          <FormField label="اسم الطالب (الاسم الكامل)" required>
+            <Input
+              required
+              value={student.full_name || ""}
+              onChange={(e) => set("full_name", e.target.value)}
+              placeholder="مثال: عبدالله عمر سالم"
+            />
+          </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="البريد الإلكتروني">

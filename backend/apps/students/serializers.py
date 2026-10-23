@@ -226,7 +226,9 @@ class StudentListSerializer(serializers.ModelSerializer):
 
 class StudentDetailSerializer(serializers.ModelSerializer):
     """Full student detail serializer."""
-    full_name = serializers.ReadOnlyField()
+    full_name = serializers.CharField(required=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
     age = serializers.ReadOnlyField()
     family = FamilySerializer(read_only=True)
     family_id = serializers.PrimaryKeyRelatedField(
@@ -245,7 +247,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         model = Student
         fields = [
             "id", "student_number",
-            "first_name", "last_name", "full_name",
+            "full_name", "first_name", "last_name",
             "date_of_birth", "age", "gender", "nationality",
             "phone", "email", "whatsapp",
             "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relation",
@@ -260,14 +262,14 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "student_number", "full_name", "age",
+            "id", "student_number", "age",
             "active_membership", "current_belt", "belt_history",
             "created_at", "updated_at",
         ]
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=Student.objects.all(),
-                fields=["first_name", "last_name", "phone", "location"],
+                fields=["full_name", "phone", "location"],
                 message="هذا الطالب موجود بالفعل في هذا الفرع بنفس البيانات (الاسم ورقم الهاتف)."
             )
         ]

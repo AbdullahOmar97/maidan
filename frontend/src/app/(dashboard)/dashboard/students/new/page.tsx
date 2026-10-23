@@ -25,8 +25,7 @@ export default function NewStudentPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
+    full_name: "",
     phone: "",
     email: "",
     gender: "male",
@@ -217,33 +216,17 @@ export default function NewStudentPage() {
                 </div>
 
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <InputWrapper label="الاسم الأول" icon={Info}>
-                    <input
-                      required
-                      type="text"
-                      name="first_name"
-                      value={formData.first_name}
-                      onChange={handleChange}
-                      placeholder="مثال: عبدالله"
-                      className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end"
-
-                    />
-                  </InputWrapper>
-
-                  <InputWrapper label="الاسم الأخير" icon={Info}>
-                    <input
-                      required
-                      type="text"
-                      name="last_name"
-                      value={formData.last_name}
-                      onChange={handleChange}
-                      placeholder="مثال: عمر"
-                      className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end"
-
-                    />
-                  </InputWrapper>
-                </div>
+                <InputWrapper label="اسم الطالب (الاسم الكامل)" icon={Info}>
+                  <input
+                    required
+                    type="text"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="مثال: عبدالله عمر سالم"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30 text-end"
+                  />
+                </InputWrapper>
               </div>
 
               {/* Section 2: Contact Info */}

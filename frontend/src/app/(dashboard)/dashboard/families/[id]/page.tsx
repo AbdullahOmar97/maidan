@@ -312,7 +312,7 @@ export default function FamilyDetailPage() {
                                     {member.photo_url ? (
                                       <img src={member.photo_url} alt={member.full_name} className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-white font-black text-sm">{member.first_name?.[0]?.toUpperCase()}</span>
+                                      <span className="text-white font-black text-sm">{member.full_name?.[0]?.toUpperCase()}</span>
                                     )}
                                   </div>
                                   <div>

@@ -624,7 +624,7 @@ export default function KioskPage() {
                             className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-primary/10 border border-border hover:border-primary/30 transition-all group text-end"
                           >
                             <div className="w-10 h-10 rounded-lg gradient-brand-soft border border-primary/20 flex items-center justify-center text-primary font-bold shrink-0">
-                              {student.first_name?.[0]?.toUpperCase()}
+                              {student.full_name?.[0]?.toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-sm">{student.full_name}</p>

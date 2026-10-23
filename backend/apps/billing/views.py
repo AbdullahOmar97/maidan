@@ -241,7 +241,7 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["status", "student_id", "plan_id"]
-    search_fields = ["student__first_name", "student__last_name", "student__student_number"]
+    search_fields = ["student__full_name", "student__first_name", "student__last_name", "student__student_number"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -491,7 +491,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = InvoiceFilter
-    search_fields = ["invoice_number", "student__first_name", "student__last_name", "student__phone"]
+    search_fields = ["invoice_number", "student__full_name", "student__first_name", "student__last_name", "student__phone"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -1163,7 +1163,7 @@ class CreditNoteViewSet(BranchScopedMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = CreditNoteSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["credit_note_number", "invoice__invoice_number", "student__first_name", "student__last_name"]
+    search_fields = ["credit_note_number", "invoice__invoice_number", "student__full_name", "student__first_name", "student__last_name"]
     ordering = ["-issued_at"]
 
     def get_queryset(self):

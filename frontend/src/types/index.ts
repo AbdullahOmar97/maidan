@@ -39,9 +39,9 @@ export type Gender = "male" | "female" | "other" | "prefer_not";
 export interface Student {
   id: number;
   student_number: string;
-  first_name: string;
-  last_name: string;
   full_name: string;
+  first_name?: string;
+  last_name?: string;
   date_of_birth: string | null;
   age: number | null;
   gender: Gender;

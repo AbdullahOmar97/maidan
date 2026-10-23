@@ -138,11 +138,11 @@ class ExamCandidate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["student__first_name", "student__last_name"]
+        ordering = ["student__full_name"]
         unique_together = ("exam", "student")
 
     def __str__(self):
-        return f"{self.student.first_name} {self.student.last_name} for {self.target_belt.name} in {self.exam.name}"
+        return f"{self.student.full_name} for {self.target_belt.name} in {self.exam.name}"
 
     def save(self, *args, **kwargs):
         from django.db import transaction

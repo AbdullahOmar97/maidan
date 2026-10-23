@@ -167,23 +167,28 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = StudentFilter
     search_fields = [
-        "first_name", "last_name",
+        "full_name", "first_name", "last_name",
         "email", "phone", "student_number", "whatsapp",
     ]
 
     def filter_queryset(self, queryset):
         search_query = self.request.query_params.get("search", "")
-        if " " in search_query:
-            # Handle full name search (e.g. "Abdullah Omar")
+        if search_query:
             from django.db.models import Q
+            q_obj = (
+                Q(full_name__icontains=search_query) |
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(phone__icontains=search_query) |
+                Q(student_number__icontains=search_query)
+            )
             parts = search_query.split()
             if len(parts) >= 2:
-                q_obj = Q()
                 for part in parts:
-                    q_obj &= (Q(first_name__icontains=part) | Q(last_name__icontains=part))
-                return queryset.filter(q_obj)
+                    q_obj |= Q(full_name__icontains=part)
+            return queryset.filter(q_obj)
         return super().filter_queryset(queryset)
-    ordering_fields = ["created_at", "first_name", "last_name", "status"]
+    ordering_fields = ["created_at", "full_name", "first_name", "last_name", "status"]
     ordering = ["-created_at"]
 
     def get_serializer_class(self):
@@ -477,6 +482,7 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         location_id = request.query_params.get("location_id")
         
         qs = qs.filter(
+            Q(full_name__icontains=search_query) |
             Q(first_name__icontains=search_query) |
             Q(last_name__icontains=search_query) |
             Q(phone__icontains=search_query)

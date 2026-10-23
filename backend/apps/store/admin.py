@@ -25,6 +25,6 @@ class OrderItemInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ["id", "student", "status", "payment_method", "payment_status", "total_amount", "created_at"]
     list_filter = ["status", "payment_method", "payment_status", "created_at"]
-    search_fields = ["student__first_name", "student__last_name", "id"]
+    search_fields = ["student__full_name", "student__first_name", "student__last_name", "id"]
     inlines = [OrderItemInline]
     readonly_fields = ["invoice", "total_amount"]

@@ -32,8 +32,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
+    full_name: "",
     phone: "",
     email: "",
     gender: "male" as const,
@@ -180,29 +179,15 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="الاسم الأول" required>
-              <Input
-                required
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                placeholder="عبدالله"
-
-              />
-            </FormField>
-
-            <FormField label="الاسم الأخير" required>
-              <Input
-                required
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                placeholder="عمر"
-
-              />
-            </FormField>
-          </div>
+          <FormField label="اسم الطالب (الاسم الكامل)" required>
+            <Input
+              required
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleChange}
+              placeholder="مثال: عبدالله عمر سالم"
+            />
+          </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="رقم الهاتف" required>

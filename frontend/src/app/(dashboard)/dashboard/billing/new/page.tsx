@@ -243,7 +243,7 @@ function NewInvoiceContent() {
                               className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors text-end touch-target"
                             >
                               <div className="w-10 h-10 rounded-lg gradient-brand flex items-center justify-center text-white font-black text-xs shrink-0" aria-hidden="true">
-                                {student.first_name?.[0] || "U"}
+                                {student.full_name?.[0] || "U"}
                               </div>
                               <div className="flex-1 min-w-0 text-end">
                                 <p className="text-sm font-bold text-white truncate">{student.full_name}</p>
@@ -263,7 +263,7 @@ function NewInvoiceContent() {
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 border border-primary/20">
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="w-12 h-12 rounded-xl gradient-brand flex items-center justify-center text-white font-black text-sm shrink-0" aria-hidden="true">
-                        {selectedStudent.first_name[0]}
+                        {selectedStudent.full_name?.[0] || "U"}
                       </div>
                       <div className="min-w-0">
                         <p className="font-black text-white truncate">{selectedStudent.full_name}</p>

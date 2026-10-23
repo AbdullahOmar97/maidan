@@ -90,8 +90,9 @@ class Student(models.Model):
 
     # Identity
     student_number = models.CharField(max_length=20, unique=True, blank=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    full_name = models.CharField(max_length=200, db_index=True, default="")
+    first_name = models.CharField(max_length=100, blank=True, default="")
+    last_name = models.CharField(max_length=100, blank=True, default="")
 
     # Demographics
     date_of_birth = models.DateField(null=True, blank=True)
@@ -165,10 +166,11 @@ class Student(models.Model):
             models.Index(fields=["location"]),
             models.Index(fields=["student_number"]),
             models.Index(fields=["email"]),
+            models.Index(fields=["full_name"]),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["first_name", "last_name", "phone", "location"],
+                fields=["full_name", "phone", "location"],
                 name="unique_student_per_branch",
                 violation_error_message="هذا الطالب موجود بالفعل في هذا الفرع بنفس البيانات (الاسم ورقم الهاتف)."
             )
@@ -176,10 +178,6 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.student_number})"
-
-    @property
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}".strip()
 
     @property
     def age(self):
@@ -193,6 +191,13 @@ class Student(models.Model):
     def save(self, *args, **kwargs):
         if not self.student_number:
             self._generate_student_number()
+        if self.full_name:
+            self.full_name = self.full_name.strip()
+            parts = self.full_name.split(maxsplit=1)
+            self.first_name = parts[0]
+            self.last_name = parts[1] if len(parts) > 1 else ""
+        elif self.first_name or self.last_name:
+            self.full_name = f"{self.first_name} {self.last_name}".strip()
         super().save(*args, **kwargs)
 
     def _generate_student_number(self):

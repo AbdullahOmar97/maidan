@@ -120,7 +120,7 @@ export default function AddMemberDialog({ family, isOpen, onClose, onSuccess }: 
                         <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black">
-                          {student.first_name?.[0]?.toUpperCase()}
+                          {student.full_name?.[0]?.toUpperCase()}
                         </div>
                       )}
                     </div>
