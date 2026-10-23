@@ -221,6 +221,26 @@ export interface Membership {
 
 export type InvoiceStatus = "draft" | "pending" | "paid" | "overdue" | "void" | "refunded" | "partially_paid";
 
+export interface CreditNote {
+  id: number;
+  credit_note_number: string;
+  invoice: number;
+  invoice_number: string;
+  student: number;
+  student_name: string;
+  amount: number;
+  tax_amount: number;
+  currency: string;
+  reason: string;
+  reason_display: string;
+  reason_details: string;
+  refund_method: string;
+  refund_method_display: string;
+  issued_by_id: string | null;
+  issued_by_name: string | null;
+  issued_at: string;
+}
+
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -245,6 +265,11 @@ export interface Invoice {
   created_by_name: string | null;
   paid_by_id: string | null;
   paid_by_name: string | null;
+  voided_at?: string | null;
+  voided_by_id?: string | null;
+  voided_by_name?: string | null;
+  void_reason?: string;
+  credit_notes?: CreditNote[];
   created_at: string;
 }
 

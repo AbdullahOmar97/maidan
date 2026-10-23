@@ -278,8 +278,15 @@ export const api = {
       overdue: () => apiClient.get("/billing/invoices/overdue/"),
       markPaid: (id: number, data?: { payment_method?: string; note?: string }) =>
         apiClient.post(`/billing/invoices/${id}/mark_paid/`, data ?? {}),
-      void: (id: number) =>
-        apiClient.post(`/billing/invoices/${id}/void/`),
+      void: (id: number, data?: { reason?: string; reason_details?: string }) =>
+        apiClient.post(`/billing/invoices/${id}/void/`, data ?? {}),
+      refund: (id: number, data: { amount?: number; reason?: string; reason_details?: string; refund_method?: string; cancel_membership?: boolean }) =>
+        apiClient.post(`/billing/invoices/${id}/refund/`, data),
+    },
+    creditNotes: {
+      list: (params?: Record<string, unknown>) =>
+        apiClient.get("/billing/credit-notes/", { params }),
+      get: (id: number) => apiClient.get(`/billing/credit-notes/${id}/`),
     },
     payments: {
       initiate: (data: unknown) => apiClient.post("/billing/payments/initiate/", data),

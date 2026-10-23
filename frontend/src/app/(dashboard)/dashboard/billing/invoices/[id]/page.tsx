@@ -8,6 +8,7 @@ import {
   ArrowRight, Receipt, Calendar, User, CreditCard,
   Download, Printer, Send, Clock, CheckCircle,
   AlertTriangle, Info, Sparkles, DollarSign, Loader2, Ban,
+  RotateCcw, FileText, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -18,12 +19,16 @@ import type { Invoice } from "@/types";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
+import VoidInvoiceModal from "@/components/dashboard/VoidInvoiceModal";
+import RefundInvoiceModal from "@/components/dashboard/RefundInvoiceModal";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
 
 export default function InvoiceDetailPage() {
   const { id }        = useParams();
   const queryClient   = useQueryClient();
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
+  const [voidOpen, setVoidOpen]         = useState(false);
+  const [refundOpen, setRefundOpen]     = useState(false);
   const { canMarkInvoicePaid, canVoidInvoice } = useBillingPermissions();
 
   const { data: invoice, isLoading, error } = useQuery<Invoice>({
@@ -63,14 +68,34 @@ export default function InvoiceDetailPage() {
   });
 
   const voidMutation = useMutation({
-    mutationFn: () => api.billing.invoices.void(parseInt(id as string)),
+    mutationFn: (data: { reason: string; reason_details: string }) =>
+      api.billing.invoices.void(parseInt(id as string), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
       toast.success("تم إلغاء الفاتورة بنجاح (Void)");
+      setVoidOpen(false);
     },
     onError: (err: any) => toast.error(err.response?.data?.error || "فشل إلغاء الفاتورة"),
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: (data: {
+      amount: number;
+      reason: string;
+      reason_details: string;
+      refund_method: string;
+      cancel_membership: boolean;
+    }) => api.billing.invoices.refund(parseInt(id as string), data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      toast.success("تم إصدار الإشعار الدائن وتسجيل الاسترداد بنجاح ✓");
+      setRefundOpen(false);
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || "فشل إصدار الإشعار الدائن أو الاسترداد"),
   });
 
   // ── Loading state ──
@@ -181,6 +206,42 @@ export default function InvoiceDetailPage() {
                 </div>
               </div>
 
+              {/* Status Banners */}
+              {invoice.status === "void" && (
+                <div className="mx-5 md:mx-8 mt-5 md:mt-8 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+                  <div className="flex items-start gap-3">
+                    <Ban className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-black text-rose-200">فاتورة ملغاة نهائياً (VOID)</h4>
+                      <p className="text-xs text-rose-300/90 leading-relaxed">
+                        تم إلغاء هذه الفاتورة رسمياً دون أي أثر مالي، وتم إلغاء أي اشتراك مرتبط بها فورياً.
+                        {invoice.voided_at && ` [تاريخ الإلغاء: ${formatDate(invoice.voided_at)}]`}
+                        {invoice.voided_by_name && ` [بواسطة: ${invoice.voided_by_name}]`}
+                      </p>
+                      {invoice.void_reason && (
+                        <p className="text-xs font-bold text-rose-200">
+                          سبب الإلغاء: {invoice.void_reason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {invoice.status === "refunded" && (
+                <div className="mx-5 md:mx-8 mt-5 md:mt-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                  <div className="flex items-start gap-3">
+                    <RotateCcw className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-black text-amber-200">فاتورة مستردة بالكامل (REFUNDED)</h4>
+                      <p className="text-xs text-amber-300/90 mt-0.5 leading-relaxed">
+                        تم استرداد كامل المبلغ المدفوع وإصدار إشعار دائن رسمي مرقم وفق المعايير المحاسبية المعتمدة.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Line items */}
               <div className="p-5 md:p-8 space-y-8 md:space-y-10">
                 <div className="space-y-3">
@@ -232,7 +293,7 @@ export default function InvoiceDetailPage() {
                         <bdi className="text-emerald-400 font-black">{formatCurrency(invoice.amount_paid, invoice.currency)}</bdi>
                       </div>
                     )}
-                    {invoice.status !== "paid" && (
+                    {invoice.status !== "paid" && invoice.status !== "refunded" && invoice.status !== "void" && (
                       <div className="p-3 md:p-4 rounded-2xl bg-primary/5 border border-primary/10 flex justify-between mt-4">
                         <span className="text-primary font-black text-xs md:text-sm uppercase tracking-widest">المتبقي للدفع</span>
                         <bdi className="text-primary font-black">{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
@@ -240,6 +301,46 @@ export default function InvoiceDetailPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Credit Notes List */}
+                {invoice.credit_notes && invoice.credit_notes.length > 0 && (
+                  <div className="pt-6 border-t border-white/5 space-y-3">
+                    <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-400" />
+                      الإشعارات الدائنة الصادرة (Credit Notes)
+                    </h3>
+                    <div className="space-y-2.5">
+                      {invoice.credit_notes.map((cnItem) => (
+                        <div
+                          key={cnItem.id}
+                          className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-amber-400 font-mono tracking-wider">{cnItem.credit_note_number}</span>
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 text-[10px] font-bold">
+                                {cnItem.refund_method_display || cnItem.refund_method}
+                              </span>
+                            </div>
+                            <p className="text-muted-foreground">
+                              {cnItem.reason_display || cnItem.reason}
+                              {cnItem.reason_details ? ` — ${cnItem.reason_details}` : ""}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70">
+                              {formatDate(cnItem.issued_at)} {cnItem.issued_by_name ? `بواسطة ${cnItem.issued_by_name}` : ""}
+                            </p>
+                          </div>
+                          <div className="sm:text-end shrink-0">
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">مبلغ الإشعار</p>
+                            <p className="text-sm font-black text-amber-400">
+                              {formatCurrency(cnItem.amount, cnItem.currency)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer note */}
@@ -256,7 +357,31 @@ export default function InvoiceDetailPage() {
           <div className="space-y-5 md:space-y-8">
             {/* Status Card */}
             <div className="glass-card p-5 md:p-8 space-y-5 md:space-y-6 relative overflow-hidden">
-              {invoice.status === "paid" ? (
+              {invoice.status === "void" ? (
+                <>
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mx-auto" aria-hidden="true">
+                    <Ban className="w-8 h-8 md:w-10 md:h-10" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base md:text-lg font-black text-white mb-1.5">فاتورة ملغاة (Void)</h3>
+                    <p className="text-sm text-muted-foreground font-bold">
+                      تم إلغاء هذه الفاتورة ولا توجد مطالبات أو التزامات مالية.
+                    </p>
+                  </div>
+                </>
+              ) : invoice.status === "refunded" ? (
+                <>
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto" aria-hidden="true">
+                    <RotateCcw className="w-8 h-8 md:w-10 md:h-10" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base md:text-lg font-black text-white mb-1.5">مستردة بالكامل</h3>
+                    <p className="text-sm text-muted-foreground font-bold">
+                      تم استرداد المبلغ بالكامل وإصدار إشعار دائن رسمي.
+                    </p>
+                  </div>
+                </>
+              ) : invoice.status === "paid" ? (
                 <>
                   <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto" aria-hidden="true">
                     <CheckCircle className="w-8 h-8 md:w-10 md:h-10" />
@@ -266,6 +391,52 @@ export default function InvoiceDetailPage() {
                     <p className="text-sm text-muted-foreground font-bold">
                       تم تأكيد الدفع بتاريخ {invoice.paid_at ? formatDate(invoice.paid_at) : formatDate(invoice.created_at)}
                     </p>
+                  </div>
+
+                  {canVoidInvoice && (
+                    <div className="space-y-3 pt-4 border-t border-white/5">
+                      <button
+                        onClick={() => setRefundOpen(true)}
+                        className="touch-target w-full py-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-400 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                        aria-label="إصدار إشعار دائن واسترداد"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        إصدار إشعار دائن / استرداد (Credit Note)
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : invoice.status === "partially_paid" ? (
+                <>
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 mx-auto" aria-hidden="true">
+                    <Clock className="w-8 h-8 md:w-10 md:h-10" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base md:text-lg font-black text-white mb-1.5">مسددة جزئياً</h3>
+                    <p className="text-sm text-muted-foreground font-bold">
+                      تم سداد جزء من المبلغ والمتبقي: {formatCurrency(invoice.amount_due, invoice.currency)}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-4">
+                    {canMarkInvoicePaid && (
+                      <button
+                        onClick={() => setMarkPaidOpen(true)}
+                        className="touch-target w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+                      >
+                        <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                        سداد المتبقي
+                      </button>
+                    )}
+                    {canVoidInvoice && (
+                      <button
+                        onClick={() => setRefundOpen(true)}
+                        className="touch-target w-full py-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-400 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        إصدار إشعار دائن واسترداد
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (
@@ -316,18 +487,14 @@ export default function InvoiceDetailPage() {
                       إرسال تذكير للطالب
                     </button>
 
-                    {canVoidInvoice && invoice.status !== "void" && (
+                    {canVoidInvoice && (
                       <button
-                        onClick={() => {
-                          if (confirm(`هل أنت متأكد من إلغاء الفاتورة ${invoice.invoice_number}؟ سيتم إلغاء الفاتورة واعتبارها لاغية دون احتسابها مالياً.`)) {
-                            voidMutation.mutate();
-                          }
-                        }}
+                        onClick={() => setVoidOpen(true)}
                         disabled={voidMutation.isPending}
                         className="touch-target w-full py-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         aria-label="إلغاء الفاتورة"
                       >
-                        {voidMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+                        <Ban className="w-4 h-4" />
                         إلغاء الفاتورة (Void)
                       </button>
                     )}
@@ -367,6 +534,12 @@ export default function InvoiceDetailPage() {
                   </QuickInfoRow>
                 )}
 
+                {invoice.voided_by_name && (
+                  <QuickInfoRow icon={Ban} label="ألغى الفاتورة" iconColor="bg-rose-500/10 text-rose-400" labelColor="text-rose-400">
+                    <p className="text-xs font-bold text-white">{invoice.voided_by_name}</p>
+                  </QuickInfoRow>
+                )}
+
                 {invoice.is_recurring && (
                   <QuickInfoRow icon={Sparkles} label="اشتراك دوري" iconColor="bg-primary/10 text-primary" labelColor="text-primary">
                     <p className="text-xs font-bold text-white">تتكرر هذه الفاتورة تلقائياً</p>
@@ -385,6 +558,30 @@ export default function InvoiceDetailPage() {
           isPending={markPaidMutation.isPending}
           onConfirm={(method, note) => markPaidMutation.mutate({ paymentMethod: method, note })}
           onClose={() => setMarkPaidOpen(false)}
+        />
+      )}
+
+      {/* Void Invoice Modal */}
+      {voidOpen && invoice && (
+        <VoidInvoiceModal
+          invoiceNumber={invoice.invoice_number}
+          isPending={voidMutation.isPending}
+          onConfirm={(data) => voidMutation.mutate(data)}
+          onClose={() => setVoidOpen(false)}
+        />
+      )}
+
+      {/* Refund Invoice Modal */}
+      {refundOpen && invoice && (
+        <RefundInvoiceModal
+          invoiceNumber={invoice.invoice_number}
+          totalAmount={invoice.total_amount}
+          amountPaid={invoice.amount_paid}
+          currency={invoice.currency}
+          hasMembership={!!invoice.membership_id}
+          isPending={refundMutation.isPending}
+          onConfirm={(data) => refundMutation.mutate(data)}
+          onClose={() => setRefundOpen(false)}
         />
       )}
     </PermissionGuard>

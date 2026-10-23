@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 /* ── FormField wrapper ─────────────────────────────────────────── */
@@ -67,6 +67,25 @@ export function Textarea({ className, error, ...props }: TextareaProps) {
       className={cn(
         inputBase,
         "resize-none leading-relaxed",
+        error && "border-destructive/50 focus:border-destructive focus:ring-destructive/10",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+/* ── Select ────────────────────────────────────────────────────── */
+export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  className?: string;
+  error?: boolean;
+};
+
+export function Select({ className, error, ...props }: SelectProps) {
+  return (
+    <select
+      className={cn(
+        inputBase,
         error && "border-destructive/50 focus:border-destructive focus:ring-destructive/10",
         className
       )}

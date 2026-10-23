@@ -4,6 +4,7 @@ MAIDAN — Billing App Views + Serializers + URLs
 
 import calendar
 from datetime import datetime, date, timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.db.models import Sum, Count, Q
@@ -21,7 +22,7 @@ from shared.permissions import (
     CanVoidInvoice, CanApplyDiscount, CanMarkInvoicePaid,
     BranchScopedMixin,
 )
-from .models import Invoice, Membership, MembershipPlan, ExpenseCategory, Expense
+from .models import Invoice, Membership, MembershipPlan, ExpenseCategory, Expense, CreditNote
 from apps.payments.models import Payment, get_payment_provider
 from apps.students.models import Student
 
@@ -82,6 +83,45 @@ class MembershipSerializer(serializers.ModelSerializer):
         return obj.student.full_name
 
 
+class CreditNoteSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    invoice_number = serializers.ReadOnlyField(source="invoice.invoice_number")
+    issued_by_name = serializers.SerializerMethodField()
+    reason_display = serializers.CharField(source="get_reason_display", read_only=True)
+    refund_method_display = serializers.CharField(source="get_refund_method_display", read_only=True)
+
+    class Meta:
+        model = CreditNote
+        fields = [
+            "id", "credit_note_number", "invoice", "invoice_number",
+            "student", "student_name", "amount", "tax_amount", "currency",
+            "reason", "reason_display", "reason_details",
+            "refund_method", "refund_method_display",
+            "issued_by_id", "issued_by_name", "issued_at",
+        ]
+        read_only_fields = [
+            "id", "credit_note_number", "student_name", "invoice_number",
+            "issued_by_name", "issued_at",
+        ]
+
+    def _resolve_user_name(self, user_id):
+        if not user_id:
+            return None
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            user = User.objects.only("first_name", "last_name").get(id=user_id)
+            return user.get_full_name() or str(user_id)
+        except User.DoesNotExist:
+            return None
+
+    def get_student_name(self, obj):
+        return obj.student.full_name
+
+    def get_issued_by_name(self, obj):
+        return self._resolve_user_name(obj.issued_by_id)
+
+
 class InvoiceSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
@@ -89,6 +129,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
     is_overdue = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
     paid_by_name = serializers.SerializerMethodField()
+    voided_by_name = serializers.SerializerMethodField()
+    credit_notes = CreditNoteSerializer(many=True, read_only=True)
     student_id = serializers.PrimaryKeyRelatedField(
         queryset=Student.objects.all(), source="student"
     )
@@ -104,12 +146,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "tax_amount", "total_amount", "amount_paid", "amount_due", "is_overdue",
             "currency", "status", "due_date", "paid_at",
             "notes", "is_recurring", "created_by_id", "created_by_name",
-            "paid_by_id", "paid_by_name", "created_at",
+            "paid_by_id", "paid_by_name",
+            "voided_at", "voided_by_id", "voided_by_name", "void_reason",
+            "credit_notes", "created_at",
         ]
         read_only_fields = [
             "id", "invoice_number", "student_name", "tax_amount",
             "total_amount", "amount_due", "is_overdue",
-            "created_by_id", "created_by_name", "paid_by_id", "paid_by_name", "created_at",
+            "created_by_id", "created_by_name", "paid_by_id", "paid_by_name",
+            "voided_at", "voided_by_id", "voided_by_name", "credit_notes", "created_at",
         ]
 
     def _resolve_user_name(self, user_id):
@@ -142,6 +187,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_paid_by_name(self, obj):
         return self._resolve_user_name(obj.paid_by_id)
+
+    def get_voided_by_name(self, obj):
+        return self._resolve_user_name(obj.voided_by_id)
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -453,7 +501,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "create":
             return [permissions.IsAuthenticated(), CanCreateInvoice()]
-        if self.action == "void":
+        if self.action in ["void", "refund"]:
             return [permissions.IsAuthenticated(), CanVoidInvoice()]
         if self.action == "mark_paid":
             return [permissions.IsAuthenticated(), CanMarkInvoicePaid()]
@@ -467,17 +515,139 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def void(self, request, pk=None):
-        """Void an invoice — marks it as cancelled with no financial effect."""
+        """Void an invoice — marks it as cancelled with no financial effect, revoking linked membership."""
         invoice = self.get_object()
-        if invoice.status in [Invoice.Status.PAID, Invoice.Status.VOID]:
+        if invoice.status in [Invoice.Status.VOID, Invoice.Status.REFUNDED]:
             return Response(
-                {"error": "لا يمكن إلغاء فاتورة مدفوعة أو ملغاة مسبقاً."},
+                {"error": f"لا يمكن إلغاء فاتورة بحالة: {invoice.get_status_display()}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        invoice.status = Invoice.Status.VOID
-        invoice.notes = ((invoice.notes or "") + f"\n[ملغاة بواسطة {request.user.get_full_name()} في {timezone.now().date()}]").strip()
-        invoice.save(update_fields=["status", "notes"])
-        return Response({"message": "تم إلغاء الفاتورة."})
+        if invoice.status == Invoice.Status.PAID or invoice.amount_paid > Decimal("0.00"):
+            return Response(
+                {"error": "لا يمكن إلغاء فاتورة تم سدادها كلياً أو جزئياً. يجب إصدار إشعار دائن واسترداد (Refund / Credit Note)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reason = request.data.get("reason", "data_entry_error")
+        reason_details = request.data.get("reason_details", "").strip()
+        reason_text = f"{reason}" + (f": {reason_details}" if reason_details else "")
+
+        with transaction.atomic():
+            now = timezone.now()
+            invoice.status = Invoice.Status.VOID
+            invoice.voided_at = now
+            invoice.voided_by_id = request.user.id
+            invoice.void_reason = reason_text
+            audit_note = f"[ملغاة (Void) بواسطة {request.user.get_full_name()} في {now.date()}: {reason_text}]"
+            invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
+            invoice.save(update_fields=["status", "voided_at", "voided_by_id", "void_reason", "notes", "updated_at"])
+
+            if invoice.membership:
+                invoice.membership.status = Membership.Status.CANCELLED
+                invoice.membership.cancelled_at = now
+                invoice.membership.cancellation_reason = f"ملغاة تلقائياً بسبب إلغاء الفاتورة {invoice.invoice_number} ({reason_text})"
+                invoice.membership.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
+
+        serializer = self.get_serializer(invoice)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"])
+    def refund(self, request, pk=None):
+        """
+        Issue a formal Credit Note and refund for a paid/partially paid invoice.
+        Adjusts invoice amount_paid, updates status to REFUNDED or PARTIALLY_PAID,
+        reverses payment status if applicable, and revokes membership if requested.
+        """
+        invoice = self.get_object()
+        if invoice.status in [Invoice.Status.VOID]:
+            return Response(
+                {"error": "لا يمكن استرداد فاتورة ملغاة مسبقاً."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if invoice.amount_paid <= Decimal("0.00"):
+            return Response(
+                {"error": "لا توجد مبالغ مدفوعة قابلة للاسترداد على هذه الفاتورة."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            refund_amount = Decimal(str(request.data.get("amount", invoice.amount_paid)))
+        except (ValueError, TypeError):
+            return Response({"error": "المبلغ المحدد غير صالح."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if refund_amount <= Decimal("0.00") or refund_amount > invoice.amount_paid:
+            return Response(
+                {"error": f"مبلغ الاسترداد يجب أن يكون أكبر من 0 ولا يتجاوز المدفوع ({invoice.amount_paid} {invoice.currency})."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reason = request.data.get("reason", CreditNote.Reason.DATA_ENTRY_ERROR)
+        reason_details = request.data.get("reason_details", "").strip()
+        refund_method = request.data.get("refund_method", CreditNote.RefundMethod.CASH)
+        cancel_membership = request.data.get("cancel_membership", True)
+
+        with transaction.atomic():
+            now = timezone.now()
+
+            # Proportional tax amount if applicable
+            tax_amount = Decimal("0.00")
+            if invoice.total_amount > Decimal("0.00") and invoice.tax_amount > Decimal("0.00"):
+                tax_amount = (refund_amount / invoice.total_amount * invoice.tax_amount).quantize(Decimal("0.01"))
+
+            credit_note = CreditNote.objects.create(
+                invoice=invoice,
+                student=invoice.student,
+                amount=refund_amount,
+                tax_amount=tax_amount,
+                currency=invoice.currency,
+                reason=reason,
+                reason_details=reason_details,
+                refund_method=refund_method,
+                issued_by_id=request.user.id,
+            )
+
+            # Update Invoice
+            new_amount_paid = invoice.amount_paid - refund_amount
+            invoice.amount_paid = new_amount_paid
+            if new_amount_paid <= Decimal("0.00"):
+                invoice.status = Invoice.Status.REFUNDED
+            else:
+                invoice.status = Invoice.Status.PARTIALLY_PAID
+
+            audit_note = (
+                f"[إشعار دائن {credit_note.credit_note_number} — استرداد {refund_amount} {invoice.currency} "
+                f"({credit_note.get_refund_method_display()}) بواسطة {request.user.get_full_name()} في {now.date()}"
+                f"{(': ' + reason_details) if reason_details else ''}]"
+            )
+            invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
+            invoice.save(update_fields=["amount_paid", "status", "notes", "updated_at"])
+
+            # Update Payments (mark success payments as refunded / partially refunded)
+            for payment in invoice.payments.filter(status=Payment.Status.SUCCESS):
+                if new_amount_paid <= Decimal("0.00"):
+                    payment.status = Payment.Status.REFUNDED
+                else:
+                    payment.status = Payment.Status.PARTIALLY_REFUNDED
+                payment.notes = ((payment.notes or "") + f"\n[استرداد بإشعار دائن {credit_note.credit_note_number}]").strip()
+                payment.save(update_fields=["status", "notes"])
+
+            # Revoke linked membership if requested or fully refunded
+            if cancel_membership and invoice.membership:
+                invoice.membership.status = Membership.Status.CANCELLED
+                invoice.membership.cancelled_at = now
+                invoice.membership.cancellation_reason = (
+                    f"ملغاة تلقائياً بسبب استرداد الفاتورة {invoice.invoice_number} "
+                    f"بإشعار دائن {credit_note.credit_note_number}"
+                )
+                invoice.membership.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
+
+        invoice_data = self.get_serializer(invoice).data
+        cn_data = CreditNoteSerializer(credit_note).data
+        return Response({
+            "message": f"تم إصدار الإشعار الدائن {credit_note.credit_note_number} وتسجيل الاسترداد بنجاح.",
+            "credit_note": cn_data,
+            "invoice": invoice_data,
+        })
 
     @action(detail=True, methods=["post"])
     def mark_paid(self, request, pk=None):
@@ -987,3 +1157,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                 for item in categories_breakdown
             ],
         })
+
+
+class CreditNoteViewSet(BranchScopedMixin, viewsets.ReadOnlyModelViewSet):
+    serializer_class = CreditNoteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["credit_note_number", "invoice__invoice_number", "student__first_name", "student__last_name"]
+    ordering = ["-issued_at"]
+
+    def get_queryset(self):
+        qs = CreditNote.objects.select_related("invoice", "student").all()
+        return self.get_location_filtered_queryset(qs)
+

@@ -171,6 +171,12 @@ class Invoice(models.Model):
 
     created_by_id = models.UUIDField(null=True, blank=True)  # Staff who created the invoice
     paid_by_id = models.UUIDField(null=True, blank=True)      # Staff who confirmed payment receipt
+
+    # Cancellation & Void Tracking
+    voided_at = models.DateTimeField(null=True, blank=True)
+    voided_by_id = models.UUIDField(null=True, blank=True)
+    void_reason = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -221,6 +227,79 @@ class Invoice(models.Model):
     @property
     def amount_due(self):
         return self.total_amount - self.amount_paid
+
+
+class CreditNote(models.Model):
+    """
+    Formal Accounting Credit Note (إشعار دائن).
+    Issued when a paid or partially paid invoice is cancelled, refunded, or credited.
+    Conforms to international accounting and ZATCA / tax compliance standards.
+    """
+    class Reason(models.TextChoices):
+        DATA_ENTRY_ERROR = "data_entry_error", "Data Entry Error (خطأ في إدخال الفاتورة)"
+        DUPLICATE_INVOICE = "duplicate_invoice", "Duplicate Invoice (فاتورة مكررة)"
+        STUDENT_WITHDRAWAL = "student_withdrawal", "Student Withdrawal / Cancellation (انسحاب الطالب)"
+        SERVICE_MODIFICATION = "service_modification", "Service/Plan Modification (تعديل الباقة أو الخدمة)"
+        OVERCHARGE_CORRECTION = "overcharge_correction", "Overcharge Correction (تصحيح فرق المبلغ)"
+        OTHER = "other", "Other Reason (سبب آخر)"
+
+    class RefundMethod(models.TextChoices):
+        CASH = "cash", "Cash (نقداً من الصندوق)"
+        BANK_TRANSFER = "bank_transfer", "Bank Transfer (تحويل بنكي)"
+        CARD_REVERSAL = "card_reversal", "Credit/Debit Card Reversal (استرداد على البطاقة)"
+        ACCOUNT_CREDIT = "account_credit", "Student Account Credit (رصيد دائن في حساب الطالب)"
+        OTHER = "other", "Other (أخرى)"
+
+    credit_note_number = models.CharField(max_length=30, unique=True, blank=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="credit_notes")
+    student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="credit_notes")
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")
+
+    reason = models.CharField(max_length=40, choices=Reason.choices, default=Reason.DATA_ENTRY_ERROR)
+    reason_details = models.TextField(blank=True)
+    refund_method = models.CharField(max_length=30, choices=RefundMethod.choices, default=RefundMethod.CASH)
+
+    issued_by_id = models.UUIDField(null=True, blank=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-issued_at"]
+
+    def __str__(self):
+        return f"Credit Note {self.credit_note_number} for {self.invoice.invoice_number} ({self.amount} {self.currency})"
+
+    def save(self, *args, **kwargs):
+        if not self.credit_note_number:
+            self._generate_credit_note_number()
+        super().save(*args, **kwargs)
+
+    def _generate_credit_note_number(self):
+        from django.db import connection, transaction
+        from django.utils import timezone
+
+        year = timezone.now().year
+        prefix = f"CN-{year}-"
+        lock_token = f"maidan:credit_note_seq:{year}"
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock_token])
+            last = (
+                CreditNote.objects.filter(credit_note_number__startswith=prefix)
+                .order_by("-credit_note_number")
+                .values_list("credit_note_number", flat=True)
+                .first()
+            )
+            if last:
+                try:
+                    seq = int(last.rsplit("-", 1)[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            else:
+                seq = 1
+            self.credit_note_number = f"{prefix}{seq:05d}"
 
 
 # ---------------------------------------------------------------------------
