@@ -17,6 +17,7 @@ interface Payslip {
   unit_rate: string;
   allowances: string;
   deductions: string;
+  advance_deductions?: string;
   net_salary: string;
   status: "pending" | "paid";
   payment_method: string;
@@ -325,6 +326,7 @@ export function PayrollTab() {
                       <th className="px-3 py-3 text-start">الوحدات (ساعة/حصة)</th>
                       <th className="px-3 py-3 text-start">الإضافات/العلاوات</th>
                       <th className="px-3 py-3 text-start">الخصومات</th>
+                      <th className="px-3 py-3 text-start">خصم السلف</th>
                       <th className="px-3 py-3 text-start">الراتب الصافي</th>
                       <th className="px-3 py-3 text-start">الدفع</th>
                       <th className="px-3 py-3 rounded-e-lg text-end">الإجراء</th>
@@ -383,6 +385,13 @@ export function PayrollTab() {
                                 className="w-20 px-2 py-1 rounded border border-border/40 bg-background/50 text-xs text-foreground focus:outline-none"
                               />
                             ) : slip.deductions !== "0.00" ? `-${slip.deductions} JOD` : "—"}
+                          </td>
+
+                          {/* Advance Deductions */}
+                          <td className="px-3 py-4 text-amber-500 font-bold">
+                            {slip.advance_deductions && slip.advance_deductions !== "0.00"
+                              ? `-${slip.advance_deductions} JOD`
+                              : "—"}
                           </td>
 
                           {/* Net Salary */}

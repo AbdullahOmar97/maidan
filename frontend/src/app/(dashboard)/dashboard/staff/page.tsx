@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { SalaryConfigTab } from "@/components/dashboard/staff/SalaryConfigTab";
 import { PayrollTab } from "@/components/dashboard/staff/PayrollTab";
 import { DocumentsTab } from "@/components/dashboard/staff/DocumentsTab";
+import { AdvancesTab } from "@/components/dashboard/staff/AdvancesTab";
 
 
 // ---------------------------------------------------------------------------
@@ -146,6 +147,7 @@ export default function StaffPage() {
           {[
             { id: "list", label: "فريق العمل" },
             { id: "salary-config", label: "إعدادات الرواتب" },
+            { id: "advances", label: "سلف الموظفين" },
             { id: "payroll", label: "مسيرات الرواتب" },
             { id: "documents", label: "ملفات الموظفين" },
           ].map((tab) => (
@@ -257,6 +259,7 @@ export default function StaffPage() {
         )}
 
         {activeTab === "salary-config" && <SalaryConfigTab />}
+        {activeTab === "advances" && <AdvancesTab />}
         {activeTab === "payroll" && <PayrollTab />}
         {activeTab === "documents" && <DocumentsTab />}
 

@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from apps.accounts.serializers import UserSerializer
-from .models import StaffMember, StaffSalaryConfig, PayrollRun, StaffPayslip, StaffDocument
+from .models import (
+    StaffMember, StaffSalaryConfig, PayrollRun, StaffPayslip, StaffDocument,
+    StaffAdvance, StaffAdvanceRepayment
+)
 
 
 class StaffSalaryConfigSerializer(serializers.ModelSerializer):
@@ -28,11 +31,47 @@ class StaffPayslipSerializer(serializers.ModelSerializer):
         fields = [
             "id", "payroll_run", "staff_member", "staff_name", "staff_email", "staff_role",
             "employment_type", "basic_salary", "calculated_units", "unit_rate",
-            "allowances", "deductions", "net_salary", "status", "payment_date",
+            "allowances", "deductions", "advance_deductions", "net_salary", "status", "payment_date",
             "payment_method", "notes", "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "payroll_run", "staff_member", "net_salary", "created_at", "updated_at"
+        ]
+
+
+class StaffAdvanceRepaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StaffAdvanceRepayment
+        fields = [
+            "id", "advance", "payslip", "amount", "repayment_date",
+            "repayment_method", "notes", "recorded_by_id", "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class StaffAdvanceSerializer(serializers.ModelSerializer):
+    staff_name = serializers.ReadOnlyField(source="staff_member.user.get_full_name")
+    staff_email = serializers.ReadOnlyField(source="staff_member.user.email")
+    staff_role = serializers.ReadOnlyField(source="staff_member.user.role")
+    repayments = StaffAdvanceRepaymentSerializer(many=True, read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    repayment_type_display = serializers.CharField(source="get_repayment_type_display", read_only=True)
+
+    class Meta:
+        model = StaffAdvance
+        fields = [
+            "id", "staff_member", "staff_name", "staff_email", "staff_role",
+            "amount", "currency", "request_date", "disbursement_date",
+            "status", "status_display", "repayment_type", "repayment_type_display",
+            "installments_count", "monthly_installment", "total_repaid",
+            "remaining_amount", "reason", "rejection_reason", "notes",
+            "approved_by_id", "approved_at", "repayments",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = [
+            "id", "status_display", "repayment_type_display",
+            "total_repaid", "remaining_amount", "approved_by_id", "approved_at",
+            "created_at", "updated_at",
         ]
 
 

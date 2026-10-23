@@ -1,20 +1,26 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from decimal import Decimal
 
 
 from shared.permissions import RoleChoices
-from .models import StaffMember, StaffSalaryConfig, PayrollRun, StaffPayslip, StaffDocument
+from .models import (
+    StaffMember, StaffSalaryConfig, PayrollRun, StaffPayslip, StaffDocument,
+    StaffAdvance, StaffAdvanceRepayment
+)
 from .serializers import (
     StaffSalaryConfigSerializer,
     PayrollRunSerializer,
     StaffPayslipSerializer,
-    StaffDocumentSerializer
+    StaffDocumentSerializer,
+    StaffAdvanceSerializer,
+    StaffAdvanceRepaymentSerializer
 )
 
 
@@ -103,6 +109,17 @@ class PayrollRunViewSet(viewsets.ModelViewSet):
                 ).count()
                 calculated_units = Decimal(sessions_count)
 
+            # Calculate due advance deductions
+            advance_deductions = Decimal("0.00")
+            active_advances = StaffAdvance.objects.filter(
+                staff_member=member,
+                status=StaffAdvance.Status.DISBURSED,
+                remaining_amount__gt=Decimal("0.00"),
+            )
+            for adv in active_advances:
+                due = min(adv.monthly_installment, adv.remaining_amount)
+                advance_deductions += due
+
             # Create or update payslip
             StaffPayslip.objects.update_or_create(
                 payroll_run=payroll_run,
@@ -112,6 +129,7 @@ class PayrollRunViewSet(viewsets.ModelViewSet):
                     "basic_salary": basic_salary,
                     "calculated_units": calculated_units,
                     "unit_rate": unit_rate,
+                    "advance_deductions": advance_deductions,
                     "status": StaffPayslip.Status.PENDING,
                 }
             )
@@ -147,7 +165,7 @@ class PayrollRunViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def mark_paid(self, request, pk=None):
-        """Mark the payroll run and all its payslips as paid."""
+        """Mark the payroll run and all its payslips as paid, settling advance deductions."""
         payroll_run = self.get_object()
         if payroll_run.status not in [PayrollRun.Status.DRAFT, PayrollRun.Status.APPROVED]:
             return Response(
@@ -159,7 +177,7 @@ class PayrollRunViewSet(viewsets.ModelViewSet):
             payroll_run.status = PayrollRun.Status.PAID
             payroll_run.save()
             
-            # Update all payslips
+            # Update all payslips and record advance repayments
             payslips = payroll_run.payslips.all()
             for payslip in payslips:
                 payslip.status = StaffPayslip.Status.PAID
@@ -167,7 +185,30 @@ class PayrollRunViewSet(viewsets.ModelViewSet):
                     payslip.payment_date = timezone.now().date()
                 payslip.save()
 
-        return Response({"status": "paid", "detail": "تم تسجيل دفع الرواتب لجميع الموظفين بنجاح."})
+                if payslip.advance_deductions > Decimal("0.00"):
+                    remaining_to_deduct = payslip.advance_deductions
+                    active_advances = StaffAdvance.objects.filter(
+                        staff_member=payslip.staff_member,
+                        status=StaffAdvance.Status.DISBURSED,
+                        remaining_amount__gt=Decimal("0.00"),
+                    ).order_by("request_date")
+                    for adv in active_advances:
+                        if remaining_to_deduct <= Decimal("0.00"):
+                            break
+                        repay_amount = min(remaining_to_deduct, min(adv.monthly_installment, adv.remaining_amount))
+                        if repay_amount > Decimal("0.00"):
+                            StaffAdvanceRepayment.objects.create(
+                                advance=adv,
+                                payslip=payslip,
+                                amount=repay_amount,
+                                repayment_date=payslip.payment_date,
+                                repayment_method=StaffAdvanceRepayment.RepaymentMethod.PAYROLL_DEDUCTION,
+                                notes=f"استقطاع من مسير رواتب {payroll_run.year}/{payroll_run.month:02d}",
+                                recorded_by_id=request.user.id,
+                            )
+                            remaining_to_deduct -= repay_amount
+
+        return Response({"status": "paid", "detail": "تم تسجيل دفع الرواتب واستقطاع السلف بنجاح."})
 
 
 class StaffPayslipViewSet(viewsets.ModelViewSet):
@@ -198,3 +239,171 @@ class StaffDocumentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Allow specifying staff_member in request data
         serializer.save()
+
+
+class StaffAdvanceFilter(django_filters.FilterSet):
+    status = django_filters.CharFilter(field_name="status")
+    staff_member = django_filters.NumberFilter(field_name="staff_member_id")
+    repayment_type = django_filters.CharFilter(field_name="repayment_type")
+    date_from = django_filters.DateFilter(field_name="request_date", lookup_expr="gte")
+    date_to = django_filters.DateFilter(field_name="request_date", lookup_expr="lte")
+    period = django_filters.CharFilter(method="filter_period")
+
+    def filter_period(self, queryset, name, value):
+        from apps.billing.views import parse_period_dates
+        start, end = parse_period_dates(value)
+        if start:
+            queryset = queryset.filter(request_date__gte=start)
+        if end:
+            queryset = queryset.filter(request_date__lte=end)
+        return queryset
+
+
+class StaffAdvanceViewSet(viewsets.ModelViewSet):
+    queryset = StaffAdvance.objects.select_related("staff_member__user").prefetch_related("repayments").all()
+    serializer_class = StaffAdvanceSerializer
+    permission_classes = [CanManagePayrollPermission]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = StaffAdvanceFilter
+    search_fields = ["staff_member__user__first_name", "staff_member__user__last_name", "reason", "notes"]
+    ordering = ["-created_at"]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        """Approve a pending salary advance."""
+        advance = self.get_object()
+        if advance.status != StaffAdvance.Status.PENDING:
+            return Response(
+                {"error": "يمكن اعتماد السلف التي في حالة قيد الانتظار فقط."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        advance.status = StaffAdvance.Status.APPROVED
+        advance.approved_by_id = request.user.id
+        advance.approved_at = timezone.now()
+        notes = request.data.get("notes", "")
+        if notes:
+            advance.notes = ((advance.notes or "") + f"\n{notes}").strip()
+        advance.save()
+        return Response(self.get_serializer(advance).data)
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        """Reject a pending salary advance."""
+        advance = self.get_object()
+        if advance.status != StaffAdvance.Status.PENDING:
+            return Response(
+                {"error": "يمكن رفض السلف التي في حالة قيد الانتظار فقط."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        advance.status = StaffAdvance.Status.REJECTED
+        advance.rejection_reason = request.data.get("reason", "")
+        advance.save()
+        return Response(self.get_serializer(advance).data)
+
+    @action(detail=True, methods=["post"])
+    def disburse(self, request, pk=None):
+        """Disburse funds for an approved salary advance."""
+        advance = self.get_object()
+        if advance.status != StaffAdvance.Status.APPROVED:
+            return Response(
+                {"error": "يمكن صرف السلف المعتمدة فقط."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        advance.status = StaffAdvance.Status.DISBURSED
+        advance.disbursement_date = timezone.now().date()
+        disbursement_note = request.data.get("note", "")
+        if disbursement_note:
+            advance.notes = ((advance.notes or "") + f"\n[تم الصرف: {disbursement_note}]").strip()
+        advance.save()
+        return Response(self.get_serializer(advance).data)
+
+    @action(detail=True, methods=["post"])
+    def record_repayment(self, request, pk=None):
+        """Record a manual direct repayment (e.g. cash returned by employee)."""
+        advance = self.get_object()
+        if advance.status not in [StaffAdvance.Status.DISBURSED, StaffAdvance.Status.APPROVED]:
+            return Response(
+                {"error": "يمكن تسجيل سداد لسلفة مصروفة أو معتمدة فقط."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        amount_val = request.data.get("amount")
+        if not amount_val:
+            return Response({"error": "يرجى تحديد مبلغ السداد."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            amount = Decimal(str(amount_val))
+            if amount <= Decimal("0.00"):
+                raise ValueError()
+        except (ValueError, TypeError):
+            return Response({"error": "مبلغ السداد يجب أن يكون رقماً موجباً."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount > advance.remaining_amount:
+            return Response(
+                {"error": f"المبلغ المدخل ({amount}) أكبر من المبلغ المتبقي للسداد ({advance.remaining_amount})."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        method = request.data.get("repayment_method", StaffAdvanceRepayment.RepaymentMethod.CASH)
+        notes = request.data.get("notes", "")
+
+        repayment = StaffAdvanceRepayment.objects.create(
+            advance=advance,
+            amount=amount,
+            repayment_date=timezone.now().date(),
+            repayment_method=method,
+            notes=notes,
+            recorded_by_id=request.user.id,
+        )
+        advance.refresh_from_db()
+        return Response({
+            "message": "تم تسجيل السداد بنجاح.",
+            "advance": self.get_serializer(advance).data,
+            "repayment": StaffAdvanceRepaymentSerializer(repayment).data
+        })
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Summary KPI statistics for staff advances with period and contextual filtering."""
+        from apps.billing.views import parse_period_dates
+        period = request.query_params.get("period", "this_month")
+        start_param = request.query_params.get("start_date") or request.query_params.get("date_from")
+        end_param = request.query_params.get("end_date") or request.query_params.get("date_to")
+        resolved_start, resolved_end = parse_period_dates(period, start_param, end_param)
+
+        qs = self.get_queryset()
+        repayments_qs = StaffAdvanceRepayment.objects.all()
+
+        if resolved_start:
+            qs = qs.filter(request_date__gte=resolved_start)
+            repayments_qs = repayments_qs.filter(repayment_date__gte=resolved_start)
+        if resolved_end:
+            qs = qs.filter(request_date__lte=resolved_end)
+            repayments_qs = repayments_qs.filter(repayment_date__lte=resolved_end)
+
+        active_advances_qs = StaffAdvance.objects.filter(
+            status=StaffAdvance.Status.DISBURSED,
+            remaining_amount__gt=Decimal("0.00")
+        )
+        total_remaining = active_advances_qs.aggregate(s=models.Sum("remaining_amount"))["s"] or Decimal("0.00")
+        total_disbursed_period = qs.filter(status__in=[StaffAdvance.Status.DISBURSED, StaffAdvance.Status.REPAID]).aggregate(s=models.Sum("amount"))["s"] or Decimal("0.00")
+        total_repaid_period = repayments_qs.aggregate(s=models.Sum("amount"))["s"] or Decimal("0.00")
+        pending_count = StaffAdvance.objects.filter(status=StaffAdvance.Status.PENDING).count()
+        active_count = active_advances_qs.count()
+
+        tenant = getattr(request, "tenant", None)
+        currency = tenant.default_currency if tenant else "JOD"
+
+        return Response({
+            "total_active_advances": float(total_remaining),
+            "total_disbursed_in_period": float(total_disbursed_period),
+            "total_repaid_in_period": float(total_repaid_period),
+            "pending_count": pending_count,
+            "active_count": active_count,
+            "currency": currency,
+            "period": period,
+            "start_date": str(resolved_start) if resolved_start else None,
+            "end_date": str(resolved_end) if resolved_end else None,
+        })
+

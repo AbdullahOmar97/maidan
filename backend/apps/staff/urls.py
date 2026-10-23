@@ -6,7 +6,8 @@ from .views import (
     StaffSalaryConfigViewSet,
     PayrollRunViewSet,
     StaffPayslipViewSet,
-    StaffDocumentViewSet
+    StaffDocumentViewSet,
+    StaffAdvanceViewSet
 )
 
 router = DefaultRouter()
@@ -14,6 +15,7 @@ router.register(r"salary-configs", StaffSalaryConfigViewSet, basename="salary-co
 router.register(r"payroll-runs", PayrollRunViewSet, basename="payroll-run")
 router.register(r"payslips", StaffPayslipViewSet, basename="payslip")
 router.register(r"documents", StaffDocumentViewSet, basename="staff-document")
+router.register(r"advances", StaffAdvanceViewSet, basename="staff-advance")
 router.register(r"", StaffViewSet, basename="staff")
 
 urlpatterns = [
