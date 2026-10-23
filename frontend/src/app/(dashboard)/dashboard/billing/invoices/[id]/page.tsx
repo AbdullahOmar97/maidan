@@ -7,7 +7,7 @@ import { api } from "@/lib/api/client";
 import {
   ArrowRight, Receipt, Calendar, User, CreditCard,
   Download, Printer, Send, Clock, CheckCircle,
-  AlertTriangle, Info, Sparkles, DollarSign, Loader2,
+  AlertTriangle, Info, Sparkles, DollarSign, Loader2, Ban,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -24,7 +24,7 @@ export default function InvoiceDetailPage() {
   const { id }        = useParams();
   const queryClient   = useQueryClient();
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
-  const { canMarkInvoicePaid } = useBillingPermissions();
+  const { canMarkInvoicePaid, canVoidInvoice } = useBillingPermissions();
 
   const { data: invoice, isLoading, error } = useQuery<Invoice>({
     queryKey: ["billing", "invoices", id],
@@ -60,6 +60,17 @@ export default function InvoiceDetailPage() {
       setMarkPaidOpen(false);
     },
     onError: (err: any) => toast.error(err.response?.data?.error || "فشل تأكيد السداد"),
+  });
+
+  const voidMutation = useMutation({
+    mutationFn: () => api.billing.invoices.void(parseInt(id as string)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      toast.success("تم إلغاء الفاتورة بنجاح (Void)");
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || "فشل إلغاء الفاتورة"),
   });
 
   // ── Loading state ──
@@ -304,6 +315,22 @@ export default function InvoiceDetailPage() {
                       <Send className="w-4 h-4" aria-hidden="true" />
                       إرسال تذكير للطالب
                     </button>
+
+                    {canVoidInvoice && invoice.status !== "void" && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`هل أنت متأكد من إلغاء الفاتورة ${invoice.invoice_number}؟ سيتم إلغاء الفاتورة واعتبارها لاغية دون احتسابها مالياً.`)) {
+                            voidMutation.mutate();
+                          }
+                        }}
+                        disabled={voidMutation.isPending}
+                        className="touch-target w-full py-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        aria-label="إلغاء الفاتورة"
+                      >
+                        {voidMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+                        إلغاء الفاتورة (Void)
+                      </button>
+                    )}
                   </div>
                 </>
               )}
