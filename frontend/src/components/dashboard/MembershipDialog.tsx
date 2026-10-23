@@ -28,6 +28,7 @@ export default function MembershipDialog({
   const queryClient = useQueryClient();
   const [selectedPlanId, setSelectedPlanId] = useState<number | "">("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
 
   const { data: plansData, isLoading: plansLoading } = useQuery({
@@ -39,6 +40,43 @@ export default function MembershipDialog({
   const plans: MembershipPlan[] = Array.isArray(plansData)
     ? plansData
     : (plansData as any)?.results ?? [];
+
+  const selectedPlan = plans.find((p) => p.id === Number(selectedPlanId));
+
+  const computeEndDate = (start: string, cycle?: string): string => {
+    if (!start || !cycle || cycle === "one_time") return "";
+    const [y, m, d] = start.split("-").map(Number);
+    if (!y || !m || !d) return "";
+    const date = new Date(Date.UTC(y, m - 1, d));
+    if (cycle === "weekly") {
+      date.setUTCDate(date.getUTCDate() + 7);
+    } else {
+      const monthsToAdd =
+        cycle === "monthly" ? 1 :
+        cycle === "quarterly" ? 3 :
+        cycle === "semi_annual" ? 6 :
+        cycle === "annual" ? 12 : 1;
+      const targetMonth = date.getUTCMonth() + monthsToAdd;
+      const targetYear = date.getUTCFullYear() + Math.floor(targetMonth / 12);
+      const normMonth = ((targetMonth % 12) + 12) % 12;
+      const maxDay = new Date(Date.UTC(targetYear, normMonth + 1, 0)).getUTCDate();
+      date.setUTCFullYear(targetYear, normMonth, Math.min(d, maxDay));
+    }
+    return date.toISOString().split("T")[0];
+  };
+
+  const handlePlanChange = (planId: number | "") => {
+    setSelectedPlanId(planId);
+    const plan = plans.find((p) => p.id === Number(planId));
+    setEndDate(computeEndDate(startDate, plan?.billing_cycle));
+  };
+
+  const handleStartDateChange = (newStart: string) => {
+    setStartDate(newStart);
+    if (selectedPlan) {
+      setEndDate(computeEndDate(newStart, selectedPlan.billing_cycle));
+    }
+  };
 
   const membershipMutation = useMutation({
     mutationFn: (data: any) => api.billing.memberships.create(data),
@@ -61,12 +99,20 @@ export default function MembershipDialog({
       student_id: studentId,
       plan_id: Number(selectedPlanId),
       start_date: startDate,
+      end_date: endDate || null,
       status: "active",
       notes,
     });
   };
 
-  const selectedPlan = plans.find((p) => p.id === Number(selectedPlanId));
+  const cycleLabels: Record<string, string> = {
+    weekly: "أسبوعي",
+    monthly: "شهري",
+    quarterly: "ربع سنوي (3 أشهر)",
+    semi_annual: "نصف سنوي (6 أشهر)",
+    annual: "سنوي",
+    one_time: "مرة واحدة",
+  };
 
   return (
     <Modal open={isOpen} onClose={onClose} size="sm">
@@ -95,7 +141,7 @@ export default function MembershipDialog({
             </div>
             <Select
               value={selectedPlanId}
-              onChange={(e) => setSelectedPlanId(Number(e.target.value))}
+              onChange={(e) => handlePlanChange(e.target.value ? Number(e.target.value) : "")}
               disabled={plansLoading || membershipMutation.isPending}
               required
             >
@@ -114,8 +160,7 @@ export default function MembershipDialog({
               <div className="flex justify-between items-start mb-2">
                 <p className="text-sm font-semibold">{selectedPlan.name}</p>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary px-2 py-0.5 rounded-md">
-                  {selectedPlan.billing_cycle === "monthly" ? "شهري" :
-                    selectedPlan.billing_cycle === "annual" ? "سنوي" : selectedPlan.billing_cycle}
+                  {cycleLabels[selectedPlan.billing_cycle] ?? selectedPlan.billing_cycle}
                 </span>
               </div>
               {selectedPlan.description && (
@@ -127,15 +172,28 @@ export default function MembershipDialog({
             </div>
           )}
 
-          <FormField label="تاريخ البدء" required>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              disabled={membershipMutation.isPending}
-              required
-            />
-          </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="تاريخ البدء" required>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                disabled={membershipMutation.isPending}
+                required
+              />
+            </FormField>
+
+            {selectedPlan?.billing_cycle !== "one_time" && (
+              <FormField label="تاريخ الانتهاء (تلقائي حسب الباقة)">
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  disabled={membershipMutation.isPending || !selectedPlanId}
+                />
+              </FormField>
+            )}
+          </div>
 
           <FormField label="ملاحظات">
             <Textarea
