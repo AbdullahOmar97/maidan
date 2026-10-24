@@ -60,6 +60,8 @@ export interface Student {
   notes: string;
   current_belt: BeltSummary | null;
   active_membership: MembershipSummary | null;
+  outstanding_balance?: number;
+  has_due_membership?: boolean;
   belt_history: BeltHistoryItem[];
   created_at: string;
 }

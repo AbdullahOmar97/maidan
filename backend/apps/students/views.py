@@ -47,6 +47,7 @@ class StudentFilter(django_filters.FilterSet):
     family = django_filters.NumberFilter(field_name="family_id")
     has_active_membership = django_filters.BooleanFilter(method="filter_active_membership")
     trial_expiring_days = django_filters.NumberFilter(method="filter_trial_expiring")
+    due_membership = django_filters.BooleanFilter(method="filter_due_membership")
 
     def filter_active_membership(self, queryset, name, value):
         if value:
@@ -59,9 +60,24 @@ class StudentFilter(django_filters.FilterSet):
         cutoff = timezone.now().date() + datetime.timedelta(days=int(value))
         return queryset.filter(status="trial", trial_end_date__lte=cutoff)
 
+    def filter_due_membership(self, queryset, name, value):
+        from django.utils import timezone
+        from django.db.models import Q
+        import datetime
+        today = timezone.now().date()
+        cutoff = today + datetime.timedelta(days=7)
+        due_condition = (
+            Q(invoices__status="overdue") |
+            Q(memberships__status="active", memberships__end_date__lte=cutoff) |
+            Q(memberships__status__in=["pending", "pending_approval"])
+        )
+        if value:
+            return queryset.filter(due_condition).distinct()
+        return queryset.exclude(due_condition).distinct()
+
     class Meta:
         model = Student
-        fields = ["status", "location", "gender"]
+        fields = ["status", "location", "gender", "due_membership"]
 
 
 class LocationViewSet(LocationFilterMixin, viewsets.ModelViewSet):
@@ -451,6 +467,9 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
     def stats(self, request):
         """Quick stats summary for dashboard and student list with filter support."""
         from django.db.models import Count, Q
+        from django.utils import timezone
+        import datetime
+
         base_qs = self.get_queryset()
         filter_params = request.query_params.copy()
         filter_params.pop("status", None)
@@ -458,11 +477,21 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             qs = self.filterset_class(filter_params, queryset=base_qs, request=request).qs
         else:
             qs = base_qs
+
+        today = timezone.now().date()
+        cutoff = today + datetime.timedelta(days=7)
+        due_condition = (
+            Q(invoices__status="overdue") |
+            Q(memberships__status="active", memberships__end_date__lte=cutoff) |
+            Q(memberships__status__in=["pending", "pending_approval"])
+        )
+
         stats = qs.aggregate(
             total=Count("id"),
             active=Count("id", filter=Q(status="active")),
             trials=Count("id", filter=Q(status="trial")),
             leads=Count("id", filter=Q(status="lead")),
+            due=Count("id", filter=due_condition, distinct=True),
         )
         return Response(stats)
 

@@ -8,7 +8,7 @@ import { api } from "@/lib/api/client";
 import { getStatusBadgeClass, getStatusLabel, cn } from "@/lib/utils";
 import {
   Users, Search, Plus, ChevronRight, Phone,
-  Mail, Award, Sparkles, Filter, Inbox, ArrowLeft, ArrowRight, QrCode
+  Mail, Award, Sparkles, Filter, Inbox, ArrowLeft, ArrowRight, QrCode, AlertCircle, Calendar
 } from "lucide-react";
 import type { PaginatedResponse, Student, Location } from "@/types";
 import Link from "next/link";
@@ -96,7 +96,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
           </div>
 
           {/* Belt + membership */}
-          <div className="flex items-center gap-6 mt-5 pt-5 border-t border-white/5">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-5 pt-5 border-t border-white/5">
             {student.current_belt && (
               <div className="flex items-center gap-2.5">
                 <div
@@ -108,12 +108,32 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
                 <span className="text-xs font-black tracking-tight text-white/90">{student.current_belt.name}</span>
               </div>
             )}
-            {student.active_membership && (
+            {student.active_membership ? (
               <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/10 group-hover:bg-primary/10 transition-all">
                 <Award className="w-3.5 h-3.5 text-primary" />
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">
                   {student.active_membership.plan_name}
                 </span>
+                {student.active_membership.end_date && (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    ينتهي: {student.active_membership.end_date}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
+                <AlertCircle className="w-3 h-3" />
+                <span>بدون اشتراك نشط</span>
+              </div>
+            )}
+
+            {student.has_due_membership && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black">
+                <Calendar className="w-3 h-3" />
+                <span>اشتراك مستحق</span>
+                {Number(student.outstanding_balance ?? 0) > 0 && (
+                  <span className="font-mono">({student.outstanding_balance} د.أ)</span>
+                )}
               </div>
             )}
           </div>
@@ -159,6 +179,7 @@ function StudentCardSkeleton() {
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [dueOnly, setDueOnly] = useState(false);
   const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -174,13 +195,14 @@ export default function StudentsPage() {
   });
 
   const { data, isLoading } = useQuery<PaginatedResponse<Student>>({
-    queryKey: ["students", { search: debouncedSearch, status, location: locationId, page }],
+    queryKey: ["students", { search: debouncedSearch, status, location: locationId, due_membership: dueOnly, page }],
     queryFn: () =>
       api.students
         .list({
           search: debouncedSearch,
           status: status || undefined,
           location: locationId || undefined,
+          due_membership: dueOnly ? true : undefined,
           page
         })
         .then((r) => r.data),
@@ -208,10 +230,19 @@ export default function StudentsPage() {
           </button>
         </PageHeader>
 
-        {/* Stats Grid — 2 col on mobile, 4 on lg */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        {/* Stats Grid — 2 col on mobile, 5 on lg */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
           <StatsCard label="إجمالي الطلاب" value={stats?.total ?? 0} icon={Users} color="primary" description="جميع المسجلين" />
           <StatsCard label="طلاب نشطون" value={stats?.active ?? 0} icon={Sparkles} color="emerald" description="اشتراكات جارية" />
+          <StatsCard
+            label="اشتراكات مستحقة"
+            value={stats?.due ?? 0}
+            icon={Calendar}
+            color="red"
+            description="تنتهي قريباً أو متأخرة"
+            onClick={() => { setDueOnly(!dueOnly); setPage(1); }}
+            className={cn("cursor-pointer transition-all", dueOnly && "ring-2 ring-red-500 shadow-lg shadow-red-500/20")}
+          />
           <StatsCard label="تجريبيون" value={stats?.trials ?? 0} icon={Award} color="blue" description="فترة تجربة" />
           <StatsCard label="محتملون" value={stats?.leads ?? 0} icon={Filter} color="amber" description="قيد المتابعة" />
         </div>
@@ -256,6 +287,21 @@ export default function StudentsPage() {
               ))}
             </Select>
           </div>
+
+          {/* Due filter toggle button */}
+          <button
+            type="button"
+            onClick={() => { setDueOnly(!dueOnly); setPage(1); }}
+            className={cn(
+              "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all sm:min-w-[160px]",
+              dueOnly
+                ? "bg-red-500/20 border-red-500/40 text-red-400 shadow-lg shadow-red-500/10"
+                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>{dueOnly ? "المستحقة فقط (مفعل)" : "فلترة المستحقة"}</span>
+          </button>
         </div>
 
         {/* Results Header */}

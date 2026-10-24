@@ -193,6 +193,9 @@ class StudentListSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
     age = serializers.ReadOnlyField()
     current_belt = serializers.SerializerMethodField()
+    active_membership = serializers.SerializerMethodField()
+    outstanding_balance = serializers.SerializerMethodField()
+    has_due_membership = serializers.SerializerMethodField()
     photo_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -202,9 +205,13 @@ class StudentListSerializer(serializers.ModelSerializer):
             "photo", "photo_url", "age", "gender",
             "phone", "email", "whatsapp",
             "status", "source", "location", "location_id",
-            "current_belt", "created_at",
+            "current_belt", "active_membership", "outstanding_balance",
+            "has_due_membership", "created_at",
         ]
-        read_only_fields = ["id", "student_number", "full_name", "age", "created_at"]
+        read_only_fields = [
+            "id", "student_number", "full_name", "age", "current_belt",
+            "active_membership", "outstanding_balance", "has_due_membership", "created_at"
+        ]
 
     def get_current_belt(self, obj):
         belt = obj.belt_history.filter(is_current=True).first()
@@ -215,6 +222,35 @@ class StudentListSerializer(serializers.ModelSerializer):
                 "promoted_at": belt.promoted_at,
             }
         return None
+
+    def get_active_membership(self, obj):
+        membership = obj.memberships.filter(status="active").first()
+        if membership:
+            return {
+                "id": membership.id,
+                "plan_name": membership.plan.name,
+                "start_date": membership.start_date,
+                "end_date": membership.end_date,
+                "status": membership.status,
+            }
+        return None
+
+    def get_outstanding_balance(self, obj):
+        from django.db.models import Sum, F
+        invoices = obj.invoices.filter(status__in=["pending", "overdue"])
+        agg = invoices.aggregate(total=Sum(F("total_amount") - F("amount_paid")))
+        return float(agg["total"] or 0)
+
+    def get_has_due_membership(self, obj):
+        from django.utils import timezone
+        import datetime
+        today = timezone.now().date()
+        cutoff = today + datetime.timedelta(days=7)
+        # Check if student has overdue invoices, pending memberships, or membership expiring within 7 days
+        has_overdue = obj.invoices.filter(status="overdue").exists()
+        has_expiring = obj.memberships.filter(status="active", end_date__lte=cutoff).exists()
+        has_pending = obj.memberships.filter(status__in=["pending", "pending_approval"]).exists()
+        return bool(has_overdue or has_expiring or has_pending)
 
     def get_photo_url(self, obj):
         if obj.photo:

@@ -28,6 +28,8 @@ interface StatsCardProps {
   href?: string;
   /** Shows a shimmer skeleton instead of content */
   loading?: boolean;
+  onClick?: () => void;
+  className?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +118,8 @@ export function StatsCard({
   trendValue,
   href,
   loading = false,
+  onClick,
+  className,
 }: StatsCardProps) {
   if (loading) return <StatsCardSkeleton />;
 
@@ -123,7 +127,14 @@ export function StatsCard({
   const formatted = isCurrency ? formatCurrency(Number(value), currency) : value;
 
   const card = (
-    <div className="glass-card p-4 sm:p-6 md:p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-300 hover:-translate-y-0.5">
+    <div
+      onClick={onClick}
+      className={cn(
+        "glass-card p-4 sm:p-6 md:p-8 group relative overflow-hidden hover:border-white/20 transition-all duration-300 hover:-translate-y-0.5",
+        onClick && "cursor-pointer",
+        className
+      )}
+    >
       {/* Decorative blob */}
       <div
         className={cn(
