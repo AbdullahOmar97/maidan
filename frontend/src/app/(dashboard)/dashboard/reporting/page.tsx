@@ -7,7 +7,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar, Cell,
 } from "recharts";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatMonthYear } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
@@ -105,11 +105,12 @@ export default function ReportingPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={8} />
+                <XAxis dataKey="month" tickFormatter={(v) => formatMonthYear(v)} tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={8} />
                 <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   cursor={{ stroke: "#dc2626", strokeWidth: 2, strokeDasharray: "5 5" }}
+                  labelFormatter={(label) => formatMonthYear(label)}
                   formatter={(v: number) => [formatCurrency(v, currency), "الإيراد"]}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={3} fill="url(#revGradReporting)" animationDuration={1500} />

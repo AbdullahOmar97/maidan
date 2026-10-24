@@ -11,7 +11,7 @@ import {
 import { useTheme } from "next-themes";
 import type { Session } from "next-auth";
 import { UserRole, PaginatedResponse, NotificationLog } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, ARABIC_MONTHS_WITH_NUMBERS } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
@@ -81,7 +81,8 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
     if (diffMins < 60) return `منذ ${diffMins} د`;
     const diffHrs = Math.floor(diffMins / 60);
     if (diffHrs < 24) return `منذ ${diffHrs} س`;
-    return d.toLocaleDateString("ar-EG", { month: "short", day: "numeric" });
+    const month = ARABIC_MONTHS_WITH_NUMBERS[d.getMonth() + 1] || "";
+    return `${d.getDate()} ${month}`;
   };
 
   // Avoid “missing navbar” after client-side navigation: mobile search overlay was left open.

@@ -15,15 +15,81 @@ export function formatCurrency(amount: number | string, currency = "JOD", locale
   }).format(num);
 }
 
-export function formatDate(dateStr?: string | null, locale = "ar-JO"): string {
+export const ARABIC_MONTH_NAMES = [
+  "",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+export const ARABIC_MONTHS_WITH_NUMBERS = [
+  "",
+  "يناير (1)",
+  "فبراير (2)",
+  "مارس (3)",
+  "أبريل (4)",
+  "مايو (5)",
+  "يونيو (6)",
+  "يوليو (7)",
+  "أغسطس (8)",
+  "سبتمبر (9)",
+  "أكتوبر (10)",
+  "نوفمبر (11)",
+  "ديسمبر (12)",
+];
+
+/**
+ * Returns formatted month name with number, e.g. "أكتوبر (10)" or "أكتوبر (10) 2026"
+ */
+export function formatMonthName(month: number, year?: number): string {
+  const name = ARABIC_MONTHS_WITH_NUMBERS[month] || "";
+  return year ? `${name} ${year}` : name;
+}
+
+/**
+ * Formats "YYYY-MM" or Date into Arabic month with number and year, e.g. "أكتوبر (10) 2026"
+ */
+export function formatMonthYear(val?: string | Date | null): string {
+  if (!val) return "";
+  if (val instanceof Date) {
+    const m = val.getMonth() + 1;
+    const y = val.getFullYear();
+    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+  }
+  const str = String(val).trim();
+  const ymMatch = str.match(/^(\d{4})-(\d{1,2})$/);
+  if (ymMatch) {
+    const y = ymMatch[1];
+    const m = parseInt(ymMatch[2], 10);
+    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+  }
+  const d = new Date(str);
+  if (!Number.isNaN(d.getTime())) {
+    const m = d.getMonth() + 1;
+    const y = d.getFullYear();
+    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+  }
+  return str;
+}
+
+export function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "غير محدد";
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "غير محدد";
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(d);
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  const monthWithNum = ARABIC_MONTHS_WITH_NUMBERS[month] || String(month);
+  return `${day} ${monthWithNum} ${year}`;
 }
 
 export function formatRelativeTime(dateStr: string): string {

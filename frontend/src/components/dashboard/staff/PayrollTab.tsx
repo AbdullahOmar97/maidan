@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Calendar, Plus, Loader2, Landmark, CheckCircle2, DollarSign, ChevronLeft, Eye, RefreshCw, Check, Trash } from "lucide-react";
 import { toast } from "sonner";
+import { ARABIC_MONTHS_WITH_NUMBERS, formatMonthName } from "@/lib/utils";
 
 interface Payslip {
   id: number;
@@ -147,11 +148,7 @@ export function PayrollTab() {
     );
   }
 
-  const MONTHS_NAMES = [
-    "",
-    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-  ];
+  const MONTHS_NAMES = ARABIC_MONTHS_WITH_NUMBERS;
 
   const STATUS_LABELS = {
     draft: { label: "مسودة", style: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
@@ -481,7 +478,7 @@ export function PayrollTab() {
                   className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                 >
                   {MONTHS_NAMES.map((name, i) => i > 0 && (
-                    <option key={i} value={i}>{name} ({i})</option>
+                    <option key={i} value={i}>{name}</option>
                   ))}
                 </select>
               </div>

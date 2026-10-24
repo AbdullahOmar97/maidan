@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { FileText, Plus, Loader2, Trash, Upload, Download, ExternalLink, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { formatDate } from "@/lib/utils";
 
 interface StaffMember {
   id: string;
@@ -171,7 +172,7 @@ export function DocumentsTab() {
                   <div className="flex items-center justify-between border-t border-border/30 pt-3 text-[10px] text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
-                      {new Date(doc.uploaded_at).toLocaleDateString("ar-EG")}
+                      {formatDate(doc.uploaded_at)}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{formatBytes(doc.file_size)}</span>

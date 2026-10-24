@@ -29,7 +29,7 @@ import {
   Bar,
 } from "recharts";
 import { api } from "@/lib/api/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatMonthYear, formatDate } from "@/lib/utils";
 import type { DashboardKPIs } from "@/types";
 import Link from "next/link";
 import { useReportingPermissions } from "@/lib/hooks/use-permission";
@@ -154,7 +154,7 @@ export default function DashboardPage() {
       {/* Header */}
       <PageHeader
         title="نظرة عامة"
-        description={`نظام ميدان متصل — ${new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
+        description={`نظام ميدان متصل — ${formatDate(new Date().toISOString())}`}
         icon={Sparkles}
       >
         <button
@@ -258,9 +258,9 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+                <XAxis dataKey="month" tickFormatter={(v) => formatMonthYear(v)} tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip cursor={{ stroke: "#dc2626", strokeWidth: 2, strokeDasharray: "5 5" }} contentStyle={TOOLTIP_STYLE} itemStyle={{ fontWeight: "bold" }} />
+                <Tooltip labelFormatter={(label) => formatMonthYear(label)} cursor={{ stroke: "#dc2626", strokeWidth: 2, strokeDasharray: "5 5" }} contentStyle={TOOLTIP_STYLE} itemStyle={{ fontWeight: "bold" }} />
                 <Area type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={4} fill="url(#revenueGrad)" animationDuration={2000} />
               </AreaChart>
             </ResponsiveContainer>
