@@ -28,6 +28,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
   const [orderIndex, setOrderIndex] = useState(0);
   const [minSessions, setMinSessions] = useState(0);
   const [minMonths, setMinMonths] = useState(0);
+  const [promotionFee, setPromotionFee] = useState<number | "">(0);
 
   useEffect(() => {
     if (rankToEdit) {
@@ -38,6 +39,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       setOrderIndex(rankToEdit.order_index ?? 0);
       setMinSessions(rankToEdit.min_attendance_sessions ?? 0);
       setMinMonths(rankToEdit.min_months_since_last ?? 0);
+      setPromotionFee(Number(rankToEdit.promotion_fee ?? 0));
     } else {
       setMartialArt(defaultMartialArt || "BJJ");
       setName("");
@@ -46,6 +48,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       setOrderIndex(0);
       setMinSessions(0);
       setMinMonths(0);
+      setPromotionFee(0);
     }
   }, [rankToEdit, isOpen]);
 
@@ -84,6 +87,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       order_index: Number(orderIndex),
       min_attendance_sessions: Number(minSessions),
       min_months_since_last: Number(minMonths),
+      promotion_fee: Number(promotionFee || 0),
       is_active: true,
     });
   };
@@ -206,6 +210,18 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
               />
             </FormField>
           </div>
+
+          <FormField label="رسوم الترقية للحزام (دينار / عملة النادي)">
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={promotionFee}
+              onChange={(e) => setPromotionFee(e.target.value === "" ? "" : Number(e.target.value))}
+              disabled={saveMutation.isPending || deleteMutation.isPending}
+              placeholder="0.00"
+            />
+          </FormField>
 
           <ErrorBanner message={errorMessage} />
         </ModalBody>

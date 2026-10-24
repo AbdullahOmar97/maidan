@@ -139,6 +139,7 @@ export default function BeltsPage() {
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {rank.martial_art} • {rank.min_attendance_sessions} حصة • {rank.min_months_since_last} شهر
+                        {Number(rank.promotion_fee ?? 0) > 0 && ` • رسوم: ${rank.promotion_fee}`}
                       </p>
                     </div>
                   </div>

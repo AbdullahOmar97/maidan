@@ -33,11 +33,15 @@ class StudentBeltSerializer(serializers.ModelSerializer):
     belt_name = serializers.ReadOnlyField(source="belt_rank.name")
     belt_color = serializers.ReadOnlyField(source="belt_rank.color_hex")
     student_name = serializers.SerializerMethodField()
+    create_invoice = serializers.BooleanField(write_only=True, required=False, default=False)
+    fee_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, write_only=True, required=False, allow_null=True
+    )
 
     class Meta:
         model = StudentBelt
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "invoice"]
 
     def get_student_name(self, obj):
         return obj.student.full_name
@@ -72,13 +76,48 @@ class BeltSyllabusRequirementViewSet(viewsets.ModelViewSet):
 
 
 class StudentBeltViewSet(viewsets.ModelViewSet):
-    queryset = StudentBelt.objects.select_related("student", "belt_rank").order_by("-promoted_at")
+    queryset = StudentBelt.objects.select_related("student", "belt_rank", "invoice").order_by("-promoted_at")
     serializer_class = StudentBeltSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filterset_fields = ["student_id", "is_current"]
 
     def perform_create(self, serializer):
-        serializer.save(promoted_by_id=self.request.user.id)
+        from decimal import Decimal
+        from django.db import transaction
+        from apps.billing.models import Invoice
+
+        validated_data = serializer.validated_data
+        create_invoice = validated_data.pop("create_invoice", False)
+        fee_amount = validated_data.pop("fee_amount", None)
+
+        with transaction.atomic():
+            instance = serializer.save(promoted_by_id=self.request.user.id)
+            belt = instance.belt_rank
+            student = instance.student
+
+            # Determine invoice fee
+            final_fee = fee_amount if fee_amount is not None else belt.promotion_fee
+
+            if create_invoice and final_fee and Decimal(str(final_fee)) > 0:
+                invoice = Invoice.objects.create(
+                    student=student,
+                    subtotal=Decimal(str(final_fee)),
+                    tax_rate=Decimal("15.00"),
+                    status=Invoice.Status.PENDING,
+                    due_date=instance.promoted_at,
+                    notes=f"رسوم الترقية إلى حزام: {belt.name}",
+                    created_by_id=self.request.user.id,
+                )
+                instance.invoice = invoice
+                instance.save(update_fields=["invoice"])
+
+            # Send in-app notification to student
+            from apps.messaging.utils import create_in_app_notification
+            create_in_app_notification(
+                subject="ترقية حزام جديدة",
+                content=f"تهانينا! تمت ترقيتك إلى حزام {belt.name}.",
+                student=student
+            )
 
 
 class PromotionEligibilityViewSet(viewsets.ReadOnlyModelViewSet):

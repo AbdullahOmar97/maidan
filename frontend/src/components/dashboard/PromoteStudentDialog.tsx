@@ -33,6 +33,8 @@ export default function PromoteStudentDialog({
   const [selectedRankId, setSelectedRankId] = useState<number | "">(nextBeltId || "");
   const [notes, setNotes] = useState("");
   const [promotedAt, setPromotedAt] = useState(new Date().toISOString().split("T")[0]);
+  const [createInvoice, setCreateInvoice] = useState(false);
+  const [feeAmount, setFeeAmount] = useState<number | "">(0);
 
   const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank>>({
     queryKey: ["belts", "ranks"],
@@ -46,6 +48,8 @@ export default function PromoteStudentDialog({
       queryClient.invalidateQueries({ queryKey: ["student"] });
       queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["belts"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       onClose();
     },
   });
@@ -65,6 +69,21 @@ export default function PromoteStudentDialog({
     artRanks.sort((a, b) => a.order_index - b.order_index);
   });
 
+  const handleRankChange = (rankId: number | "") => {
+    setSelectedRankId(rankId);
+    if (!rankId) {
+      setFeeAmount(0);
+      setCreateInvoice(false);
+      return;
+    }
+    const foundRank = ranks.find((r) => r.id === rankId);
+    if (foundRank) {
+      const fee = Number(foundRank.promotion_fee ?? 0);
+      setFeeAmount(fee);
+      setCreateInvoice(fee > 0);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRankId) return;
@@ -74,6 +93,8 @@ export default function PromoteStudentDialog({
       promoted_at: promotedAt,
       notes,
       is_current: true,
+      create_invoice: createInvoice,
+      fee_amount: createInvoice ? Number(feeAmount || 0) : 0,
     });
   };
 
@@ -108,7 +129,7 @@ export default function PromoteStudentDialog({
           <FormField label="الحزام الجديد" required>
             <Select
               value={selectedRankId}
-              onChange={(e) => setSelectedRankId(Number(e.target.value))}
+              onChange={(e) => handleRankChange(e.target.value === "" ? "" : Number(e.target.value))}
               disabled={ranksLoading || promotionMutation.isPending}
               required
             >
@@ -134,6 +155,34 @@ export default function PromoteStudentDialog({
               required
             />
           </FormField>
+
+          <div className="p-4 rounded-xl bg-secondary/20 border border-border/50 space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={createInvoice}
+                onChange={(e) => setCreateInvoice(e.target.checked)}
+                disabled={promotionMutation.isPending}
+                className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/40 focus:ring-offset-0"
+              />
+              <span className="text-xs font-bold text-white">إصدار فاتورة رسوم ترقية للطالب</span>
+            </label>
+
+            {createInvoice && (
+              <FormField label="مبلغ الفاتورة (شامل ضريبة القيمة المضافة إن وجدت)">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={feeAmount}
+                  onChange={(e) => setFeeAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                  disabled={promotionMutation.isPending}
+                  placeholder="0.00"
+                  required
+                />
+              </FormField>
+            )}
+          </div>
 
           <FormField label="ملاحظات">
             <Textarea

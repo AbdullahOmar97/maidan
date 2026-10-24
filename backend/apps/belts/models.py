@@ -20,6 +20,7 @@ class Belt(models.Model):
     # Requirements for promotion
     min_attendance_sessions = models.PositiveIntegerField(default=0)
     min_months_since_last = models.PositiveIntegerField(default=0)
+    promotion_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -38,6 +39,9 @@ class StudentBelt(models.Model):
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="belt_history")
     belt_rank = models.ForeignKey("Belt", on_delete=models.PROTECT, related_name="promotions")
+    invoice = models.ForeignKey(
+        "billing.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="student_promotions"
+    )
     promoted_at = models.DateField()
     promoted_by_id = models.UUIDField(null=True, blank=True)
     is_current = models.BooleanField(default=True)  # Only one is_current=True per student
