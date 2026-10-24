@@ -36,7 +36,7 @@ export default function PromoteStudentDialog({
   const [createInvoice, setCreateInvoice] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number | "">(0);
 
-  const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank>>({
+  const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
     queryKey: ["belts", "ranks"],
     queryFn: () => api.belts.ranks().then((r) => r.data),
     enabled: isOpen,
@@ -54,7 +54,7 @@ export default function PromoteStudentDialog({
     },
   });
 
-  const ranks = ranksData?.results ?? [];
+  const ranks = Array.isArray(ranksData) ? ranksData : (ranksData?.results ?? []);
 
   // Group and sort ranks by martial art program
   const groupedRanks = ranks.reduce<Record<string, BeltRank[]>>((acc, rank) => {

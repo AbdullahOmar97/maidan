@@ -63,6 +63,7 @@ class PromotionEligibilitySerializer(serializers.ModelSerializer):
 class BeltRankViewSet(viewsets.ModelViewSet):
     queryset = Belt.objects.filter(is_active=True).order_by("martial_art", "order_index")
     serializer_class = BeltRankSerializer
+    pagination_class = None
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter]
     filterset_fields = ["martial_art"]

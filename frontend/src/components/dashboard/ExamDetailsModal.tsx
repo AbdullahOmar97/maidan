@@ -29,12 +29,12 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
   });
 
   // 2. Fetch all Belt Ranks for this exam's sport
-  const { data: ranksData } = useQuery<PaginatedResponse<BeltRank>>({
+  const { data: ranksData } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
     queryKey: ["belts", "ranks"],
     queryFn: () => api.belts.ranks().then((r: any) => r.data),
     enabled: isOpen,
   });
-  const ranks = ranksData?.results || [];
+  const ranks: BeltRank[] = Array.isArray(ranksData) ? ranksData : ranksData?.results || [];
   const sportRanks = ranks.filter((r) => r.martial_art === exam.martial_art);
 
   // 3. Fetch auto-eligible students

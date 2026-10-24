@@ -27,18 +27,18 @@ export default function BeltsPage() {
   const [rankToEdit, setRankToEdit] = useState<BeltRank | undefined>(undefined);
   const [activeSport, setActiveSport] = useState<string>("BJJ");
 
-  const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank>>({
+  const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
     queryKey: ["belts", "ranks"],
     queryFn: () => api.belts.ranks().then((r) => r.data),
   });
 
-  const { data: eligibilityData, isLoading: eligibilityLoading } = useQuery<PaginatedResponse<any>>({
+  const { data: eligibilityData, isLoading: eligibilityLoading } = useQuery<PaginatedResponse<any> | any[]>({
     queryKey: ["belts", "eligibility"],
     queryFn: () => api.belts.eligibility().then((r) => r.data),
   });
 
-  const ranks = ranksData?.results || [];
-  const eligibility = eligibilityData?.results || [];
+  const ranks: BeltRank[] = Array.isArray(ranksData) ? ranksData : ranksData?.results || [];
+  const eligibility = Array.isArray(eligibilityData) ? eligibilityData : eligibilityData?.results || [];
 
   const availableSports = Array.from(new Set(ranks.map((r) => r.martial_art))).filter(Boolean);
   const sports = availableSports.length > 0 ? availableSports : ["BJJ", "Karate", "Taekwondo", "Judo"];
