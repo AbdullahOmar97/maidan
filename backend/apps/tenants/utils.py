@@ -57,14 +57,22 @@ def seed_default_data(tenant):
                 'order_index': order, 'min_attendance_sessions': sessions, 'min_months_since_last': months
             })
 
-        # Taekwondo
+        # Taekwondo (WT / Jordanian standard progression)
         for name, name_ar, color, order, sessions, months in [
             ("White", "أبيض", "#FFFFFF", 0, 0, 0),
             ("Yellow", "أصفر", "#FBBF24", 1, 20, 3),
-            ("Green", "أخضر", "#10B981", 2, 40, 4),
-            ("Blue", "أزرق", "#3B82F6", 3, 60, 5),
-            ("Red", "أحمر", "#EF4444", 4, 80, 6),
-            ("Black", "أسود", "#111827", 5, 150, 12),
+            ("Green 1", "أخضر واحد", "#10B981", 2, 30, 3),
+            ("Green 2", "أخضر اثنين", "#059669", 3, 30, 3),
+            ("Blue 1", "أزرق واحد", "#3B82F6", 4, 40, 4),
+            ("Blue 2", "أزرق اثنين", "#1D4ED8", 5, 40, 4),
+            ("Brown 1", "بني واحد", "#92400E", 6, 50, 4),
+            ("Brown 2", "بني اثنين", "#78350F", 7, 50, 4),
+            ("Red 1", "أحمر واحد", "#EF4444", 8, 60, 5),
+            ("Red 2", "أحمر اثنين", "#B91C1C", 9, 60, 5),
+            ("Black 1st Dan", "أسود واحد دان", "#111827", 10, 120, 12),
+            ("Black 2nd Dan", "أسود اثنين دان", "#0F172A", 11, 150, 24),
+            ("Black 3rd Dan", "أسود ثلاث دان", "#000000", 12, 180, 36),
+            ("Black 4th Dan", "أسود أربعه دان", "#000000", 13, 240, 48),
         ]:
             fallback_belts.append({
                 'martial_art': "Taekwondo", 'name': name, 'name_ar': name_ar, 'color_hex': color,
