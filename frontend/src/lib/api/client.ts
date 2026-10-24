@@ -276,7 +276,7 @@ export const api = {
       summary: (params?: Record<string, unknown>) =>
         apiClient.get("/billing/invoices/summary/", { params }),
       overdue: () => apiClient.get("/billing/invoices/overdue/"),
-      markPaid: (id: number, data?: { payment_method?: string; note?: string }) =>
+      markPaid: (id: number, data?: { payment_method?: string; amount?: number; surplus_action?: string; note?: string }) =>
         apiClient.post(`/billing/invoices/${id}/mark_paid/`, data ?? {}),
       void: (id: number, data?: { reason?: string; reason_details?: string }) =>
         apiClient.post(`/billing/invoices/${id}/void/`, data ?? {}),

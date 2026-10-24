@@ -308,13 +308,25 @@ export default function BillingPage() {
   };
 
   const markPaidMutation = useMutation({
-    mutationFn: ({ invoice, paymentMethod, note }: { invoice: Invoice; paymentMethod: PaymentMethodKey; note: string }) =>
-      api.billing.invoices.markPaid(invoice.id, { payment_method: paymentMethod, note }),
+    mutationFn: ({ invoice, data }: { invoice: Invoice; data: { paymentMethod: PaymentMethodKey; amount?: number; surplusAction?: "credit" | "change"; note: string } }) =>
+      api.billing.invoices.markPaid(invoice.id, {
+        payment_method: data.paymentMethod,
+        amount: data.amount,
+        surplus_action: data.surplusAction,
+        note: data.note,
+      }),
     onMutate: ({ invoice }) => setMarkingId(invoice.id),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
-      toast.success("تم تأكيد السداد بنجاح ✓");
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      if (res?.data?.status === "partially_paid") {
+        toast.success("تم تسجيل الدفعة الجزئية بنجاح ✓");
+      } else if (Number(res?.data?.surplus_amount ?? 0) > 0 && res?.data?.surplus_action === "credit") {
+        toast.success(`تم سداد الفاتورة وإيداع فائض ${res.data.surplus_amount} د.أ بمحفظة الطالب ✓`);
+      } else {
+        toast.success("تم تأكيد السداد بنجاح ✓");
+      }
       setModalInvoice(null);
     },
     onError: (err: any) => toast.error(err.response?.data?.error || "فشل تأكيد السداد"),
@@ -322,9 +334,9 @@ export default function BillingPage() {
   });
 
   const handleMarkPaid = (invoice: Invoice) => setModalInvoice(invoice);
-  const handleModalConfirm = (paymentMethod: PaymentMethodKey, note: string) => {
+  const handleModalConfirm = (data: { paymentMethod: PaymentMethodKey; amount?: number; surplusAction?: "credit" | "change"; note: string }) => {
     if (!modalInvoice) return;
-    markPaidMutation.mutate({ invoice: modalInvoice, paymentMethod, note });
+    markPaidMutation.mutate({ invoice: modalInvoice, data });
   };
 
   const invoiceList = invoices?.results ?? [];
@@ -630,6 +642,9 @@ export default function BillingPage() {
       {modalInvoice && (
         <MarkAsPaidModal
           invoiceNumber={modalInvoice.invoice_number}
+          totalAmount={Number(modalInvoice.total_amount)}
+          amountPaid={Number(modalInvoice.amount_paid)}
+          currency={modalInvoice.currency}
           isPending={markPaidMutation.isPending}
           onConfirm={handleModalConfirm}
           onClose={() => setModalInvoice(null)}

@@ -155,6 +155,9 @@ class Student(models.Model):
     # Soft delete
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    # Financial / Wallet credit balance
+    account_credit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by_id = models.UUIDField(null=True, blank=True)

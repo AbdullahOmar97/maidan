@@ -62,6 +62,7 @@ export interface Student {
   active_membership: MembershipSummary | null;
   outstanding_balance?: number;
   has_due_membership?: boolean;
+  account_credit?: number;
   belt_history: BeltHistoryItem[];
   created_at: string;
 }

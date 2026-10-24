@@ -55,16 +55,30 @@ export default function InvoiceDetailPage() {
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: ({ paymentMethod, note }: { paymentMethod: PaymentMethodKey; note: string }) =>
-      api.billing.invoices.markPaid(parseInt(id as string), { payment_method: paymentMethod, note }),
-    onSuccess: () => {
+    mutationFn: (data: { paymentMethod: PaymentMethodKey; amount?: number; surplusAction?: "credit" | "change"; note: string }) =>
+      api.billing.invoices.markPaid(parseInt(id as string), {
+        payment_method: data.paymentMethod,
+        amount: data.amount,
+        surplus_action: data.surplusAction,
+        note: data.note,
+      }),
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
-      toast.success("تم تأكيد السداد بنجاح ✓");
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+
+      if (res?.data?.status === "partially_paid") {
+        toast.success("تم تسجيل الدفعة الجزئية بنجاح ✓");
+      } else if (Number(res?.data?.surplus_amount ?? 0) > 0 && res?.data?.surplus_action === "credit") {
+        toast.success(`تم سداد الفاتورة وإيداع فائض ${res.data.surplus_amount} د.أ بمحفظة الطالب ✓`);
+      } else {
+        toast.success("تم تأكيد السداد بنجاح ✓");
+      }
       setMarkPaidOpen(false);
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || "فشل تأكيد السداد"),
+    onError: (err: any) => toast.error(err.response?.data?.error || "فشل تسجيل السداد"),
   });
 
   const voidMutation = useMutation({
@@ -555,8 +569,11 @@ export default function InvoiceDetailPage() {
       {markPaidOpen && invoice && (
         <MarkAsPaidModal
           invoiceNumber={invoice.invoice_number}
+          totalAmount={Number(invoice.total_amount)}
+          amountPaid={Number(invoice.amount_paid)}
+          currency={invoice.currency}
           isPending={markPaidMutation.isPending}
-          onConfirm={(method, note) => markPaidMutation.mutate({ paymentMethod: method, note })}
+          onConfirm={(data) => markPaidMutation.mutate(data)}
           onClose={() => setMarkPaidOpen(false)}
         />
       )}

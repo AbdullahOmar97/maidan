@@ -652,18 +652,23 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def mark_paid(self, request, pk=None):
         """
-        Manually confirm full payment for an invoice (cash / offline).
-        Sets status=PAID, amount_paid=total_amount, paid_at=now.
+        Manually confirm full or partial payment for an invoice, with surplus handling.
+        Supports:
+          - Full payment
+          - Partial payment (status -> partially_paid)
+          - Overpayment with excess credited to student wallet or returned as cash change.
         Requires `can_mark_invoice_paid` granular permission.
         """
         payment_method = request.data.get("payment_method", "cash")
         note = request.data.get("note", "")
+        amount_received_raw = request.data.get("amount")
+        surplus_action = request.data.get("surplus_action", "credit")  # "credit" or "change"
 
         UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
         with transaction.atomic():
             invoice = (
                 self.get_queryset()
-                .select_related(None)
+                .select_related("student")
                 .select_for_update()
                 .get(pk=self.kwargs["pk"])
             )
@@ -673,21 +678,98 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            current_due = invoice.total_amount - invoice.amount_paid
+            if current_due <= Decimal("0.00"):
+                return Response({"error": "تم سداد هذه الفاتورة بالكامل مسبقاً."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Determine payment amount
+            if amount_received_raw is not None and str(amount_received_raw).strip() != "":
+                try:
+                    amount_received = Decimal(str(amount_received_raw))
+                except Exception:
+                    return Response({"error": "قيمة المبلغ المدفوع غير صالحة."}, status=status.HTTP_400_BAD_REQUEST)
+                if amount_received <= Decimal("0.00"):
+                    return Response({"error": "المبلغ المدفوع يجب أن يكون أكبر من صفر."}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                amount_received = current_due
+
             now = timezone.now()
-            invoice.status = Invoice.Status.PAID
-            invoice.amount_paid = invoice.total_amount
-            invoice.paid_at = now
-            invoice.paid_by_id = request.user.id
-            audit_note = f"[سداد يدوي — {payment_method} — بواسطة {request.user.get_full_name()} في {now.date()}"
+            user_display = request.user.get_full_name() or request.user.email
+
+            surplus_amount = Decimal("0.00")
+            student = invoice.student
+
+            if amount_received > current_due:
+                surplus_amount = amount_received - current_due
+                actual_applied_to_invoice = current_due
+                invoice.amount_paid = invoice.total_amount
+                invoice.status = Invoice.Status.PAID
+                invoice.paid_at = now
+
+                surplus_msg = ""
+                if surplus_action == "credit":
+                    student.account_credit = (student.account_credit or Decimal("0.00")) + surplus_amount
+                    student.save(update_fields=["account_credit"])
+                    surplus_msg = f" — تم إيداع فائض {surplus_amount} {invoice.currency} كرصيد دائن بمحفظة الطالب"
+                else:
+                    surplus_msg = f" — تم إرجاع فائض {surplus_amount} {invoice.currency} نقداً للطالب"
+
+                audit_note = (
+                    f"[سداد يدوي — استلام {amount_received} {invoice.currency} عبر {payment_method} "
+                    f"بواسطة {user_display} في {now.date()}{surplus_msg}]"
+                )
+            elif amount_received == current_due:
+                actual_applied_to_invoice = current_due
+                invoice.amount_paid = invoice.total_amount
+                invoice.status = Invoice.Status.PAID
+                invoice.paid_at = now
+                audit_note = f"[سداد يدوي كامل — {payment_method} — بواسطة {user_display} في {now.date()}]"
+            else:
+                # Partial payment
+                actual_applied_to_invoice = amount_received
+                invoice.amount_paid = invoice.amount_paid + amount_received
+                invoice.status = Invoice.Status.PARTIALLY_PAID
+                audit_note = (
+                    f"[سداد جزئي — استلام {amount_received} {invoice.currency} عبر {payment_method} "
+                    f"بواسطة {user_display} في {now.date()} — المتبقي {invoice.total_amount - invoice.amount_paid} {invoice.currency}]"
+                )
+
             if note:
-                audit_note += f" {note}"
+                audit_note += f" ملاحظة: {note}"
+
+            invoice.paid_by_id = request.user.id
             invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
             invoice.save(
                 update_fields=["status", "amount_paid", "paid_at", "paid_by_id", "notes", "updated_at"]
             )
 
+            # Record AuditLog
+            from apps.audit.models import AuditLog
+            AuditLog.objects.create(
+                user_id=str(request.user.id),
+                user_email=request.user.email,
+                user_role=getattr(request.user, "role", "staff"),
+                action=AuditLog.Action.PAYMENT,
+                resource_type="invoice",
+                resource_id=str(invoice.id),
+                changes={
+                    "amount_received": str(amount_received),
+                    "applied_to_invoice": str(actual_applied_to_invoice),
+                    "surplus_amount": str(surplus_amount),
+                    "surplus_action": surplus_action,
+                    "new_status": invoice.status,
+                    "payment_method": payment_method,
+                },
+                metadata={"invoice_number": invoice.invoice_number, "student_id": student.id},
+                ip_address=request.META.get("REMOTE_ADDR"),
+            )
+
         serializer = self.get_serializer(invoice)
-        return Response(serializer.data)
+        data = serializer.data
+        data["surplus_amount"] = float(surplus_amount)
+        data["surplus_action"] = surplus_action
+        data["student_account_credit"] = float(student.account_credit)
+        return Response(data)
 
     @action(detail=False, methods=["get"])
     def overdue(self, request):
