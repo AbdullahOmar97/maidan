@@ -66,7 +66,15 @@ export default function RootLayout({
               {children}
             </QueryClientProvider>
           </SessionProvider>
-          <Toaster position="top-center" richColors />
+          <Toaster
+            position="top-center"
+            richColors
+            dir="rtl"
+            closeButton
+            toastOptions={{
+              className: "!rounded-2xl !py-3 !px-4 !font-sans !shadow-2xl !border !border-white/10 !backdrop-blur-xl max-sm:!w-[calc(100vw-32px)] max-sm:!mx-auto",
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

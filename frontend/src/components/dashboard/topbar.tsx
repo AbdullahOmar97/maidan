@@ -60,16 +60,25 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
     },
   });
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside / touch outside / ESC
   useEffect(() => {
     if (!notificationsOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       if (!(e.target as Element).closest("#notifications-container")) {
         setNotificationsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNotificationsOpen(false);
+    };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick, { passive: true });
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [notificationsOpen]);
 
   // Relative time helper
@@ -233,59 +242,87 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
             {/* Dropdown Menu */}
             {notificationsOpen && (
-              <div className="absolute end-0 mt-2 w-80 bg-card border border-white/10 rounded-2xl shadow-2xl p-4 overflow-hidden z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200" dir="rtl">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                  <h4 className="text-xs font-black text-white">الإشعارات الواردة</h4>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={() => markAllReadMutation.mutate()}
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Check className="w-3 h-3" />
-                      تحديد الكل كمقروء
-                    </button>
-                  )}
-                </div>
+              <>
+                {/* Mobile backdrop */}
+                <div
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 sm:hidden"
+                  onClick={() => setNotificationsOpen(false)}
+                  aria-hidden="true"
+                />
 
-                {/* Notification List */}
-                <div className="max-h-72 overflow-y-auto py-2 space-y-2 divide-y divide-white/[0.03]">
-                  {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">
-                      <Inbox className="w-8 h-8 mb-2 opacity-25" />
-                      <p className="text-xs">لا توجد إشعارات حالياً.</p>
+                <div
+                  className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:end-0 sm:top-auto sm:mt-2 w-auto sm:w-84 max-w-[calc(100vw-24px)] sm:max-w-sm bg-card/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-4 overflow-hidden z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200"
+                  dir="rtl"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-black text-white">الإشعارات الواردة</h4>
+                      {unreadCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">
+                          {unreadCount}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        onClick={() => notif.status === "sent" && markReadMutation.mutate(notif.id)}
-                        className={cn(
-                          "pt-2 flex gap-3 text-xs leading-normal transition-all cursor-pointer",
-                          notif.status === "sent" ? "text-white font-bold" : "text-muted-foreground hover:text-white"
-                        )}
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllReadMutation.mutate()}
+                          className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" />
+                          تحديد الكل
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setNotificationsOpen(false)}
+                        className="sm:hidden p-1 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5"
+                        aria-label="إغلاق"
                       >
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-black text-xs text-white truncate max-w-[150px]">
-                              {notif.subject || "تنبيه النظام"}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
-                              {formatRelativeTime(notif.created_at)}
-                            </span>
-                          </div>
-                          <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
-                            {notif.content}
-                          </p>
-                        </div>
-                        {notif.status === "sent" && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 self-center" />
-                        )}
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Notification List */}
+                  <div className="max-h-[60vh] sm:max-h-72 overflow-y-auto py-2 space-y-2 divide-y divide-white/[0.03] overscroll-contain">
+                    {notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">
+                        <Inbox className="w-8 h-8 mb-2 opacity-25" />
+                        <p className="text-xs">لا توجد إشعارات حالياً.</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => notif.status === "sent" && markReadMutation.mutate(notif.id)}
+                          className={cn(
+                            "pt-2 flex gap-3 text-xs leading-normal transition-all cursor-pointer rounded-xl p-2 active:bg-white/5",
+                            notif.status === "sent" ? "text-white font-bold bg-white/[0.02]" : "text-muted-foreground hover:text-white"
+                          )}
+                        >
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-black text-xs text-white truncate max-w-[170px] sm:max-w-[150px]">
+                                {notif.subject || "تنبيه النظام"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+                                {formatRelativeTime(notif.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                              {notif.content}
+                            </p>
+                          </div>
+                          {notif.status === "sent" && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 self-center" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
