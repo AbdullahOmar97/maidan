@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "@/lib/providers/query-provider";
@@ -36,6 +36,15 @@ export const metadata: Metadata = {
     icon: "/icon.png",
     apple: "/icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+  themeColor: "#050811",
 };
 
 export default function RootLayout({

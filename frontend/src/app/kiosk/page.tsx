@@ -295,7 +295,7 @@ export default function KioskPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-hidden select-none">
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden select-none touch-manipulation">
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border bg-card/30 backdrop-blur-sm">
         <div className="flex items-center gap-4">

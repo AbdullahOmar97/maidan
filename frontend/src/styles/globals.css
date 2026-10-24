@@ -98,12 +98,34 @@
   * {
     @apply border-border;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html,
   body {
     max-width: 100%;
     overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Improve touch response on iOS Safari and touch screens */
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  .cursor-pointer {
+    touch-action: manipulation;
+  }
+
+  /* Ensure inputs on iOS mobile have minimum 16px font-size to prevent automatic Safari viewport zooming */
+  @media screen and (max-width: 768px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 
   body {
@@ -357,7 +379,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Touch targets — WCAG 2.5.5
+   Touch targets & iOS Safari optimizations — WCAG 2.5.5
 ───────────────────────────────────────────────────────────── */
 @layer utilities {
   .touch-target { @apply min-h-[44px] min-w-[44px]; }
@@ -372,6 +394,19 @@
 
   /* RTL flip */
   [dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+  /* Fix for sticky hover on iOS touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .glass-card:hover {
+      transform: none !important;
+    }
+    .hover\:scale-\[1\.02\]:hover,
+    .hover\:scale-\[1\.05\]:hover,
+    .hover\:scale-105:hover,
+    .hover\:scale-110:hover {
+      transform: none !important;
+    }
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
