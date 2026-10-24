@@ -13,6 +13,7 @@ class GlobalDefaultBeltAdmin(admin.ModelAdmin):
         "name_ar",
         "min_attendance_sessions",
         "min_months_since_last",
+        "promotion_fee",
         "is_active",
     )
     list_display_links = ("martial_art",)
@@ -22,6 +23,7 @@ class GlobalDefaultBeltAdmin(admin.ModelAdmin):
         "order_index",
         "min_attendance_sessions",
         "min_months_since_last",
+        "promotion_fee",
         "is_active",
     )
     list_filter = ("martial_art", "is_active")

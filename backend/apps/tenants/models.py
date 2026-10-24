@@ -216,6 +216,7 @@ class GlobalDefaultBelt(models.Model):
     # Default Requirements
     min_attendance_sessions = models.PositiveIntegerField(default=0)
     min_months_since_last = models.PositiveIntegerField(default=0)
+    promotion_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
