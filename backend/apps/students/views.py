@@ -487,10 +487,10 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         )
 
         stats = qs.aggregate(
-            total=Count("id"),
-            active=Count("id", filter=Q(status="active")),
-            trials=Count("id", filter=Q(status="trial")),
-            leads=Count("id", filter=Q(status="lead")),
+            total=Count("id", distinct=True),
+            active=Count("id", filter=Q(status="active"), distinct=True),
+            trials=Count("id", filter=Q(status="trial"), distinct=True),
+            leads=Count("id", filter=Q(status="lead"), distinct=True),
             due=Count("id", filter=due_condition, distinct=True),
         )
         return Response(stats)
