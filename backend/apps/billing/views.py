@@ -666,12 +666,16 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
         UNPAYABLE_STATUSES = {Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED}
         with transaction.atomic():
-            invoice = (
-                self.get_queryset()
-                .select_related("student")
-                .select_for_update()
-                .get(pk=self.kwargs["pk"])
-            )
+            try:
+                invoice = (
+                    self.get_queryset()
+                    .select_related(None)
+                    .select_for_update()
+                    .get(pk=pk or self.kwargs.get("pk"))
+                )
+            except Invoice.DoesNotExist:
+                return Response({"error": "الفاتورة غير موجودة."}, status=status.HTTP_404_NOT_FOUND)
+
             if invoice.status in UNPAYABLE_STATUSES:
                 return Response(
                     {"error": f"لا يمكن تأكيد سداد فاتورة بحالة: {invoice.get_status_display()}."},
@@ -708,6 +712,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
                 surplus_msg = ""
                 if surplus_action == "credit":
+                    student = Student.objects.select_for_update().get(pk=invoice.student_id)
                     student.account_credit = (student.account_credit or Decimal("0.00")) + surplus_amount
                     student.save(update_fields=["account_credit"])
                     surplus_msg = f" — تم إيداع فائض {surplus_amount} {invoice.currency} كرصيد دائن بمحفظة الطالب"
@@ -744,12 +749,10 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             )
 
             # Record AuditLog
-            from apps.audit.models import AuditLog
-            AuditLog.objects.create(
-                user_id=str(request.user.id),
-                user_email=request.user.email,
-                user_role=getattr(request.user, "role", "staff"),
-                action=AuditLog.Action.PAYMENT,
+            from apps.audit.utils import log_action
+            log_action(
+                user=request.user,
+                action="payment",
                 resource_type="invoice",
                 resource_id=str(invoice.id),
                 changes={
@@ -760,8 +763,8 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                     "new_status": invoice.status,
                     "payment_method": payment_method,
                 },
-                metadata={"invoice_number": invoice.invoice_number, "student_id": student.id},
-                ip_address=request.META.get("REMOTE_ADDR"),
+                metadata={"invoice_number": invoice.invoice_number, "student_id": invoice.student_id},
+                request=request,
             )
 
         serializer = self.get_serializer(invoice)
