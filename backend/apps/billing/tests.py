@@ -57,15 +57,15 @@ class DunningSuspensionTestCase(TestCase):
                 due_date=timezone.now().date() - timedelta(days=10)
             )
 
-    def test_automatic_dunning_suspension(self):
-        # Run dunning suspension task for this tenant schema
-        process_dunning_suspensions(self.tenant.schema_name)
+    def test_automatic_dunning_suspension_disabled(self):
+        # Run dunning suspension task for this tenant schema - feature is disabled
+        result = process_dunning_suspensions(self.tenant.schema_name)
+        self.assertEqual(result.get("suspended_count"), 0)
 
         with schema_context(self.tenant.schema_name):
-            # Student should now be suspended
+            # Student should NOT be suspended
             student = Student.objects.get(id=self.student.id)
-            self.assertEqual(student.status, Student.Status.SUSPENDED)
-            self.assertIn("تم تعليق الحساب تلقائياً لتأخر السداد", student.notes)
+            self.assertEqual(student.status, Student.Status.ACTIVE)
 
     def test_reactivation_on_payment(self):
         # Suspend student first
