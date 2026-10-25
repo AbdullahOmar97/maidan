@@ -5,14 +5,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number | string, currency = "JOD", locale = "ar-JO"): string {
-  const num = typeof amount === "string" ? parseFloat(amount) || 0 : (amount ?? 0);
-  return new Intl.NumberFormat(locale, {
+/**
+ * Converts any Eastern Arabic / Indic numerals (٠١٢٣٤٥٦٧٨٩) to standard Latin/English digits (0-9).
+ */
+export function toLatinDigits(str: string | number | null | undefined): string {
+  if (str === null || str === undefined) return "";
+  const s = String(str);
+  return s.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => {
+    const code = d.charCodeAt(0);
+    // Eastern Arabic: 0x0660-0x0669 -> 0-9
+    if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
+    // Persian/Extended Arabic: 0x06F0-0x06F9 -> 0-9
+    if (code >= 0x06F0 && code <= 0x06F9) return String(code - 0x06F0);
+    return d;
+  });
+}
+
+export function formatCurrency(amount: number | string, currency = "JOD", locale = "ar-JO-u-nu-latn"): string {
+  const num = typeof amount === "string" ? parseFloat(toLatinDigits(amount)) || 0 : (amount ?? 0);
+  const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    numberingSystem: "latn",
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(num);
+  return toLatinDigits(formatted);
 }
 
 export const ARABIC_MONTH_NAMES = [
@@ -52,7 +70,7 @@ export const ARABIC_MONTHS_WITH_NUMBERS = [
  */
 export function formatMonthName(month: number, year?: number): string {
   const name = ARABIC_MONTHS_WITH_NUMBERS[month] || "";
-  return year ? `${name} ${year}` : name;
+  return toLatinDigits(year ? `${name} ${year}` : name);
 }
 
 /**
@@ -63,22 +81,22 @@ export function formatMonthYear(val?: string | Date | null): string {
   if (val instanceof Date) {
     const m = val.getMonth() + 1;
     const y = val.getFullYear();
-    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+    return toLatinDigits(`${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`);
   }
   const str = String(val).trim();
   const ymMatch = str.match(/^(\d{4})-(\d{1,2})$/);
   if (ymMatch) {
     const y = ymMatch[1];
     const m = parseInt(ymMatch[2], 10);
-    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+    return toLatinDigits(`${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`);
   }
   const d = new Date(str);
   if (!Number.isNaN(d.getTime())) {
     const m = d.getMonth() + 1;
     const y = d.getFullYear();
-    return `${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`;
+    return toLatinDigits(`${ARABIC_MONTHS_WITH_NUMBERS[m] || ""} ${y}`);
   }
-  return str;
+  return toLatinDigits(str);
 }
 
 export function formatDate(dateStr?: string | null): string {
@@ -89,7 +107,7 @@ export function formatDate(dateStr?: string | null): string {
   const month = d.getMonth() + 1;
   const year = d.getFullYear();
   const monthWithNum = ARABIC_MONTHS_WITH_NUMBERS[month] || String(month);
-  return `${day} ${monthWithNum} ${year}`;
+  return toLatinDigits(`${day} ${monthWithNum} ${year}`);
 }
 
 export function formatRelativeTime(dateStr: string): string {

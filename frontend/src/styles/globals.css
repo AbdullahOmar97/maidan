@@ -130,7 +130,8 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "rlig" 1, "calt" 1, "lnum" 1;
     background-image:
       radial-gradient(circle at 10% 20%, rgba(220, 38, 38, 0.04) 0%, transparent 45%),
       radial-gradient(circle at 90% 80%, rgba(220, 38, 38, 0.02) 0%, transparent 50%);
@@ -139,7 +140,19 @@
 
   [dir="rtl"] body {
     @apply font-arabic;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "rlig" 1, "calt" 1, "lnum" 1;
     line-height: 1.625;
+  }
+
+  /* Force Western / Latin digits (0-9) across inputs and textual elements */
+  :lang(ar),
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] select,
+  [dir="rtl"] table {
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1;
   }
 
   /* Optimize line-height for RTL layout text size classes to prevent Cairo vertical overlap */

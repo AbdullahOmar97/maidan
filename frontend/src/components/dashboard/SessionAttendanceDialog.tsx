@@ -106,7 +106,7 @@ export default function SessionAttendanceDialog({ isOpen, onClose, session }: Se
     if (!isoString) return "";
     try {
       const date = new Date(isoString);
-      return date.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
     } catch {
       return "";
     }

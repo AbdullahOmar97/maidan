@@ -20,7 +20,7 @@ import {
   Loader2,
   Inbox
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { toast } from "sonner";
@@ -89,7 +89,7 @@ function TenantCard({ tenant }: { tenant: any }) {
       <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
           <Calendar className="w-3 h-3" />
-          <span>مسجل منذ: <bdi>{new Date(tenant.created_at).toLocaleDateString("ar-SA")}</bdi></span>
+          <span>مسجل منذ: <bdi>{formatDate(tenant.created_at)}</bdi></span>
         </div>
         
         <Link 
@@ -276,7 +276,7 @@ export default function TenantsPage() {
                           {req.reason || "—"}
                         </td>
                         <td className="py-4 px-5 text-start text-xs text-muted-foreground">
-                          <bdi>{new Date(req.created_at).toLocaleDateString("ar-SA")}</bdi>
+                          <bdi>{formatDate(req.created_at)}</bdi>
                         </td>
                         <td className="py-4 px-5 text-start">
                           <span className={cn(

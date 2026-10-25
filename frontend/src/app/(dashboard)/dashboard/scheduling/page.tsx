@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Calendar, Clock, MapPin, Users, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import type { ClassSession } from "@/types";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
@@ -214,7 +214,7 @@ export default function SchedulingPage() {
                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-white/[0.06]">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>{new Date(session.date).toLocaleDateString('ar-SA')}</span>
+                        <span>{formatDate(session.date)}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5" />

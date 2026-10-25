@@ -709,8 +709,8 @@ function KioskClock() {
   if (!mounted) return <div className="text-sm font-mono text-muted-foreground w-20" />;
 
   return (
-    <div className="text-sm font-mono text-muted-foreground">
-      {time.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+    <div className="text-sm font-mono text-muted-foreground" dir="ltr">
+      {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}
     </div>
   );
 }

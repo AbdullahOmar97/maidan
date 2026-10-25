@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { useSettingsPermissions } from "@/lib/hooks/use-permission";
@@ -1027,7 +1027,7 @@ export default function SettingsPage() {
                                 {req.reason || "—"}
                               </td>
                               <td className="py-4 px-5 text-start text-xs text-muted-foreground">
-                                <bdi>{new Date(req.created_at).toLocaleDateString("ar-SA")}</bdi>
+                                <bdi>{formatDate(req.created_at)}</bdi>
                               </td>
                               <td className="py-4 px-5 text-start">
                                 <span className={cn(
