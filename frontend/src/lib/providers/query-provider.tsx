@@ -11,7 +11,11 @@ export function QueryClientProvider({ children }: { children: React.ReactNode })
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000, // 1 minute
-            retry: 1,
+            retry: (failureCount, error: any) => {
+              const status = error?.response?.status;
+              if (status === 401 || status === 403) return false;
+              return failureCount < 1;
+            },
             refetchOnWindowFocus: false,
           },
         },

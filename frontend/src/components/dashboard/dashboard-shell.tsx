@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar, MobileSidebarContent } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/topbar";
 import { DashboardFooter } from "@/components/dashboard/footer";
@@ -20,7 +20,16 @@ interface DashboardShellProps {
  */
 export function DashboardShell({ session, children }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { data: clientSession } = useSession();
+  const { data: clientSession, status } = useSession();
+
+  useEffect(() => {
+    const error = (clientSession as any)?.error;
+    if (status === "unauthenticated" || error === "RefreshAccessTokenError") {
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+    }
+  }, [status, clientSession]);
 
   const user = clientSession?.user || session.user;
 

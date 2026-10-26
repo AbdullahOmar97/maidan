@@ -36,15 +36,36 @@ const apiClient: AxiosInstance = axios.create({
   timeout: requestTimeoutMs,
 });
 
+let isRedirectingToLogin = false;
+
+function redirectToLogin() {
+  if (typeof window === "undefined" || isRedirectingToLogin) return;
+  if (window.location.pathname.startsWith("/login")) return;
+
+  isRedirectingToLogin = true;
+  import("next-auth/react")
+    .then(({ signOut }) => signOut({ redirect: false }))
+    .catch(() => {})
+    .finally(() => {
+      window.location.href = "/login";
+    });
+}
+
 // Attach JWT token from NextAuth session (skip on public routes — avoids slow/stuck session fetch blocking AllowAny calls)
 apiClient.interceptors.request.use(async (config) => {
   if (!config.skipAuth) {
     const session = await getSession();
-    if (session) {
-      const token = (session as unknown as Record<string, unknown>).accessToken as string;
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const sessionRecord = session as unknown as Record<string, unknown> | null;
+    const token = sessionRecord?.accessToken as string | undefined;
+    const error = sessionRecord?.error as string | undefined;
+
+    if (error === "RefreshAccessTokenError") {
+      redirectToLogin();
+      return Promise.reject(new axios.Cancel("Session expired"));
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
   }
   return config;
@@ -56,16 +77,10 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status;
     const data = error.response?.data as any;
-    const errorCode = data?.error?.code;
+    const errorCode = data?.error?.code || data?.code;
 
-    if (status === 401) {
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        import("next-auth/react")
-          .then(({ signOut }) => signOut({ redirect: false }))
-          .finally(() => {
-            window.location.href = "/login";
-          });
-      }
+    if (status === 401 || (status === 403 && errorCode === "token_not_valid")) {
+      redirectToLogin();
     }
 
     if (status === 403 && (errorCode === "tenant_inactive" || errorCode === "subscription_expired")) {

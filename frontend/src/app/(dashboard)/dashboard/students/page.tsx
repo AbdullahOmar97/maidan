@@ -194,7 +194,7 @@ export default function StudentsPage() {
     queryFn: () => api.locations.list().then((r: any) => r.data.results || r.data),
   });
 
-  const { data, isLoading } = useQuery<PaginatedResponse<Student>>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<Student>>({
     queryKey: ["students", { search: debouncedSearch, status, location: locationId, due_membership: dueOnly, page }],
     queryFn: () =>
       api.students
@@ -318,6 +318,22 @@ export default function StudentsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {isLoading ? (
             [...Array(6)].map((_, i) => <StudentCardSkeleton key={i} />)
+          ) : isError ? (
+            <div className="lg:col-span-2 glass-card py-20 flex flex-col items-center justify-center text-center relative overflow-hidden border-dashed border-red-500/20 bg-red-500/5">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 text-red-400">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black text-white">تعذر تحميل بيانات الطلاب</h3>
+              <p className="text-xs font-bold text-muted-foreground mt-2 max-w-xs">
+                حدث خطأ أثناء جلب البيانات من الخادم، يرجى المحاولة مرة أخرى.
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="mt-6 px-6 py-2.5 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
           ) : data?.results.length === 0 ? (
             <div className="lg:col-span-2 glass-card py-32 flex flex-col items-center justify-center text-center relative overflow-hidden border-dashed border-white/10 bg-transparent">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />

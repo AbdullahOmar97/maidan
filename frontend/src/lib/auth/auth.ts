@@ -13,30 +13,36 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
   const tenantHostname = (token.tenant as string) || null;
 
-  const response = await fetch(`${internalApiUrl}/api/v1/auth/refresh/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Forwarded-Proto": "https",
-      ...(tenantHostname
-        ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
-        : {}),
-    },
-    body: JSON.stringify({ refresh: token.refreshToken }),
-  });
+  try {
+    const response = await fetch(`${internalApiUrl}/api/v1/auth/refresh/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-Proto": "https",
+        ...(tenantHostname
+          ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
+          : {}),
+      },
+      body: JSON.stringify({ refresh: token.refreshToken }),
+    });
 
-  if (!response.ok) {
-    // Invalidate token so NextAuth forces re-login instead of looping
+    if (!response.ok) {
+      // Invalidate token so NextAuth forces re-login instead of looping
+      return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
+    }
+
+    const data = await response.json();
+    return {
+      ...token,
+      accessToken: data.access,
+      refreshToken: data.refresh || token.refreshToken,
+      accessTokenExpiry: Date.now() + ACCESS_TOKEN_TTL_MS,
+      error: undefined,
+    };
+  } catch (err) {
+    console.error("Token refresh network/server error:", err);
     return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
   }
-
-  const data = await response.json();
-  return {
-    ...token,
-    accessToken: data.access,
-    accessTokenExpiry: Date.now() + ACCESS_TOKEN_TTL_MS,
-    error: undefined,
-  };
 }
 
 const loginSchema = z.object({
