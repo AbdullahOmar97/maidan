@@ -54,6 +54,7 @@ export default function StudentDetailPage() {
   const [docTypeFilter, setDocTypeFilter] = useState("all");
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isLinkFamilyOpen, setIsLinkFamilyOpen] = useState(false);
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
 
   const studentId = Number(id);
 
@@ -368,7 +369,8 @@ export default function StudentDetailPage() {
                   <img
                     src={student.photo_url}
                     alt={student.full_name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                    onClick={() => setIsPhotoViewerOpen(true)}
                   />
                 ) : (
                   <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-4xl">
@@ -376,24 +378,40 @@ export default function StudentDetailPage() {
                   </div>
                 )}
 
-                {/* Upload Hover Overlay */}
-                <label
-                  htmlFor="student-photo-upload"
+                {/* Hover Actions Overlay */}
+                <div
                   className={cn(
-                    "absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5 cursor-pointer opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 text-white text-[11px] font-black",
-                    uploadPhotoMutation.isPending && "opacity-100 cursor-wait"
+                    "absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover/avatar:opacity-100 transition-opacity z-20 pointer-events-none group-hover/avatar:pointer-events-auto",
+                    uploadPhotoMutation.isPending && "opacity-100 pointer-events-auto"
                   )}
-                  title="تغيير صورة الطالب"
                 >
                   {uploadPhotoMutation.isPending ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <div className="flex flex-col items-center gap-1.5 text-white text-[11px] font-black">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span>جاري الرفع...</span>
+                    </div>
                   ) : (
                     <>
-                      <Camera className="w-6 h-6 text-primary" />
-                      <span>تغيير الصورة</span>
+                      {student.photo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPhotoViewerOpen(true)}
+                          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-primary text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
+                          title="عرض الصورة كاملة"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                      )}
+                      <label
+                        htmlFor="student-photo-upload"
+                        className="w-10 h-10 rounded-xl bg-white/10 hover:bg-primary text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg cursor-pointer"
+                        title={student.photo_url ? "تغيير الصورة" : "رفع صورة"}
+                      >
+                        <Camera className="w-5 h-5" />
+                      </label>
                     </>
                   )}
-                </label>
+                </div>
                 <input
                   id="student-photo-upload"
                   type="file"
@@ -1273,6 +1291,52 @@ export default function StudentDetailPage() {
                 >
                   {deleteDocMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   تأكيد الحذف
+                </button>
+              </div>
+            </ModalFooter>
+          </Modal>
+        )}
+
+        {/* Photo Lightbox Modal */}
+        {isPhotoViewerOpen && student?.photo_url && (
+          <Modal
+            open={isPhotoViewerOpen}
+            onClose={() => setIsPhotoViewerOpen(false)}
+            size="md"
+          >
+            <ModalHeader
+              icon={<Eye className="w-5 h-5" />}
+              title="صورة الطالب"
+              subtitle={student.full_name}
+              onClose={() => setIsPhotoViewerOpen(false)}
+            />
+            <ModalBody className="p-0 flex items-center justify-center bg-black/40 overflow-hidden rounded-2xl">
+              <div className="relative max-h-[70vh] w-full flex items-center justify-center p-3">
+                <img
+                  src={student.photo_url}
+                  alt={student.full_name}
+                  className="max-h-[65vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+                />
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <div className="flex items-center justify-between w-full">
+                <a
+                  href={student.photo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  تحميل الصورة
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoViewerOpen(false)}
+                  className="px-6 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                >
+                  إغلاق
                 </button>
               </div>
             </ModalFooter>
