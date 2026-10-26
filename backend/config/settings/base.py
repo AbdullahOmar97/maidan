@@ -43,7 +43,7 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD", default="maidan_dev_password"),
         "HOST": env("POSTGRES_HOST", default="db"),
         "PORT": env("POSTGRES_PORT", default="5432"),
-        "CONN_MAX_AGE": 60,
+        "CONN_MAX_AGE": env.int("DJANGO_CONN_MAX_AGE", default=0),
         "OPTIONS": {
             "connect_timeout": 10,
         },

@@ -17,22 +17,27 @@ export async function POST(request: NextRequest) {
   const host = request.headers.get("host");
   const protocol = request.headers.get("x-forwarded-proto") || "http";
 
-  const response = await fetch(`${internalApiUrl}/api/v1/auth/discover-tenant/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(host
-        ? {
-            Host: host,
-            "X-Forwarded-Host": host,
-            "X-Forwarded-Proto": protocol,
-          }
-        : {}),
-    },
-    body: JSON.stringify(parsed.data),
-  });
+  try {
+    const response = await fetch(`${internalApiUrl}/api/v1/auth/discover-tenant/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(host
+          ? {
+              Host: host,
+              "X-Forwarded-Host": host,
+              "X-Forwarded-Proto": protocol,
+            }
+          : {}),
+      },
+      body: JSON.stringify(parsed.data),
+    });
 
-  const data = await response.json().catch(() => ({ message: "Tenant discovery failed." }));
-  return NextResponse.json(data, { status: response.status });
+    const data = await response.json().catch(() => ({ message: "Tenant discovery failed." }));
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error("Tenant discovery fetch error:", error);
+    return NextResponse.json({ message: "Tenant discovery failed." }, { status: 503 });
+  }
 }
 
