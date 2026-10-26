@@ -68,9 +68,21 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
         <div className="flex-1 min-w-0 z-10">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
-              <h3 className="font-black text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
-                {student.full_name}
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-black text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
+                  {student.full_name}
+                </h3>
+                {student.has_due_membership && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black shadow-lg shadow-red-500/10 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping inline-block" />
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>اشتراك مستحق</span>
+                    {Number(student.outstanding_balance ?? 0) > 0 && (
+                      <span className="font-mono font-bold">({student.outstanding_balance} د.أ)</span>
+                    )}
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-1">{student.student_number}</p>
             </div>
             <StatusBadge status={student.status} />
@@ -124,16 +136,6 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
                 <AlertCircle className="w-3 h-3" />
                 <span>بدون اشتراك نشط</span>
-              </div>
-            )}
-
-            {student.has_due_membership && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black">
-                <Calendar className="w-3 h-3" />
-                <span>اشتراك مستحق</span>
-                {Number(student.outstanding_balance ?? 0) > 0 && (
-                  <span className="font-mono">({student.outstanding_balance} د.أ)</span>
-                )}
               </div>
             )}
           </div>

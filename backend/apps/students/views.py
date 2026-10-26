@@ -65,7 +65,7 @@ class StudentFilter(django_filters.FilterSet):
         from django.db.models import Q
         import datetime
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=7)
+        cutoff = today + datetime.timedelta(days=5)
         due_condition = (
             Q(invoices__status="overdue") |
             Q(memberships__status="active", memberships__end_date__lte=cutoff) |
@@ -479,7 +479,7 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             qs = base_qs
 
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=7)
+        cutoff = today + datetime.timedelta(days=5)
         due_condition = (
             Q(invoices__status="overdue") |
             Q(memberships__status="active", memberships__end_date__lte=cutoff) |

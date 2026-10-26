@@ -245,8 +245,8 @@ class StudentListSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         import datetime
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=7)
-        # Check if student has overdue invoices, pending memberships, or membership expiring within 7 days
+        cutoff = today + datetime.timedelta(days=5)
+        # Check if student has overdue invoices, pending memberships, or membership expiring within 5 days
         has_overdue = obj.invoices.filter(status="overdue").exists()
         has_expiring = obj.memberships.filter(status="active", end_date__lte=cutoff).exists()
         has_pending = obj.memberships.filter(status__in=["pending", "pending_approval"]).exists()
