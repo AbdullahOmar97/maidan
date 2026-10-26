@@ -27,6 +27,7 @@ import AddNoteDialog from "@/components/dashboard/AddNoteDialog";
 import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
 import LinkFamilyDialog from "@/components/dashboard/LinkFamilyDialog";
+import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
 
 export default function StudentDetailPage() {
   const { tenant } = useTenant();
@@ -207,7 +208,7 @@ export default function StudentDetailPage() {
     enabled: !!student,
   });
 
-  const { data: invoices } = useQuery<Invoice[]>({
+  const { data: invoices, isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
     queryKey: ["student-invoices", id],
     queryFn: () =>
       api.billing.invoices.list({ student_id: studentId }).then((res: { data: Invoice[] | { results: Invoice[] } }) =>
@@ -768,55 +769,13 @@ export default function StudentDetailPage() {
 
                   <div className="space-y-4">
                     <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70 px-2">سجل الفواتير</h4>
-                    <div className="glass-card overflow-hidden">
-                      <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full">
-                          <thead className="bg-white/[0.03]">
-                            <tr>
-                              <th className="px-6 py-4 rounded-s-lg text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">رقم الفاتورة</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الباقة</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">التاريخ</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">المبلغ</th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">الحالة</th>
-                              <th className="px-6 py-4 rounded-e-lg text-end"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {invoices && invoices.length > 0 ? (
-                              invoices.map((inv: Invoice) => (
-                                <tr key={inv.id} className="group/row hover:bg-white/[0.02] transition-colors">
-                                  <td className="px-6 py-5 font-bold text-white text-sm text-start">#{inv.invoice_number}</td>
-                                  <td className="px-6 py-5 text-white text-sm font-bold text-start">
-                                    {inv.plan_name || "—"}
-                                  </td>
-                                  <td className="px-6 py-5 text-muted-foreground text-sm font-medium text-start">{formatDate(inv.created_at)}</td>
-                                  <td className="px-6 py-5 font-black text-white text-sm text-start">{formatCurrency(inv.total_amount, inv.currency)}</td>
-                                  <td className="px-6 py-5 text-start">
-                                    <span className={cn(
-                                      "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border",
-                                      getStatusBadgeClass(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)
-                                    )}>
-                                      {getStatusLabel(isInvoiceOverdue(inv.status, inv.due_date) ? "overdue" : inv.status as any)}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-5 text-end">
-                                    <button className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all">
-                                      <Download className="w-4 h-4" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={6} className="px-6 py-10 text-center text-sm font-bold text-muted-foreground">
-                                  لا توجد فواتير مسجلة لهذا الطالب
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                    <InvoicesList
+                      invoices={invoices || []}
+                      isLoading={isLoadingInvoices}
+                      showPlanPrimary={true}
+                      emptyTitle="لا توجد فواتير مسجلة لهذا الطالب"
+                      emptySubtitle="ابدأ بإصدار أول فاتورة للطالب الآن."
+                    />
                   </div>
                 </div>
               )}
