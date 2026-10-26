@@ -2,7 +2,7 @@
 # MAIDAN Sports Club Management System — Makefile
 # =============================================================================
 
-.PHONY: help up down build logs shell-backend shell-frontend migrate makemigrations createsuperuser seed test lint format
+.PHONY: help up down build logs shell-backend shell-frontend migrate makemigrations createsuperuser seed test lint format backup-ec2 backup backup-from-ec2 restore-local
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -130,6 +130,18 @@ migrate-prod: ## Run Django migrations (production)
 
 collectstatic-prod: ## Collect static files (production)
 	docker compose -f docker-compose.prod.yml exec -u root backend python manage.py collectstatic --noinput
+
+# --- Backup & Restore (EC2 / Local) ---
+backup-ec2: ## Run full backup on EC2 (DB + Media + MinIO)
+	./scripts/ec2_backup.sh
+
+backup: ## Download full backup from EC2 to WSL (usage: make backup HOST=maidanjo.duckdns.org EC2_USER=ubuntu KEY=~/.ssh/maidan-spot-frankfurt.pem)
+	./scripts/download_backup.sh $(or $(HOST),maidanjo.duckdns.org) $(or $(EC2_USER),ubuntu) $(or $(KEY),~/.ssh/maidan-spot-frankfurt.pem)
+
+backup-from-ec2: backup ## Alias for backup
+
+restore-local: ## Restore full backup in WSL (usage: make restore-local FILE=backups/maidan_full_backup_xxx.tar.gz)
+	./scripts/restore_local.sh $(FILE)
 
 # --- Database ---
 db-backup: ## Backup PostgreSQL

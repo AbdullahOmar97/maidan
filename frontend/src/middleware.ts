@@ -24,15 +24,37 @@ export default auth((req) => {
   const isSameTenant = isCurrentTenant ? sessionTenant === currentHost : !sessionTenant;
 
   if (isDashboard) {
-    if (!hasValidSession || !isSameTenant) {
+    if (!hasValidSession) {
+      const loginUrl = new URL("/login", nextUrl.origin);
+      loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // If user has a valid tenant session but is on root/wrong domain, redirect to their tenant domain
+    if (!isSameTenant && sessionTenant) {
+      const protocol = req.headers.get("x-forwarded-proto") || "https";
+      const tenantDashboardUrl = new URL(
+        `${nextUrl.pathname}${nextUrl.search}`,
+        `${protocol}://${sessionTenant}`
+      );
+      return NextResponse.redirect(tenantDashboardUrl);
+    }
+
+    if (!isSameTenant) {
       const loginUrl = new URL("/login", nextUrl.origin);
       loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
 
-  if (isAuthPage && hasValidSession && isSameTenant) {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
+  if (isAuthPage && hasValidSession) {
+    if (isSameTenant) {
+      return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
+    }
+    if (sessionTenant) {
+      const protocol = req.headers.get("x-forwarded-proto") || "https";
+      return NextResponse.redirect(new URL("/dashboard", `${protocol}://${sessionTenant}`));
+    }
   }
 
   return NextResponse.next();

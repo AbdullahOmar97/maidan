@@ -9,17 +9,18 @@ export function isTenantHost(host: string): boolean {
   if (!hostname || LOCAL_HOSTS.has(hostname)) return false;
 
   if (hostname.endsWith(".localhost")) {
-    return hostname.split(".").length > 1;
+    const subdomain = hostname.split(".")[0];
+    return subdomain !== "www" && hostname.split(".").length > 1;
   }
 
   const platformDomain =
     (process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || process.env.PLATFORM_DOMAIN || "").toLowerCase().trim();
 
   if (!platformDomain) {
-    return hostname.includes(".");
+    return hostname.includes(".") && !hostname.startsWith("www.");
   }
 
-  if (hostname === platformDomain) return false;
+  if (hostname === platformDomain || hostname === `www.${platformDomain}`) return false;
   return hostname.endsWith(`.${platformDomain}`);
 }
 

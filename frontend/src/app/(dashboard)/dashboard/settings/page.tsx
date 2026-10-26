@@ -290,14 +290,6 @@ export default function SettingsPage() {
     { id: "preferences", label: "التفضيلات", icon: Globe },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-10 pb-12">
       <PageHeader
@@ -328,7 +320,13 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div className="flex-1 glass-card p-6 min-h-[500px]">
-          {activeTab === "profile" && (
+          {loading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {activeTab === "profile" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div>
                 <h2 className="text-lg font-semibold">الملف الشخصي</h2>
@@ -1161,6 +1159,8 @@ export default function SettingsPage() {
               <h3 className="text-lg font-medium">إعدادات {tabs.find((t) => t.id === activeTab)?.label}</h3>
               <p className="text-sm">قريباً...</p>
             </div>
+          )}
+          </>
           )}
 
         </div>

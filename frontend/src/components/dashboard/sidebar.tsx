@@ -142,6 +142,7 @@ interface BottomSectionProps {
 }
 
 function BottomSection({ user, onLinkClick }: BottomSectionProps) {
+  const pathname = usePathname();
   const role = (user as any)?.role as UserRole;
   const { tenant } = useTenant();
 
@@ -165,7 +166,16 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
         <div className="pt-2">
           <Link
             href="/dashboard/settings?tab=profile"
-            onClick={onLinkClick}
+            scroll={false}
+            onClick={(e) => {
+              if (pathname === "/dashboard/settings") {
+                const search = typeof window !== "undefined" ? window.location.search : "";
+                if (search.includes("tab=profile") || !search.includes("tab=")) {
+                  e.preventDefault();
+                }
+              }
+              onLinkClick?.();
+            }}
             className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 group hover:bg-primary/10 transition-all cursor-pointer text-start"
           >
             <div

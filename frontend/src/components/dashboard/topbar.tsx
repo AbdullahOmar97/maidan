@@ -335,6 +335,15 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
           {/* User card — condensed on mobile (avatar only) */}
           <Link
             href="/dashboard/settings?tab=profile"
+            scroll={false}
+            onClick={(e) => {
+              if (pathname === "/dashboard/settings") {
+                const search = typeof window !== "undefined" ? window.location.search : "";
+                if (search.includes("tab=profile") || !search.includes("tab=")) {
+                  e.preventDefault();
+                }
+              }
+            }}
             className="flex items-center gap-3 px-2 sm:px-3 py-1.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group cursor-pointer"
           >
             {/* Name + role (hidden on xs) */}
