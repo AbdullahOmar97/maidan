@@ -64,6 +64,12 @@ class MembershipSerializer(serializers.ModelSerializer):
     plan_id = serializers.PrimaryKeyRelatedField(
         queryset=MembershipPlan.objects.all(), source="plan"
     )
+    backbill_mode = serializers.ChoiceField(
+        choices=["single", "unpaid", "paid"],
+        default="single",
+        write_only=True,
+        required=False,
+    )
 
     class Meta:
         model = Membership
@@ -71,6 +77,7 @@ class MembershipSerializer(serializers.ModelSerializer):
             "id", "student_id", "student_name", "plan_id", "plan_name",
             "start_date", "end_date", "status", "auto_renew",
             "price", "currency", "notes",
+            "backbill_mode",
             "approved_by_id", "approved_at",
             "created_by_id", "created_at",
         ]
@@ -81,6 +88,42 @@ class MembershipSerializer(serializers.ModelSerializer):
 
     def get_student_name(self, obj):
         return obj.student.full_name
+
+    def create(self, validated_data):
+        backbill_mode = validated_data.pop("backbill_mode", "single")
+        plan = validated_data.get("plan")
+        start_date = validated_data.get("start_date")
+        today = timezone.now().date()
+
+        cycles = []
+        if (
+            backbill_mode in ["unpaid", "paid"]
+            and plan
+            and plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME
+            and start_date
+            and start_date < today
+        ):
+            cur_start = start_date
+            loop_guard = 0
+            while cur_start <= today and loop_guard < 120:
+                loop_guard += 1
+                cur_end = Membership.compute_end_date(cur_start, plan.billing_cycle)
+                is_past = cur_end <= today
+                cycles.append({
+                    "start": cur_start,
+                    "end": cur_end,
+                    "is_past": is_past,
+                })
+                cur_start = cur_end
+
+            if cycles:
+                validated_data["end_date"] = cycles[-1]["end"]
+
+        membership = Membership(**validated_data)
+        membership._backbill_mode = backbill_mode
+        membership._backbill_cycles = cycles
+        membership.save()
+        return membership
 
 
 class CreditNoteSerializer(serializers.ModelSerializer):
@@ -264,7 +307,13 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save(created_by_id=self.request.user.id)
+        membership = serializer.save(created_by_id=self.request.user.id)
+        if membership.status == Membership.Status.ACTIVE and membership.student.status in [
+            Student.Status.LEAD,
+            Student.Status.TRIAL,
+        ]:
+            membership.student.status = Student.Status.ACTIVE
+            membership.student.save(update_fields=["status"])
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

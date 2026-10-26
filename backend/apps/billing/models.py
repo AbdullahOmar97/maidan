@@ -5,6 +5,7 @@ Memberships, invoices, payments tracking.
 """
 
 import uuid
+from decimal import Decimal
 
 from django.db import models
 from apps.students.models import Student, Location
@@ -444,9 +445,8 @@ from django.utils import timezone as tz
 @receiver(post_save, sender="billing.Membership")
 def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
     """
-    Automatically generate a pending Invoice whenever a new Membership is
-    created.  This ensures every subscription has a corresponding financial
-    record without requiring manual invoice entry.
+    Automatically generate pending/overdue/paid Invoices whenever a new Membership is
+    created. Supports retroactive back-billing when backbill_mode is specified.
 
     Skipped when:
     - The membership was not just created (update path).
@@ -463,23 +463,75 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
     if instance.invoices.exists():
         return
 
-    plan = instance.plan
-    subtotal = plan.price + plan.setup_fee
-    tax_amount = subtotal * (plan.tax_rate / 100)
-    total_amount = subtotal + tax_amount
+    backbill_mode = getattr(instance, "_backbill_mode", "single")
+    cycles = getattr(instance, "_backbill_cycles", [])
 
-    # due_date = today for one-time, or start_date for recurring
+    plan = instance.plan
+    subtotal = plan.price
+    tax_rate = plan.tax_rate
+
+    # Multi-cycle retroactive billing (unpaid or paid)
+    if backbill_mode in ["unpaid", "paid"] and len(cycles) > 1:
+        for idx, cycle in enumerate(cycles):
+            cycle_start = cycle["start"]
+            cycle_end = cycle["end"]
+            is_past = cycle["is_past"]
+
+            fee = plan.setup_fee if idx == 0 else Decimal("0.00")
+            cycle_subtotal = subtotal + fee
+            tax_amount = cycle_subtotal * (tax_rate / Decimal("100"))
+            total_amount = cycle_subtotal + tax_amount
+
+            if backbill_mode == "paid" and is_past:
+                inv_status = Invoice.Status.PAID
+                amt_paid = total_amount
+                paid_at = tz.now()
+                note = f"فاتورة اشتراك مسواة مسبقاً (أثر رجعي) للفترة من {cycle_start} إلى {cycle_end}"
+            elif is_past:
+                inv_status = Invoice.Status.OVERDUE
+                amt_paid = Decimal("0.00")
+                paid_at = None
+                note = f"فاتورة اشتراك مستحقة (أثر رجعي) للفترة من {cycle_start} إلى {cycle_end}"
+            else:
+                inv_status = Invoice.Status.PENDING
+                amt_paid = Decimal("0.00")
+                paid_at = None
+                note = f"فاتورة الاشتراك للفترة الحالية من {cycle_start} إلى {cycle_end}"
+
+            Invoice.objects.create(
+                student=instance.student,
+                membership=instance,
+                subtotal=cycle_subtotal,
+                discount_amount=Decimal("0.00"),
+                tax_rate=tax_rate,
+                tax_amount=tax_amount,
+                total_amount=total_amount,
+                amount_paid=amt_paid,
+                currency=plan.currency,
+                status=inv_status,
+                due_date=cycle_start,
+                paid_at=paid_at,
+                notes=note,
+                is_recurring=True,
+                created_by_id=instance.created_by_id,
+            )
+        return
+
+    # Default / legacy path: single invoice
+    subtotal = plan.price + plan.setup_fee
+    tax_amount = subtotal * (plan.tax_rate / Decimal("100"))
+    total_amount = subtotal + tax_amount
     due_date = instance.start_date or tz.now().date()
 
     Invoice.objects.create(
         student=instance.student,
         membership=instance,
         subtotal=subtotal,
-        discount_amount=0,
+        discount_amount=Decimal("0.00"),
         tax_rate=plan.tax_rate,
         tax_amount=tax_amount,
         total_amount=total_amount,
-        amount_paid=0,
+        amount_paid=Decimal("0.00"),
         currency=plan.currency,
         status=Invoice.Status.PENDING,
         due_date=due_date,

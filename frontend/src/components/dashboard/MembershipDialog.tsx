@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { CreditCard, Calendar, FileText, Loader2, CheckCircle, Package, Settings } from "lucide-react";
+import { CreditCard, Calendar, FileText, Loader2, CheckCircle, Package, Settings, AlertCircle, History } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { MembershipPlan } from "@/types";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ interface MembershipDialogProps {
   studentName: string;
 }
 
+type BackbillMode = "unpaid" | "paid" | "single";
+
 export default function MembershipDialog({
   isOpen,
   onClose,
@@ -30,6 +32,7 @@ export default function MembershipDialog({
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [backbillMode, setBackbillMode] = useState<BackbillMode>("unpaid");
 
   const { data: plansData, isLoading: plansLoading } = useQuery({
     queryKey: ["billing", "plans"],
@@ -65,17 +68,75 @@ export default function MembershipDialog({
     return date.toISOString().split("T")[0];
   };
 
+  const getElapsedCycles = (start: string, cycle?: string): { count: number; pastCount: number; currentEnd: string } => {
+    if (!start || !cycle || cycle === "one_time") return { count: 1, pastCount: 0, currentEnd: "" };
+    const [y, m, d] = start.split("-").map(Number);
+    if (!y || !m || !d) return { count: 1, pastCount: 0, currentEnd: "" };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let curStart = new Date(Date.UTC(y, m - 1, d));
+    const singleEnd = computeEndDate(start, cycle);
+    if (curStart >= today) {
+      return { count: 1, pastCount: 0, currentEnd: singleEnd };
+    }
+
+    let count = 0;
+    let pastCount = 0;
+    let lastEnd = singleEnd;
+    let loopGuard = 0;
+
+    while (curStart <= today && loopGuard < 120) {
+      loopGuard++;
+      const curStartStr = curStart.toISOString().split("T")[0];
+      const curEndStr = computeEndDate(curStartStr, cycle);
+      lastEnd = curEndStr;
+      const [ey, em, ed] = curEndStr.split("-").map(Number);
+      const curEnd = new Date(Date.UTC(ey, em - 1, ed));
+
+      count++;
+      if (curEnd <= today) {
+        pastCount++;
+      }
+      curStart = curEnd;
+    }
+
+    return { count, pastCount, currentEnd: lastEnd };
+  };
+
+  const cycleInfo = selectedPlan
+    ? getElapsedCycles(startDate, selectedPlan.billing_cycle)
+    : { count: 1, pastCount: 0, currentEnd: "" };
+  const isBackdated = cycleInfo.pastCount > 0 && selectedPlan?.billing_cycle !== "one_time";
+
+  const updateEndDate = (start: string, plan: MembershipPlan | undefined, mode: BackbillMode) => {
+    if (!plan || !start) {
+      setEndDate("");
+      return;
+    }
+    const info = getElapsedCycles(start, plan.billing_cycle);
+    if (info.pastCount > 0 && mode !== "single") {
+      setEndDate(info.currentEnd);
+    } else {
+      setEndDate(computeEndDate(start, plan.billing_cycle));
+    }
+  };
+
   const handlePlanChange = (planId: number | "") => {
     setSelectedPlanId(planId);
     const plan = plans.find((p) => p.id === Number(planId));
-    setEndDate(computeEndDate(startDate, plan?.billing_cycle));
+    updateEndDate(startDate, plan, backbillMode);
   };
 
   const handleStartDateChange = (newStart: string) => {
     setStartDate(newStart);
-    if (selectedPlan) {
-      setEndDate(computeEndDate(newStart, selectedPlan.billing_cycle));
-    }
+    updateEndDate(newStart, selectedPlan, backbillMode);
+  };
+
+  const handleBackbillModeChange = (mode: BackbillMode) => {
+    setBackbillMode(mode);
+    updateEndDate(startDate, selectedPlan, mode);
   };
 
   const membershipMutation = useMutation({
@@ -102,6 +163,7 @@ export default function MembershipDialog({
       end_date: endDate || null,
       status: "active",
       notes,
+      backbill_mode: isBackdated ? backbillMode : "single",
     });
   };
 
@@ -115,7 +177,7 @@ export default function MembershipDialog({
   };
 
   return (
-    <Modal open={isOpen} onClose={onClose} size="sm">
+    <Modal open={isOpen} onClose={onClose} size="md">
       <ModalHeader
         icon={<Package className="w-5 h-5" />}
         title="إضافة باقة اشتراك"
@@ -194,6 +256,92 @@ export default function MembershipDialog({
               </FormField>
             )}
           </div>
+
+          {/* Backbilling Alert and Mode Selection */}
+          {isBackdated && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="font-black text-amber-300">
+                    تاريخ البدء يسبق تاريخ اليوم بمقدار {cycleInfo.pastCount} {cycleInfo.pastCount === 1 ? "دورة سابقة" : "دورات سابقة"}
+                  </p>
+                  <p className="text-[11px] text-amber-400/80 mt-0.5">
+                    إجمالي الفترات حتى نهاية الدورة الحالية: {cycleInfo.count} فترات (تنتهي في {cycleInfo.currentEnd})
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-amber-500/20 text-xs">
+                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">
+                  كيف ترغب في معالجة الفواتير السابقة؟
+                </label>
+
+                {/* Option 1: Unpaid (Due/Overdue) */}
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                  backbillMode === "unpaid" ? "bg-primary/10 border-primary/50 text-white" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                )}>
+                  <input
+                    type="radio"
+                    name="backbillMode"
+                    value="unpaid"
+                    checked={backbillMode === "unpaid"}
+                    onChange={() => handleBackbillModeChange("unpaid")}
+                    className="mt-1 accent-primary"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-black block text-xs text-white">توليد فواتير مستحقة (غير مدفوعة)</span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                      يتم توليد {cycleInfo.count} فواتير ({cycleInfo.pastCount} فواتير سابقة مستحقة + فاتورة الدورة الحالية) وإضافتها للرصيد المالي المستحق على الطالب.
+                    </span>
+                  </div>
+                </label>
+
+                {/* Option 2: Paid (Historical settled) */}
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                  backbillMode === "paid" ? "bg-primary/10 border-primary/50 text-white" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                )}>
+                  <input
+                    type="radio"
+                    name="backbillMode"
+                    value="paid"
+                    checked={backbillMode === "paid"}
+                    onChange={() => handleBackbillModeChange("paid")}
+                    className="mt-1 accent-primary"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-black block text-xs text-white">تسجيل الفترات السابقة كـ &quot;مدفوعة&quot;</span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                      يتم توثيق الفترات السابقة ({cycleInfo.pastCount}) كفواتير مدفوعة مسبقاً، وفاتورة الفترة الحالية فقط تبقى معلقة للدفع.
+                    </span>
+                  </div>
+                </label>
+
+                {/* Option 3: Single Period */}
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                  backbillMode === "single" ? "bg-primary/10 border-primary/50 text-white" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                )}>
+                  <input
+                    type="radio"
+                    name="backbillMode"
+                    value="single"
+                    checked={backbillMode === "single"}
+                    onChange={() => handleBackbillModeChange("single")}
+                    className="mt-1 accent-primary"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-black block text-xs text-white">دورة واحدة فقط (بدون توليد فواتير بأثر رجعي)</span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                      تسجيل فاتورة واحدة تبدأ من {startDate} بدون احتساب أي دورات سابقة.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
 
           <FormField label="ملاحظات">
             <Textarea
