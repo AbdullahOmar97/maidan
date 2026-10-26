@@ -310,6 +310,19 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             )
         ]
 
+    def to_internal_value(self, data):
+        if hasattr(data, "copy"):
+            data = data.copy()
+        elif isinstance(data, dict):
+            data = dict(data)
+
+        # Discard photo if it is a string URL/path rather than a file upload
+        photo = data.get("photo")
+        if photo is not None and not hasattr(photo, "read"):
+            data.pop("photo", None)
+
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         

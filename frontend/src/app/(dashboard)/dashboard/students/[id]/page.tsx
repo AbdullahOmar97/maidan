@@ -149,7 +149,10 @@ export default function StudentDetailPage() {
 
   const handleEditClick = () => {
     if (student) {
-      setEditData({ ...student });
+      setEditData({
+        ...student,
+        location_id: student.location_id || (student as any).location?.id,
+      });
       setEditError("");
       setIsEditModalOpen(true);
     }
@@ -157,7 +160,24 @@ export default function StudentDetailPage() {
 
   const handleSaveEdit = () => {
     if (editData) {
-      const { age, student_number, ...dataToUpdate } = editData as any;
+      const {
+        id: _id,
+        student_number,
+        age,
+        photo,
+        photo_url,
+        family,
+        location,
+        active_membership,
+        current_belt,
+        belt_history,
+        created_at,
+        updated_at,
+        outstanding_balance,
+        has_due_membership,
+        account_credit,
+        ...dataToUpdate
+      } = editData as any;
       updateMutation.mutate(dataToUpdate);
     }
   };
