@@ -194,20 +194,20 @@ services:
       done"
 
   # ---------------------------------------------------------------------------
-  # MinIO (Self-Hosted S3 Object Storage via Bitnami)
+  # MinIO (Self-Hosted S3 Object Storage)
   # ---------------------------------------------------------------------------
   minio:
-    image: bitnami/minio:latest
+    image: alpine/minio:latest-release
     container_name: maidan_minio
     restart: always
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-maidanadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_DEFAULT_BUCKETS=maidan-media:public
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-maidanadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/bitnami/minio/data
+      - minio_data:/data
     ports:
       - "127.0.0.1:9001:9001"
+    command: server /data --console-address ":9001"
     deploy:
       resources:
         limits:

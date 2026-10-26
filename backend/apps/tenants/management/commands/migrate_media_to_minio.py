@@ -40,10 +40,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE(f"Media Root: {media_root}"))
         self.stdout.write(self.style.NOTICE(f"Target Bucket: {bucket_name} on {endpoint_url}"))
 
-        if not media_root.exists() or not any(media_root.iterdir()):
-            self.stdout.write(self.style.WARNING(f"No media directory or files found at {media_root}. Nothing to migrate."))
-            return
-
         s3 = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
@@ -61,6 +57,31 @@ class Command(BaseCommand):
                 s3.create_bucket(Bucket=bucket_name)
             else:
                 self.stdout.write(self.style.NOTICE(f"[Dry-run] Would create bucket '{bucket_name}'"))
+
+        # Configure public download policy for media bucket
+        if not dry_run:
+            import json
+            policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "PublicReadGetObject",
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "s3:GetObject",
+                        "Resource": f"arn:aws:s3:::{bucket_name}/*",
+                    }
+                ],
+            }
+            try:
+                s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
+                self.stdout.write(self.style.SUCCESS(f"Configured public read policy for bucket '{bucket_name}'."))
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Notice: Bucket policy setup skipped: {e}"))
+
+        if not media_root.exists() or not any(media_root.iterdir()):
+            self.stdout.write(self.style.WARNING(f"No media directory or files found at {media_root}. Bucket is ready."))
+            return
 
         uploaded_count = 0
         skipped_count = 0
