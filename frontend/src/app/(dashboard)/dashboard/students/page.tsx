@@ -76,7 +76,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
     <div className="relative group">
       <Link
         href={`/dashboard/students/${student.id}`}
-        className="glass-card group flex items-center gap-4 sm:gap-6 p-4 sm:p-6 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.98]"
+        className="glass-card group flex items-start sm:items-center gap-3.5 sm:gap-6 p-4 sm:p-6 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.98]"
       >
         {/* Dynamic Hover Glow */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -112,7 +112,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
         <div className="flex-1 min-w-0 z-10">
           <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1 sm:mb-2">
             <div className="min-w-0 flex-1">
-              <h3 className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
+              <h3 className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-primary transition-colors break-words leading-snug">
                 {student.full_name}
               </h3>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-0.5 sm:mt-1">{student.student_number}</p>
