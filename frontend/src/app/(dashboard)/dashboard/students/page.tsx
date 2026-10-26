@@ -28,6 +28,50 @@ const STATUS_OPTIONS = [
 ];
 
 function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: Student) => void }) {
+  const dueBadge = student.has_due_membership ? (() => {
+    const balance = Number(student.outstanding_balance ?? 0);
+    const endDate = student.active_membership?.end_date;
+    let daysLeft: number | null = null;
+    if (endDate) {
+      daysLeft = Math.ceil((new Date(endDate).getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+    }
+
+    if (balance > 0) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] sm:text-xs font-black shadow-lg shadow-red-500/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+          <Calendar className="w-3.5 h-3.5" />
+          <span>اشتراك مستحق</span>
+          <span className="font-mono font-bold">({balance} د.أ)</span>
+        </span>
+      );
+    }
+
+    if (daysLeft !== null && daysLeft < 0) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] sm:text-xs font-black shadow-lg shadow-red-500/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+          <Calendar className="w-3.5 h-3.5" />
+          <span>الاشتراك منتهٍ</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] sm:text-xs font-black shadow-lg shadow-amber-500/10">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        <Calendar className="w-3.5 h-3.5" />
+        <span>
+          {daysLeft === 0
+            ? "ينتهي اليوم"
+            : daysLeft !== null
+            ? `مستحق التجديد (${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"})`
+            : "مستحق التجديد"}
+        </span>
+      </span>
+    );
+  })() : null;
+
   return (
     <div className="relative group">
       <Link
@@ -66,61 +110,30 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
 
         {/* Info */}
         <div className="flex-1 min-w-0 z-10">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="min-w-0">
-              <h3 className="font-black text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
+          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1 sm:mb-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
                 {student.full_name}
               </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-1">{student.student_number}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-0.5 sm:mt-1">{student.student_number}</p>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
-              {student.has_due_membership && (() => {
-                const balance = Number(student.outstanding_balance ?? 0);
-                const endDate = student.active_membership?.end_date;
-                let daysLeft: number | null = null;
-                if (endDate) {
-                  daysLeft = Math.ceil((new Date(endDate).getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
-                }
-
-                if (balance > 0) {
-                  return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-black shadow-lg shadow-red-500/10">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>اشتراك مستحق</span>
-                      <span className="font-mono font-bold">({balance} د.أ)</span>
-                    </span>
-                  );
-                }
-
-                if (daysLeft !== null && daysLeft < 0) {
-                  return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-black shadow-lg shadow-red-500/10">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>الاشتراك منتهٍ</span>
-                    </span>
-                  );
-                }
-
-                return (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black shadow-lg shadow-amber-500/10">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>
-                      {daysLeft === 0
-                        ? "ينتهي اليوم"
-                        : daysLeft !== null
-                        ? `مستحق التجديد (${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"})`
-                        : "مستحق التجديد"}
-                    </span>
-                  </span>
-                );
-              })()}
+            <div className="flex items-center gap-2 shrink-0">
+              {dueBadge && (
+                <div className="hidden sm:inline-flex">
+                  {dueBadge}
+                </div>
+              )}
               <StatusBadge status={student.status} />
             </div>
           </div>
+
+          {/* Due membership alert on mobile: dedicated row so student name is never compressed */}
+          {dueBadge && (
+            <div className="sm:hidden mt-2 mb-1 inline-flex">
+              {dueBadge}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
             {student.phone && (
