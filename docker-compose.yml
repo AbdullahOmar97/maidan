@@ -212,40 +212,17 @@ services:
   # MinIO (Local S3 for development)
   # ---------------------------------------------------------------------------
   minio:
-    image: minio/minio:latest
+    image: bitnami/minio:latest
     container_name: maidan_minio
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_DEFAULT_BUCKETS=maidan-media:public
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
     ports:
       - "127.0.0.1:9001:9001"
-    command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  minio-init:
-    image: minio/mc:latest
-    restart: "no"
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD:-minioadmin};
-      mc mb --ignore-existing local/maidan-media;
-      mc anonymous set download local/maidan-media;
-      echo 'MinIO maidan-media bucket ready.';
-      exit 0;
-      "
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
 
 volumes:
   postgres_data:
