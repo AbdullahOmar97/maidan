@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { formatCurrency, formatDate, cn, isInvoiceOverdue } from "@/lib/utils";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { MarkAsPaidModal, PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
+import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
 import { Receipt, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -533,12 +533,11 @@ export function InvoicesList({
       {/* ── Mark As Paid Modal ── */}
       {modalInvoice && (
         <MarkAsPaidModal
-          isOpen={!!modalInvoice}
           invoiceNumber={modalInvoice.invoice_number}
           totalAmount={Number(modalInvoice.total_amount)}
           amountPaid={Number(modalInvoice.amount_paid)}
           currency={modalInvoice.currency}
-          isSubmitting={markPaidMutation.isPending}
+          isPending={markPaidMutation.isPending}
           onConfirm={handleModalConfirm}
           onClose={() => setModalInvoice(null)}
         />

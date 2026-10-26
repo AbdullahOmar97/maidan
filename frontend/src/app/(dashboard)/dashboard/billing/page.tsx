@@ -8,10 +8,10 @@ import { Select } from "@/components/ui/select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import {
   CreditCard, AlertTriangle, CheckCircle, Clock,
-  TrendingUp, Search, Plus, Filter,
+  TrendingUp, Search, Plus, Filter, Sparkles, Download,
 } from "lucide-react";
 import type { Invoice, PaginatedResponse, BillingSummary, Location } from "@/types";
 import { PeriodFilterBar } from "@/components/dashboard/PeriodFilterBar";
@@ -55,7 +55,6 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const queryClient = useQueryClient();
 
   const debouncedSearch = useDebounce(search, 350);
   const { canMarkInvoicePaid, canManageBilling, canCreateInvoice } = useBillingPermissions();
