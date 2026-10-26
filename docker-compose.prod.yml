@@ -200,6 +200,7 @@ services:
     image: alpine/minio:latest-release
     container_name: maidan_minio
     restart: always
+    user: "0:0"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-maidanadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
