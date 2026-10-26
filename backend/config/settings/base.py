@@ -292,22 +292,23 @@ MEDIA_URL = env("MEDIA_URL", default="/media/")
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ---------------------------------------------------------------------------
-# Storage (S3)
+# Storage (S3 / MinIO)
 # ---------------------------------------------------------------------------
 USE_S3 = env.bool("USE_S3", default=False)
 AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default=None)
 AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default=None)
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default=None)
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="me-south-1")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="maidan-media")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default=None)
-AWS_DEFAULT_ACL = env("AWS_DEFAULT_ACL", default="private")
+AWS_DEFAULT_ACL = env("AWS_DEFAULT_ACL", default=None)
 AWS_S3_FILE_OVERWRITE = env.bool("AWS_S3_FILE_OVERWRITE", default=False)
-AWS_QUERYSTRING_AUTH = env.bool("AWS_QUERYSTRING_AUTH", default=True)
+AWS_QUERYSTRING_AUTH = env.bool("AWS_QUERYSTRING_AUTH", default=False)
 AWS_QUERYSTRING_EXPIRE = env.int("AWS_QUERYSTRING_EXPIRE", default=3600)
+AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default=None)
+AWS_S3_URL_PROTOCOL = env("AWS_S3_URL_PROTOCOL", default="https:")
 
 if USE_S3:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    STATICFILES_STORAGE = "storages.backends.s3boto3.S3StaticStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
