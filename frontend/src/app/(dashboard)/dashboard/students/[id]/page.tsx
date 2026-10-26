@@ -438,20 +438,49 @@ export default function StudentDetailPage() {
                 <span className={cn("px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border mx-auto md:mx-0", getStatusBadgeClass(student.status))}>
                   {getStatusLabel(student.status)}
                 </span>
-                {student.active_membership?.end_date && (() => {
-                  const daysLeft = Math.ceil((new Date(student.active_membership.end_date).getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
-                  const isDue = daysLeft <= 5 || overdueCount > 0;
+                {(() => {
+                  const balance = outstandingBalance;
+                  const endDate = student.active_membership?.end_date;
+                  let daysLeft: number | null = null;
+                  if (endDate) {
+                    daysLeft = Math.ceil((new Date(endDate).getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                  }
+                  const isExpiring = daysLeft !== null && daysLeft <= 5;
+                  const isDue = isExpiring || overdueCount > 0 || balance > 0;
                   if (!isDue) return null;
+
+                  if (balance > 0) {
+                    return (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-black shadow-lg shadow-red-500/20 mx-auto md:mx-0">
+                        <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block" />
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>اشتراك مستحق</span>
+                        <span className="font-mono font-bold">({formatCurrency(balance, currency)})</span>
+                      </span>
+                    );
+                  }
+
+                  if (daysLeft !== null && daysLeft < 0) {
+                    return (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-black shadow-lg shadow-red-500/20 mx-auto md:mx-0">
+                        <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block" />
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>الاشتراك منتهٍ</span>
+                      </span>
+                    );
+                  }
+
                   return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-black shadow-lg shadow-red-500/20 animate-pulse mx-auto md:mx-0">
-                      <span className="w-2 h-2 rounded-full bg-red-400 animate-ping inline-block" />
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs font-black shadow-lg shadow-amber-500/20 mx-auto md:mx-0">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>اشتراك مستحق</span>
-                      {daysLeft >= 0 ? (
-                        <span className="text-[11px] font-bold">({daysLeft === 0 ? "ينتهي اليوم" : `باقي ${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"}`})</span>
-                      ) : (
-                        <span className="text-[11px] font-bold">(منتهي)</span>
-                      )}
+                      <span>
+                        {daysLeft === 0
+                          ? "ينتهي اليوم"
+                          : daysLeft !== null
+                          ? `مستحق التجديد (${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"})`
+                          : "مستحق التجديد"}
+                      </span>
                     </span>
                   );
                 })()}
