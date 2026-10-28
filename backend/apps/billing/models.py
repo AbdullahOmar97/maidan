@@ -223,6 +223,10 @@ class Invoice(models.Model):
                     seq = 1
             else:
                 seq = 1
+
+            while Invoice.objects.filter(invoice_number=f"{prefix}{seq:05d}").exists():
+                seq += 1
+
             self.invoice_number = f"{prefix}{seq:05d}"
 
     @property

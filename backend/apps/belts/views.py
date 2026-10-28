@@ -85,6 +85,23 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filterset_fields = ["student_id", "is_current"]
 
+    def create(self, request, *args, **kwargs):
+        import logging
+        import traceback
+        logger = logging.getLogger("maidan.belts")
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as exc:
+            logger.exception("Belt promotion creation failed")
+            return Response(
+                {
+                    "error": str(exc),
+                    "error_class": exc.__class__.__name__,
+                    "detail": traceback.format_exc(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
     def perform_create(self, serializer):
         from decimal import Decimal
         from django.db import transaction
@@ -94,9 +111,10 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
         create_invoice = validated_data.pop("create_invoice", False)
         fee_amount = validated_data.pop("fee_amount", None)
         tax_rate = validated_data.pop("tax_rate", None)
+        user_id = self.request.user.id if getattr(self.request, "user", None) and self.request.user.is_authenticated else None
 
         with transaction.atomic():
-            instance = serializer.save(promoted_by_id=self.request.user.id)
+            instance = serializer.save(promoted_by_id=user_id)
             belt = instance.belt_rank
             student = instance.student
 
@@ -128,7 +146,7 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                     status=Invoice.Status.PENDING,
                     due_date=instance.promoted_at,
                     notes=f"رسوم الترقية إلى حزام: {belt.name}",
-                    created_by_id=self.request.user.id,
+                    created_by_id=user_id,
                 )
                 instance.invoice = invoice
                 instance.save(update_fields=["invoice"])
