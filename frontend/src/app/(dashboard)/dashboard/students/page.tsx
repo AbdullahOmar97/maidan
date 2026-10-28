@@ -73,123 +73,139 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
   })() : null;
 
   return (
-    <div className="relative group">
+    <div className="relative group h-full flex flex-col">
       <Link
         href={`/dashboard/students/${student.id}`}
-        className="glass-card group flex items-start sm:items-center gap-3.5 sm:gap-6 p-4 sm:p-6 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.98]"
+        className="glass-card group flex flex-col justify-between h-full p-4 sm:p-5 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.99] min-h-[190px]"
       >
         {/* Dynamic Hover Glow */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
         <div className="absolute -end-12 -top-12 w-40 h-40 bg-primary/10 blur-[60px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-        {/* Avatar */}
-        <div className="relative shrink-0 z-10">
-          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-primary/40 transition-all duration-300 shadow-xl">
-            {student.photo_url ? (
-              <img
-                src={student.photo_url}
-                alt={student.full_name}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-2xl sm:text-3xl">
-                {student.full_name?.[0]?.toUpperCase() ?? "?"}
+        {/* Top Header: Avatar + Title & Number + Status & Due Badges */}
+        <div className="flex items-start gap-3 sm:gap-4 z-10 w-full">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-primary/40 transition-all duration-300 shadow-xl bg-secondary/30">
+              {student.photo_url ? (
+                <img
+                  src={student.photo_url}
+                  alt={student.full_name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full gradient-brand flex items-center justify-center text-white font-black text-xl sm:text-2xl">
+                  {student.full_name?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              )}
+            </div>
+            {/* Status indicator dot */}
+            <div
+              className={cn(
+                "absolute -bottom-1 -end-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border-2 border-[#0b1220] shadow-md z-20",
+                student.status === "active" ? "bg-emerald-500" :
+                  student.status === "trial" ? "bg-blue-500" :
+                    student.status === "lead" ? "bg-amber-500" : "bg-gray-500"
+              )}
+            />
+          </div>
+
+          {/* Student Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-primary transition-colors truncate">
+                  {student.full_name}
+                </h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-0.5">
+                  {student.student_number}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <StatusBadge status={student.status} />
+              </div>
+            </div>
+
+            {/* Due Badge slot */}
+            {dueBadge && (
+              <div className="mt-2 inline-flex">
+                {dueBadge}
               </div>
             )}
           </div>
-          {/* Status indicator */}
-          <div
-            className={cn(
-              "absolute -bottom-1 -end-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-4 border-[#0f172a] shadow-xl z-20 transition-all",
-              student.status === "active" ? "bg-emerald-500 shadow-emerald-500/50" :
-                student.status === "trial" ? "bg-blue-500 shadow-blue-500/50" :
-                  student.status === "lead" ? "bg-amber-500 shadow-amber-500/50" : "bg-gray-500"
-            )}
-          />
+
+          <div className="hidden sm:flex w-8 h-8 rounded-xl bg-white/5 items-center justify-center group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-300 rtl-flip shrink-0 mt-0.5">
+            <ChevronRight className="w-4 h-4" />
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0 z-10">
-          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1 sm:mb-2">
-            <div className="min-w-0 flex-1">
-              <h3 className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-primary transition-colors break-words leading-snug">
-                {student.full_name}
-              </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-0.5 sm:mt-1">{student.student_number}</p>
+        {/* Middle Section: Contact Details (Uniform height) */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 my-3.5 z-10 text-xs min-h-[26px]">
+          {student.phone ? (
+            <div className="flex items-center gap-2 font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors">
+              <div className="w-5 h-5 rounded-lg bg-white/5 flex items-center justify-center text-primary/70 shrink-0">
+                <Phone className="w-3 h-3" />
+              </div>
+              <span className="tracking-tight text-xs"><bdi>{student.phone}</bdi></span>
             </div>
-            
-            <div className="flex items-center gap-2 shrink-0">
-              {dueBadge && (
-                <div className="hidden sm:inline-flex">
-                  {dueBadge}
-                </div>
-              )}
-              <StatusBadge status={student.status} />
-            </div>
-          </div>
-
-          {/* Due membership alert on mobile: dedicated row so student name is never compressed */}
-          {dueBadge && (
-            <div className="sm:hidden mt-2 mb-1 inline-flex">
-              {dueBadge}
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground/40 text-xs">
+              <Phone className="w-3 h-3 opacity-30" />
+              <span>لا يوجد هاتف</span>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
-            {student.phone && (
-              <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                <div className="w-6 h-6 rounded-xl bg-white/5 flex items-center justify-center text-primary/70 group-hover:bg-primary/20 group-hover:text-primary transition-all">
-                  <Phone className="w-3 h-3" />
-                </div>
-                <span className="tracking-tight"><bdi>{student.phone}</bdi></span>
+          {student.email && (
+            <div className="flex items-center gap-2 font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors max-w-[200px] truncate">
+              <div className="w-5 h-5 rounded-lg bg-white/5 flex items-center justify-center text-primary/70 shrink-0">
+                <Mail className="w-3 h-3" />
               </div>
-            )}
-            {student.email && (
-              <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors max-w-[200px]">
-                <div className="w-6 h-6 rounded-xl bg-white/5 flex items-center justify-center text-primary/70 group-hover:bg-primary/20 group-hover:text-primary transition-all">
-                  <Mail className="w-3 h-3" />
-                </div>
-                <span className="truncate tracking-tight">{student.email}</span>
-              </div>
+              <span className="truncate text-xs">{student.email}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Section: Belt + Membership (Pinned to bottom with mt-auto) */}
+        <div className="flex items-center justify-between gap-3 mt-auto pt-3 border-t border-white/5 z-10 min-h-[44px]">
+          {/* Belt */}
+          <div className="flex items-center gap-2 min-w-0">
+            {student.current_belt ? (
+              <>
+                <div
+                  className="w-4 h-4 rounded-md border border-white/20 shadow-sm shrink-0"
+                  style={{ backgroundColor: student.current_belt.color }}
+                />
+                <span className="text-xs font-bold text-white/90 truncate max-w-[130px]">
+                  {student.current_belt.name}
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px] text-muted-foreground/60 font-bold">بدون حزام</span>
             )}
           </div>
 
-          {/* Belt + membership */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-5 pt-5 border-t border-white/5">
-            {student.current_belt && (
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-5 h-5 rounded-lg border border-white/20 shadow-lg relative overflow-hidden group-hover:rotate-12 transition-transform"
-                  style={{ backgroundColor: student.current_belt.color }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20" />
-                </div>
-                <span className="text-xs font-black tracking-tight text-white/90">{student.current_belt.name}</span>
-              </div>
-            )}
+          {/* Membership Plan */}
+          <div className="shrink-0">
             {student.active_membership ? (
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/10 group-hover:bg-primary/10 transition-all">
-                <Award className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                <Award className="w-3 h-3 shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-wider truncate max-w-[120px]">
                   {student.active_membership.plan_name}
                 </span>
                 {student.active_membership.end_date && (
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    ينتهي: {student.active_membership.end_date}
+                  <span className="text-[9px] text-muted-foreground font-mono hidden md:inline">
+                    ({student.active_membership.end_date})
                   </span>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
-                <AlertCircle className="w-3 h-3" />
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
+                <AlertCircle className="w-3 h-3 shrink-0" />
                 <span>بدون اشتراك نشط</span>
               </div>
             )}
           </div>
-        </div>
-
-        <div className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 items-center justify-center group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-300 rtl-flip shrink-0">
-          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </Link>
 
@@ -197,7 +213,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQRClick(student); }}
         title="عرض رمز QR"
-        className="absolute top-3 start-3 z-20 w-8 h-8 rounded-xl bg-black/40 border border-white/10 backdrop-blur-sm flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all duration-200 scale-75 group-hover:scale-100"
+        className="absolute top-3 start-3 z-20 w-7 h-7 rounded-lg bg-black/50 border border-white/10 backdrop-blur-sm flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all duration-200"
       >
         <QrCode className="w-3.5 h-3.5" />
       </button>
@@ -207,18 +223,21 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
 
 function StudentCardSkeleton() {
   return (
-    <div className="glass-card p-4 sm:p-6 flex items-center gap-4 sm:gap-6">
-      <div className="shimmer w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl shrink-0" />
-      <div className="flex-1 space-y-3">
-        <div className="flex justify-between">
-          <div className="shimmer h-5 w-36 rounded-xl" />
-          <div className="shimmer h-6 w-16 rounded-xl" />
+    <div className="glass-card p-4 sm:p-5 flex flex-col justify-between h-full min-h-[190px]">
+      <div className="flex items-start gap-4">
+        <div className="shimmer w-14 h-14 sm:w-16 sm:h-16 rounded-2xl shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="shimmer h-5 w-32 rounded-lg" />
+            <div className="shimmer h-5 w-16 rounded-lg" />
+          </div>
+          <div className="shimmer h-3 w-20 rounded-md" />
         </div>
-        <div className="shimmer h-3.5 w-24 rounded-lg" />
-        <div className="flex gap-4 pt-4 border-t border-white/5">
-          <div className="shimmer h-4 w-20 rounded-lg" />
-          <div className="shimmer h-4 w-28 rounded-lg" />
-        </div>
+      </div>
+      <div className="shimmer h-4 w-44 rounded-md my-3.5" />
+      <div className="flex justify-between items-center pt-3 border-t border-white/5">
+        <div className="shimmer h-4 w-20 rounded-md" />
+        <div className="shimmer h-5 w-24 rounded-lg" />
       </div>
     </div>
   );
@@ -364,7 +383,7 @@ export default function StudentsPage() {
         </div>
 
         {/* Student Grid — 1 col on mobile, 2 on lg */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
           {isLoading ? (
             [...Array(6)].map((_, i) => <StudentCardSkeleton key={i} />)
           ) : isError ? (
