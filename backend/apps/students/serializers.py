@@ -301,6 +301,10 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     active_membership = serializers.SerializerMethodField()
     current_belt = serializers.SerializerMethodField()
     belt_history = serializers.SerializerMethodField()
+    initial_belt_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    initial_membership_plan_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    membership_start_date = serializers.DateField(write_only=True, required=False, allow_null=True)
+    internal_notes = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Student
@@ -316,7 +320,8 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "status", "source", "referred_by_id",
             "trial_start_date", "trial_end_date", "trial_sessions_used",
             "waiver_signed", "waiver_signed_at", "photo_consent",
-            "notes",
+            "notes", "internal_notes",
+            "initial_belt_id", "initial_membership_plan_id", "membership_start_date",
             "active_membership", "current_belt", "belt_history",
             "created_at", "updated_at",
         ]
@@ -336,6 +341,25 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         photo = data.get("photo")
         if photo is not None and not hasattr(photo, "read"):
             data.pop("photo", None)
+
+        nullable_fields = [
+            "family_id", "date_of_birth", "initial_belt_id",
+            "initial_membership_plan_id", "membership_start_date",
+            "referred_by_id", "trial_start_date", "trial_end_date",
+            "waiver_signed_at",
+        ]
+        for field in nullable_fields:
+            if field in data and (data[field] == "" or data[field] == "null" or data[field] == "undefined"):
+                data.pop(field, None)
+
+        for bool_field in ["waiver_signed", "photo_consent"]:
+            if bool_field in data:
+                val = data[bool_field]
+                if isinstance(val, str):
+                    if val.lower() in ["true", "1"]:
+                        data[bool_field] = True
+                    elif val.lower() in ["false", "0", ""]:
+                        data[bool_field] = False
 
         return super().to_internal_value(data)
 
@@ -459,6 +483,59 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             }
             for h in obj.belt_history.all()[:10]
         ]
+
+    def create(self, validated_data):
+        initial_belt_id = validated_data.pop("initial_belt_id", None)
+        initial_plan_id = validated_data.pop("initial_membership_plan_id", None)
+        membership_start_date = validated_data.pop("membership_start_date", None)
+
+        from django.db import transaction
+        with transaction.atomic():
+            student = super().create(validated_data)
+            request = self.context.get("request")
+            user_id = request.user.id if request and hasattr(request, "user") and request.user and request.user.is_authenticated else None
+
+            if initial_belt_id:
+                try:
+                    from apps.belts.models import Belt, StudentBelt
+                    from django.utils import timezone
+                    belt = Belt.objects.filter(id=initial_belt_id, is_active=True).first()
+                    if belt:
+                        StudentBelt.objects.create(
+                            student=student,
+                            belt_rank=belt,
+                            promoted_at=timezone.now().date(),
+                            promoted_by_id=user_id,
+                            is_current=True,
+                            notes="الحزام الأولي عند التسجيل",
+                        )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning("Failed to assign initial belt: %s", e)
+
+            if initial_plan_id:
+                try:
+                    from apps.billing.models import MembershipPlan, Membership
+                    from django.utils import timezone
+                    plan = MembershipPlan.objects.filter(id=initial_plan_id, is_active=True).first()
+                    if plan:
+                        start_d = membership_start_date or timezone.now().date()
+                        end_d = Membership.compute_end_date(start_d, plan.billing_cycle)
+                        Membership.objects.create(
+                            student=student,
+                            plan=plan,
+                            start_date=start_d,
+                            end_date=end_d,
+                            status="active",
+                            price=plan.price,
+                            currency=plan.currency,
+                            created_by_id=user_id,
+                        )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning("Failed to create initial membership: %s", e)
+
+            return student
 
 
 class StudentNoteSerializer(serializers.ModelSerializer):

@@ -57,6 +57,16 @@ export interface Student {
   trial_start_date: string | null;
   trial_end_date: string | null;
   waiver_signed: boolean;
+  photo_consent?: boolean;
+  nationality?: string | null;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+  medical_notes?: string;
+  blood_type?: string;
+  allergies?: string;
+  internal_notes?: string;
+  family_id?: number | null;
   notes: string;
   current_belt: BeltSummary | null;
   active_membership: MembershipSummary | null;

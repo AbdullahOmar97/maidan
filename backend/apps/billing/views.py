@@ -285,8 +285,7 @@ class MembershipPlanViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [permissions.IsAuthenticated(), CanManageBilling()]
-        # list / retrieve — still requires explicit package management permission
-        return [permissions.IsAuthenticated(), CanManageBilling()]
+        return [permissions.IsAuthenticated(), IsStaff()]
 
 
 class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
