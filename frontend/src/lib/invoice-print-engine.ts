@@ -379,20 +379,54 @@ function getInvoiceStyles(): string {
     .mt-2 { margin-top: 6px; }
 
     /* Print Sheets & Multi-page Break Isolation */
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      height: auto !important;
+      min-height: 100% !important;
+      overflow: visible !important;
+      position: static !important;
+    }
+
+    @media print {
+      html, body {
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+      }
+    }
+
     .invoice-sheet {
-      display: block;
-      width: 100%;
-      page-break-before: auto;
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      box-sizing: border-box !important;
+      page-break-before: auto !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
-      margin: 0;
-      padding: 0;
+      margin: 0 0 10mm 0 !important;
+      padding: 0 !important;
     }
     .invoice-sheet:last-child {
       page-break-after: auto !important;
       break-after: auto !important;
+      margin-bottom: 0 !important;
+    }
+
+    @media print {
+      .invoice-sheet {
+        margin: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .invoice-sheet:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
     }
 
     /* Page container */
@@ -400,7 +434,7 @@ function getInvoiceStyles(): string {
       position: relative;
       background: #ffffff;
       padding: 0;
-      min-height: 270mm;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -839,15 +873,21 @@ export async function printInvoices(
   const html = await buildInvoicesDocumentHtml(invoices, options);
 
   return new Promise((resolve) => {
+    // Clean up any stale print frames first
+    const staleFrames = document.querySelectorAll("iframe[data-maidan-print]");
+    staleFrames.forEach((el) => el.remove());
+
     const iframe = document.createElement("iframe");
-    // Position offscreen with physical A4 dimensions so media queries and fragmentation compute correctly
+    iframe.setAttribute("data-maidan-print", "true");
     iframe.style.position = "fixed";
-    iframe.style.left = "-9999px";
-    iframe.style.top = "0";
-    iframe.style.width = "210mm";
-    iframe.style.height = "297mm";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
     iframe.style.border = "none";
-    iframe.style.zIndex = "-9999";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    iframe.style.zIndex = "-99999";
     iframe.setAttribute("aria-hidden", "true");
     document.body.appendChild(iframe);
 

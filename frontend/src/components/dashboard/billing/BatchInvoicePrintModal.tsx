@@ -33,10 +33,26 @@ export function BatchInvoicePrintModal({
 
   const handlePrint = async () => {
     setIsPrinting(true);
-    toast.loading("جارٍ تجهيز ملف الطباعة / PDF...", { id: "batch-print" });
+    toast.loading(`جارٍ تجهيز طباعة ${invoices.length} فاتورة...`, { id: "batch-print" });
     try {
       await printInvoices(invoices, { clubInfo });
       toast.success("تم إرسال الفواتير للطباعة بنجاح ✓", { id: "batch-print" });
+    } catch (err) {
+      console.error("Print error:", err);
+      toast.error("حدث خطأ أثناء محاولة الطباعة", { id: "batch-print" });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrintSingle = async () => {
+    const current = invoices[activeIndex];
+    if (!current) return;
+    setIsPrinting(true);
+    toast.loading(`جارٍ تجهيز طباعة الفاتورة #${current.invoice_number}...`, { id: "batch-print" });
+    try {
+      await printInvoices([current], { clubInfo });
+      toast.success("تم إرسال الفاتورة للطباعة بنجاح ✓", { id: "batch-print" });
     } catch (err) {
       console.error("Print error:", err);
       toast.error("حدث خطأ أثناء محاولة الطباعة", { id: "batch-print" });
@@ -99,6 +115,18 @@ export function BatchInvoicePrintModal({
             </div>
           )}
 
+          {viewMode === "single" && invoices.length > 1 && (
+            <button
+              type="button"
+              onClick={handlePrintSingle}
+              disabled={isPrinting}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all disabled:opacity-50"
+            >
+              <Printer className="w-4 h-4 text-primary" />
+              <span>طباعة الحالية (#{invoices[activeIndex]?.invoice_number})</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleDownloadPdf}
@@ -106,7 +134,7 @@ export function BatchInvoicePrintModal({
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all disabled:opacity-50"
           >
             <Download className="w-4 h-4 text-primary" />
-            <span>تحميل PDF</span>
+            <span>تحميل PDF ({invoices.length})</span>
           </button>
 
           <button
