@@ -217,8 +217,14 @@ export default function StudentDetailPage() {
     enabled: !!student,
   });
 
-  const outstandingBalance = invoices?.reduce((sum: number, inv: Invoice) => sum + (inv.amount_due || 0), 0) ?? 0;
-  const overdueCount = invoices?.filter((inv: Invoice) => isInvoiceOverdue(inv.status, inv.due_date)).length ?? 0;
+  const outstandingBalance =
+    invoices
+      ?.filter((inv: Invoice) => inv.status !== "void" && inv.status !== "refunded" && inv.status !== "paid")
+      .reduce((sum: number, inv: Invoice) => sum + (inv.amount_due || 0), 0) ?? 0;
+  const overdueCount =
+    invoices
+      ?.filter((inv: Invoice) => inv.status !== "void" && inv.status !== "refunded" && isInvoiceOverdue(inv.status, inv.due_date))
+      .length ?? 0;
   const lastPaymentInvoice = invoices
     ?.filter((inv: Invoice) => inv.status === "paid" && inv.paid_at)
     .sort((a: Invoice, b: Invoice) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime())[0];

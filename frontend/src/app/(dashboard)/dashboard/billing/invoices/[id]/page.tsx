@@ -88,6 +88,12 @@ export default function InvoiceDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
+      queryClient.invalidateQueries({ queryKey: ["family"] });
+      queryClient.invalidateQueries({ queryKey: ["reporting"] });
       toast.success("تم إلغاء الفاتورة بنجاح (Void)");
       setVoidOpen(false);
     },
@@ -106,6 +112,12 @@ export default function InvoiceDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
       queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["families"] });
+      queryClient.invalidateQueries({ queryKey: ["family"] });
+      queryClient.invalidateQueries({ queryKey: ["reporting"] });
       toast.success("تم إصدار الإشعار الدائن وتسجيل الاسترداد بنجاح ✓");
       setRefundOpen(false);
     },
@@ -581,7 +593,7 @@ export default function InvoiceDetailPage() {
       {/* Void Invoice Modal */}
       {voidOpen && invoice && (
         <VoidInvoiceModal
-          invoiceNumber={invoice.invoice_number}
+          invoice={invoice}
           isPending={voidMutation.isPending}
           onConfirm={(data) => voidMutation.mutate(data)}
           onClose={() => setVoidOpen(false)}

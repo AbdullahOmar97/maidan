@@ -192,6 +192,67 @@ class DunningSuspensionTestCase(TestCase):
             self.student.refresh_from_db()
             self.assertEqual(self.student.account_credit, Decimal("10.00"))
 
+    def test_void_invoice_financial_and_linked_effects(self):
+        from apps.accounts.models import User
+        from rest_framework.test import APIClient
+        from decimal import Decimal
+
+        with schema_context("public"):
+            manager = User.objects.filter(email="manager@billing.app").first()
+            if not manager:
+                manager = User.objects.create_user(
+                    email="manager@billing.app",
+                    password="testpassword123",
+                    role=User.Role.MANAGER,
+                    first_name="Manager",
+                    last_name="Billing",
+                )
+
+        with schema_context(self.tenant.schema_name):
+            client = APIClient()
+            client.defaults["HTTP_HOST"] = "billing.localhost"
+            client.force_authenticate(user=manager)
+
+            # 1. Suspend student due to overdue invoice
+            self.student.status = Student.Status.SUSPENDED
+            self.student.save()
+
+            # 2. Attach membership to the overdue invoice
+            plan = MembershipPlan.objects.create(name="Gold Plan", price=50.00, billing_cycle="monthly")
+            membership = Membership.objects.create(
+                student=self.student,
+                plan=plan,
+                start_date=timezone.now().date(),
+                status=Membership.Status.PENDING,
+                auto_renew=True,
+            )
+            self.overdue_invoice.membership = membership
+            self.overdue_invoice.save()
+
+            self.assertEqual(self.overdue_invoice.amount_due, Decimal("50.00"))
+
+            # 3. Void the invoice
+            resp = client.post(
+                f"/api/v1/billing/invoices/{self.overdue_invoice.id}/void/",
+                {"reason": "data_entry_error", "reason_details": "Billing mistake"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+            # Verify invoice status and amount_due
+            self.overdue_invoice.refresh_from_db()
+            self.assertEqual(self.overdue_invoice.status, Invoice.Status.VOID)
+            self.assertEqual(self.overdue_invoice.amount_due, Decimal("0.00"))
+
+            # Verify linked membership is cancelled and auto_renew disabled
+            membership.refresh_from_db()
+            self.assertEqual(membership.status, Membership.Status.CANCELLED)
+            self.assertFalse(membership.auto_renew)
+
+            # Verify student suspension is lifted
+            self.student.refresh_from_db()
+            self.assertEqual(self.student.status, Student.Status.ACTIVE)
+
     def tearDown(self):
         with schema_context("public"):
             self.tenant.delete()

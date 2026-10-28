@@ -114,7 +114,7 @@ function InvoiceRow({
         <p className="font-black text-sm text-white">
           <bdi>{formatCurrency(invoice.total_amount, invoice.currency)}</bdi>
         </p>
-        {invoice.amount_due > 0 && invoice.status !== "paid" && (
+        {invoice.amount_due > 0 && invoice.status !== "paid" && invoice.status !== "void" && invoice.status !== "refunded" && (
           <p className="text-[10px] font-bold text-amber-400 mt-1">
             متبقي: <bdi>{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
           </p>
@@ -202,7 +202,7 @@ function InvoiceMobileCard({
           <p className="font-black text-white">
             <bdi>{formatCurrency(invoice.total_amount, invoice.currency)}</bdi>
           </p>
-          {invoice.amount_due > 0 && invoice.status !== "paid" && (
+          {invoice.amount_due > 0 && invoice.status !== "paid" && invoice.status !== "void" && invoice.status !== "refunded" && (
             <p className="text-[10px] font-bold text-amber-400">
               متبقي: <bdi>{formatCurrency(invoice.amount_due, invoice.currency)}</bdi>
             </p>

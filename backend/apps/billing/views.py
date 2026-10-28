@@ -180,25 +180,35 @@ class InvoiceSerializer(serializers.ModelSerializer):
     membership_id = serializers.PrimaryKeyRelatedField(
         queryset=Membership.objects.all(), source="membership", required=False, allow_null=True
     )
+    store_orders_count = serializers.SerializerMethodField()
+    exam_candidacies_count = serializers.SerializerMethodField()
+    student_status = serializers.ReadOnlyField(source="student.status")
 
     class Meta:
         model = Invoice
         fields = [
-            "id", "invoice_number", "student_id", "student_name",
+            "id", "invoice_number", "student_id", "student_name", "student_status",
             "membership_id", "plan_name", "subtotal", "discount_amount", "tax_rate",
             "tax_amount", "total_amount", "amount_paid", "amount_due", "is_overdue",
             "currency", "status", "due_date", "paid_at",
             "notes", "is_recurring", "created_by_id", "created_by_name",
             "paid_by_id", "paid_by_name",
             "voided_at", "voided_by_id", "voided_by_name", "void_reason",
-            "credit_notes", "created_at",
+            "credit_notes", "store_orders_count", "exam_candidacies_count", "created_at",
         ]
         read_only_fields = [
-            "id", "invoice_number", "student_name", "tax_amount",
+            "id", "invoice_number", "student_name", "student_status", "tax_amount",
             "total_amount", "amount_due", "is_overdue",
             "created_by_id", "created_by_name", "paid_by_id", "paid_by_name",
-            "voided_at", "voided_by_id", "voided_by_name", "credit_notes", "created_at",
+            "voided_at", "voided_by_id", "voided_by_name", "credit_notes",
+            "store_orders_count", "exam_candidacies_count", "created_at",
         ]
+
+    def get_store_orders_count(self, obj):
+        return obj.store_orders.count() if hasattr(obj, "store_orders") else 0
+
+    def get_exam_candidacies_count(self, obj):
+        return obj.exam_candidates.count() if hasattr(obj, "exam_candidates") else 0
 
     def _resolve_user_name(self, user_id):
         """Return full name for a given user UUID, or None."""
@@ -584,18 +594,57 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         with transaction.atomic():
             now = timezone.now()
             invoice.status = Invoice.Status.VOID
+            invoice.amount_paid = Decimal("0.00")
             invoice.voided_at = now
             invoice.voided_by_id = request.user.id
             invoice.void_reason = reason_text
             audit_note = f"[ملغاة (Void) بواسطة {request.user.get_full_name()} في {now.date()}: {reason_text}]"
             invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
-            invoice.save(update_fields=["status", "voided_at", "voided_by_id", "void_reason", "notes", "updated_at"])
+            invoice.save(update_fields=["status", "amount_paid", "voided_at", "voided_by_id", "void_reason", "notes", "updated_at"])
 
+            # 1. Cancel linked membership if no other paid invoices exist for it
             if invoice.membership:
-                invoice.membership.status = Membership.Status.CANCELLED
-                invoice.membership.cancelled_at = now
-                invoice.membership.cancellation_reason = f"ملغاة تلقائياً بسبب إلغاء الفاتورة {invoice.invoice_number} ({reason_text})"
-                invoice.membership.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
+                membership = invoice.membership
+                has_other_paid = membership.invoices.filter(status=Invoice.Status.PAID).exclude(pk=invoice.pk).exists()
+                if not has_other_paid:
+                    membership.status = Membership.Status.CANCELLED
+                    membership.auto_renew = False
+                    membership.cancelled_at = now
+                    membership.cancellation_reason = f"ملغاة تلقائياً بسبب إلغاء الفاتورة {invoice.invoice_number} ({reason_text})"
+                    membership.save(update_fields=["status", "auto_renew", "cancelled_at", "cancellation_reason", "updated_at"])
+
+            # 2. Cancel linked store orders and restore product inventory
+            if hasattr(invoice, "store_orders"):
+                for order in invoice.store_orders.all():
+                    if order.status != "cancelled":
+                        order.status = "cancelled"
+                        order.payment_status = "failed"
+                        for item in order.items.all():
+                            if getattr(item, "variant", None):
+                                item.variant.stock += item.quantity
+                                item.variant.save(update_fields=["stock"])
+                            elif getattr(item, "product", None):
+                                item.product.stock += item.quantity
+                                item.product.save(update_fields=["stock"])
+                        order.save(update_fields=["status", "payment_status", "updated_at"])
+
+            # 3. Unlink pending belt exam candidacies
+            if hasattr(invoice, "exam_candidates"):
+                invoice.exam_candidates.filter(status="pending").update(invoice=None)
+
+            # 4. Check if student status was suspended due to overdue invoices and reactivate if clear
+            student = invoice.student
+            if student.status == Student.Status.SUSPENDED:
+                from datetime import timedelta
+                seven_days_ago = now.date() - timedelta(days=7)
+                has_other_overdue = Invoice.objects.filter(
+                    student=student,
+                    status=Invoice.Status.OVERDUE,
+                    due_date__lte=seven_days_ago,
+                ).exclude(pk=invoice.pk).exists()
+                if not has_other_overdue:
+                    student.status = Student.Status.ACTIVE
+                    student.save(update_fields=["status"])
 
         serializer = self.get_serializer(invoice)
         return Response(serializer.data)

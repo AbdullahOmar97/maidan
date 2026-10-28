@@ -44,7 +44,7 @@ class StudentBeltSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentBelt
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "invoice"]
+        read_only_fields = ["id", "created_at", "invoice", "promoted_by_id"]
 
     def get_student_name(self, obj):
         return obj.student.full_name
@@ -112,10 +112,19 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                 final_tax_rate = Decimal("0.00")
 
             if create_invoice and final_fee and Decimal(str(final_fee)) > 0:
+                fee_dec = Decimal(str(final_fee)).quantize(Decimal("0.01"))
+                tax_dec = final_tax_rate.quantize(Decimal("0.01"))
+                tax_amount = (fee_dec * (tax_dec / Decimal("100"))).quantize(Decimal("0.01"))
+                total_amount = (fee_dec + tax_amount).quantize(Decimal("0.01"))
+
                 invoice = Invoice.objects.create(
                     student=student,
-                    subtotal=Decimal(str(final_fee)),
-                    tax_rate=final_tax_rate,
+                    subtotal=fee_dec,
+                    tax_rate=tax_dec,
+                    tax_amount=tax_amount,
+                    total_amount=total_amount,
+                    discount_amount=Decimal("0.00"),
+                    amount_paid=Decimal("0.00"),
                     status=Invoice.Status.PENDING,
                     due_date=instance.promoted_at,
                     notes=f"رسوم الترقية إلى حزام: {belt.name}",
@@ -125,12 +134,16 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                 instance.save(update_fields=["invoice"])
 
             # Send in-app notification to student
-            from apps.messaging.utils import create_in_app_notification
-            create_in_app_notification(
-                subject="ترقية حزام جديدة",
-                content=f"تهانينا! تمت ترقيتك إلى حزام {belt.name}.",
-                student=student
-            )
+            try:
+                from apps.messaging.utils import create_in_app_notification
+                create_in_app_notification(
+                    subject="ترقية حزام جديدة",
+                    content=f"تهانينا! تمت ترقيتك إلى حزام {belt.name}.",
+                    student=student
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger("maidan.belts").warning(f"Failed to create promotion notification: {e}")
 
 
 class PromotionEligibilityViewSet(viewsets.ReadOnlyModelViewSet):

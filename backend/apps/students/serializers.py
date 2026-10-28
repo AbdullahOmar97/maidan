@@ -152,7 +152,7 @@ class FamilyDetailSerializer(FamilySerializer):
 
         # Total invoices and outstanding balance
         from apps.billing.models import Invoice
-        invoices = Invoice.objects.filter(student_id__in=member_ids)
+        invoices = Invoice.objects.filter(student_id__in=member_ids).exclude(status__in=["void", "refunded"])
         total_billed = invoices.aggregate(t=Sum("total_amount"))["t"] or 0
         outstanding = invoices.filter(
             status__in=["pending", "overdue"]

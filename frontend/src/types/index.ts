@@ -275,6 +275,9 @@ export interface Invoice {
   voided_by_name?: string | null;
   void_reason?: string;
   credit_notes?: CreditNote[];
+  store_orders_count?: number;
+  exam_candidacies_count?: number;
+  student_status?: string;
   created_at: string;
 }
 

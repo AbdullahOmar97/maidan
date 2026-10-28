@@ -227,7 +227,11 @@ class Invoice(models.Model):
 
     @property
     def amount_due(self):
-        return self.total_amount - self.amount_paid
+        if self.status in [self.Status.VOID, self.Status.REFUNDED]:
+            return Decimal("0.00")
+        total = self.total_amount or Decimal("0.00")
+        paid = self.amount_paid or Decimal("0.00")
+        return max(Decimal("0.00"), total - paid)
 
 
 class CreditNote(models.Model):

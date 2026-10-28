@@ -141,8 +141,8 @@ class NotificationLog(models.Model):
         READ = "read", "Read"
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
-    recipient_phone = models.CharField(max_length=30, blank=True)
-    recipient_email = models.EmailField(blank=True)
+    recipient_phone = models.CharField(max_length=30, blank=True, default="")
+    recipient_email = models.EmailField(blank=True, default="")
 
     channel = models.CharField(max_length=20, choices=Channel.choices)
     template = models.ForeignKey(MessageTemplate, on_delete=models.SET_NULL, null=True, blank=True)
