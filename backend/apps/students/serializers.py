@@ -527,8 +527,6 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                             start_date=start_d,
                             end_date=end_d,
                             status="active",
-                            price=plan.price,
-                            currency=plan.currency,
                             created_by_id=user_id,
                         )
                 except Exception as e:
