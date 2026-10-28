@@ -241,16 +241,14 @@ export default function NewStudentPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <InputWrapper label="رقم الهاتف" icon={Phone}>
+                  <InputWrapper label="رقم الهاتف (اختياري)" icon={Phone}>
                     <input
-                      required
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="+966 5x xxx xxxx"
                       className="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
-
                     />
                   </InputWrapper>
 

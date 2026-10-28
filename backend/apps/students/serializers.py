@@ -287,6 +287,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(required=True)
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True, default="")
     age = serializers.ReadOnlyField()
     family = FamilySerializer(read_only=True)
     family_id = serializers.PrimaryKeyRelatedField(
@@ -323,13 +324,6 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "id", "student_number", "age",
             "active_membership", "current_belt", "belt_history",
             "created_at", "updated_at",
-        ]
-        validators = [
-            serializers.UniqueTogetherValidator(
-                queryset=Student.objects.all(),
-                fields=["full_name", "phone", "location"],
-                message="هذا الطالب موجود بالفعل في هذا الفرع بنفس البيانات (الاسم ورقم الهاتف)."
-            )
         ]
 
     def to_internal_value(self, data):
@@ -383,6 +377,27 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         else:
             if status_val is None:
                 status_val = "lead"
+
+        # Unique student per branch check (only if phone is provided)
+        full_name = attrs.get("full_name") or (self.instance.full_name if self.instance else "")
+        phone = attrs.get("phone")
+        if phone is None and self.instance:
+            phone = self.instance.phone
+        phone = (phone or "").strip()
+
+        if full_name and phone and location:
+            duplicate_qs = Student.objects.filter(
+                full_name=full_name,
+                phone=phone,
+                location=location,
+                deleted_at__isnull=True,
+            )
+            if self.instance and self.instance.pk:
+                duplicate_qs = duplicate_qs.exclude(pk=self.instance.pk)
+            if duplicate_qs.exists():
+                raise serializers.ValidationError({
+                    "phone": "هذا الطالب موجود بالفعل في هذا الفرع بنفس البيانات (الاسم ورقم الهاتف)."
+                })
                 
         # Only check capacity if the student's status is 'active' or 'trial'
         if status_val in ["active", "trial"] and location:

@@ -190,15 +190,13 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
           </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="رقم الهاتف" required>
+            <FormField label="رقم الهاتف (اختياري)">
               <Input
-                required
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="05x xxx xxxx"
-
               />
             </FormField>
 

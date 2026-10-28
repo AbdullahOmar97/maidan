@@ -100,7 +100,7 @@ class Student(models.Model):
     nationality = models.CharField(max_length=2, blank=True)
 
     # Contact
-    phone = models.CharField(max_length=30, blank=True)
+    phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True)
     whatsapp = models.CharField(max_length=30, blank=True)
 
@@ -179,6 +179,7 @@ class Student(models.Model):
             models.UniqueConstraint(
                 fields=["full_name", "phone", "location"],
                 name="unique_student_per_branch",
+                condition=~models.Q(phone="") & ~models.Q(phone__isnull=True),
                 violation_error_message="هذا الطالب موجود بالفعل في هذا الفرع بنفس البيانات (الاسم ورقم الهاتف)."
             )
         ]

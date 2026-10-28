@@ -45,7 +45,7 @@ export interface Student {
   date_of_birth: string | null;
   age: number | null;
   gender: Gender;
-  phone: string;
+  phone?: string;
   email: string;
   whatsapp: string;
   photo: string | null;

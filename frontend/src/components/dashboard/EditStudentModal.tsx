@@ -66,12 +66,10 @@ export function EditStudentModal({
                 onChange={(e) => set("email", e.target.value)}
               />
             </FormField>
-            <FormField label="رقم الهاتف" required>
+            <FormField label="رقم الهاتف (اختياري)">
               <Input
-                required
                 type="tel"
-
-                value={student.phone}
+                value={student.phone || ""}
                 onChange={(e) => set("phone", e.target.value)}
               />
             </FormField>
