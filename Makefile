@@ -135,6 +135,9 @@ collectstatic-prod: ## Collect static files (production)
 backup-ec2: ## Run full backup on EC2 (DB + Media + MinIO)
 	./scripts/ec2_backup.sh
 
+setup-backup-cron: ## Setup daily 24h cron job on EC2 (keeps last 3 backups)
+	./scripts/setup_backup_cron.sh
+
 backup: ## Download full backup from EC2 to WSL (usage: make backup HOST=maidanjo.duckdns.org EC2_USER=ubuntu KEY=~/.ssh/maidan-spot-frankfurt.pem)
 	./scripts/download_backup.sh $(or $(HOST),maidanjo.duckdns.org) $(or $(EC2_USER),ubuntu) $(or $(KEY),~/.ssh/maidan-spot-frankfurt.pem)
 

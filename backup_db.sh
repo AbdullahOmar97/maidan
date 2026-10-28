@@ -29,9 +29,12 @@ docker exec -e PGPASSWORD="${PGPASSWORD}" "${DB_CONTAINER}" pg_dump -U "${DB_USE
 
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo "[$(date)] Backup completed successfully: ${BACKUP_FILE}"
-    # Keep only backups from the last 30 days
-    find "${BACKUP_DIR}" -type f -name "maidan_backup_*.sql.gz" -mtime +30 -exec rm {} \;
-    echo "[$(date)] Deleted backups older than 30 days."
+    # Keep only the latest 3 backups
+    BACKUP_COUNT=$(ls -1t "${BACKUP_DIR}"/maidan_backup_*.sql.gz 2>/dev/null | wc -l)
+    if [ "${BACKUP_COUNT}" -gt 3 ]; then
+        ls -1t "${BACKUP_DIR}"/maidan_backup_*.sql.gz | tail -n +4 | xargs -r rm -f
+        echo "[$(date)] Deleted older backups. Retained top 3."
+    fi
 else
     echo "[$(date)] ERROR: Database backup failed!"
     # Remove the empty/failed backup file if it exists

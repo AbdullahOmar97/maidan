@@ -70,8 +70,18 @@ echo "[$(date)] Packaging full backup into archive..."
 tar -czf "${ARCHIVE_FILE}" -C "${BACKUP_ROOT}" "maidan_backup_${TIMESTAMP}"
 rm -rf "${BACKUP_DIR}"
 
+# 7. Retention: Keep only the latest 3 backups
+echo "[$(date)] Applying retention policy: keeping only latest 3 backups..."
+BACKUP_COUNT=$(ls -1t "${BACKUP_ROOT}"/maidan_full_backup_*.tar.gz 2>/dev/null | wc -l)
+if [ "${BACKUP_COUNT}" -gt 3 ]; then
+    ls -1t "${BACKUP_ROOT}"/maidan_full_backup_*.tar.gz | tail -n +4 | xargs -r rm -f
+    echo "[$(date)] Removed $((BACKUP_COUNT - 3)) older backup(s). Retained top 3."
+fi
+
 echo "[$(date)] =========================================="
 echo "[$(date)] SUCCESS: Full backup created successfully!"
 echo "[$(date)] Backup Archive: ${ARCHIVE_FILE}"
 echo "[$(date)] Size: $(du -h "${ARCHIVE_FILE}" | cut -f1)"
+echo "[$(date)] Remaining archives in ${BACKUP_ROOT}:"
+ls -lh "${BACKUP_ROOT}"/maidan_full_backup_*.tar.gz
 echo "[$(date)] =========================================="
