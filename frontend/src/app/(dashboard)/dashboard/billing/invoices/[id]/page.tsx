@@ -21,20 +21,54 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
 import VoidInvoiceModal from "@/components/dashboard/VoidInvoiceModal";
 import RefundInvoiceModal from "@/components/dashboard/RefundInvoiceModal";
+import { BatchInvoicePrintModal } from "@/components/dashboard/billing/BatchInvoicePrintModal";
+import { printInvoices } from "@/lib/invoice-print-engine";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
+import { useTenant } from "@/lib/providers/tenant-provider";
 
 export default function InvoiceDetailPage() {
   const { id }        = useParams();
   const queryClient   = useQueryClient();
+  const { tenant }    = useTenant();
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
   const [voidOpen, setVoidOpen]         = useState(false);
   const [refundOpen, setRefundOpen]     = useState(false);
+  const [printOpen, setPrintOpen]       = useState(false);
+  const [isPrinting, setIsPrinting]     = useState(false);
   const { canMarkInvoicePaid, canVoidInvoice } = useBillingPermissions();
+
+  const clubInfo = tenant ? {
+    name: tenant.name,
+    business_name: tenant.business_name || "",
+    phone: tenant.phone || "",
+    email: tenant.email || "",
+    logo: tenant.logo || null,
+    currency: tenant.default_currency || "JOD",
+    country: tenant.country || "JO",
+  } : null;
 
   const { data: invoice, isLoading, error } = useQuery<Invoice>({
     queryKey: ["billing", "invoices", id],
     queryFn:  () => api.billing.invoices.get(parseInt(id as string)).then((r) => r.data),
   });
+
+  const handlePrint = async () => {
+    if (!invoice) return;
+    setPrintOpen(true);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    setIsPrinting(true);
+    toast.info("يرجى اختيار 'حفظ بتنسيق PDF' / 'Save as PDF' من نافذة الطباعة", { duration: 4000 });
+    try {
+      await printInvoices([invoice], { clubInfo });
+    } catch (err) {
+      toast.error("فشل تجهيز ملف الطباعة");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const initiatePaymentMutation = useMutation({
     mutationFn: (provider: string) =>
@@ -190,17 +224,24 @@ export default function InvoiceDetailPage() {
           {/* Print / Download — hide on smallest screens */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
-              onClick={() => window.print()}
-              className="touch-target w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90"
+              onClick={handlePrint}
+              className="touch-target flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95"
               aria-label="طباعة الفاتورة"
             >
-              <Printer className="w-5 h-5" aria-hidden="true" />
+              <Printer className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span className="hidden xs:inline">طباعة</span>
             </button>
             <button
-              className="touch-target flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95"
+              onClick={handleDownloadPdf}
+              disabled={isPrinting}
+              className="touch-target flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
               aria-label="تحميل الفاتورة بصيغة PDF"
             >
-              <Download className="w-4 h-4" aria-hidden="true" />
+              {isPrinting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 text-primary" aria-hidden="true" />
+              )}
               <span className="hidden xs:inline">تحميل PDF</span>
             </button>
           </div>
@@ -611,6 +652,16 @@ export default function InvoiceDetailPage() {
           isPending={refundMutation.isPending}
           onConfirm={(data) => refundMutation.mutate(data)}
           onClose={() => setRefundOpen(false)}
+        />
+      )}
+
+      {/* Print / Preview Modal */}
+      {printOpen && invoice && (
+        <BatchInvoicePrintModal
+          open={printOpen}
+          onClose={() => setPrintOpen(false)}
+          invoices={[invoice]}
+          clubInfo={clubInfo}
         />
       )}
     </PermissionGuard>

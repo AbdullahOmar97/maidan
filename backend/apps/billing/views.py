@@ -167,6 +167,13 @@ class CreditNoteSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
+    student_phone = serializers.ReadOnlyField(source="student.phone")
+    student_email = serializers.ReadOnlyField(source="student.email")
+    student_number = serializers.ReadOnlyField(source="student.student_number")
+    location_name = serializers.SerializerMethodField()
+    membership_details = serializers.SerializerMethodField()
+    payments = serializers.SerializerMethodField()
+    club_info = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
     amount_due = serializers.ReadOnlyField()
     is_overdue = serializers.SerializerMethodField()
@@ -188,20 +195,23 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = [
             "id", "invoice_number", "student_id", "student_name", "student_status",
-            "membership_id", "plan_name", "subtotal", "discount_amount", "tax_rate",
+            "student_phone", "student_email", "student_number", "location_name",
+            "membership_id", "membership_details", "plan_name", "subtotal", "discount_amount", "tax_rate",
             "tax_amount", "total_amount", "amount_paid", "amount_due", "is_overdue",
             "currency", "status", "due_date", "paid_at",
             "notes", "is_recurring", "created_by_id", "created_by_name",
             "paid_by_id", "paid_by_name",
             "voided_at", "voided_by_id", "voided_by_name", "void_reason",
-            "credit_notes", "store_orders_count", "exam_candidacies_count", "created_at",
+            "credit_notes", "payments", "club_info", "store_orders_count", "exam_candidacies_count", "created_at",
         ]
         read_only_fields = [
-            "id", "invoice_number", "student_name", "student_status", "tax_amount",
+            "id", "invoice_number", "student_name", "student_status",
+            "student_phone", "student_email", "student_number", "location_name",
+            "membership_details", "tax_amount",
             "total_amount", "amount_due", "is_overdue",
             "created_by_id", "created_by_name", "paid_by_id", "paid_by_name",
             "voided_at", "voided_by_id", "voided_by_name", "credit_notes",
-            "store_orders_count", "exam_candidacies_count", "created_at",
+            "payments", "club_info", "store_orders_count", "exam_candidacies_count", "created_at",
         ]
 
     def get_store_orders_count(self, obj):
@@ -243,6 +253,61 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_voided_by_name(self, obj):
         return self._resolve_user_name(obj.voided_by_id)
+
+    def get_location_name(self, obj):
+        if hasattr(obj.student, "location") and obj.student.location:
+            return obj.student.location.name
+        if obj.membership and obj.membership.plan and obj.membership.plan.location:
+            return obj.membership.plan.location.name
+        return None
+
+    def get_membership_details(self, obj):
+        if not obj.membership:
+            return None
+        m = obj.membership
+        return {
+            "id": m.id,
+            "plan_name": m.plan.name if m.plan else None,
+            "billing_cycle": m.plan.billing_cycle if m.plan else None,
+            "start_date": m.start_date,
+            "end_date": m.end_date,
+            "status": m.status,
+        }
+
+    def get_payments(self, obj):
+        if not hasattr(obj, "payments"):
+            return []
+        try:
+            return [
+                {
+                    "id": p.id,
+                    "amount": float(p.amount),
+                    "currency": p.currency,
+                    "provider": p.provider,
+                    "provider_transaction_id": p.provider_transaction_id,
+                    "status": p.status,
+                    "paid_at": p.paid_at.isoformat() if p.paid_at else None,
+                    "notes": p.notes,
+                }
+                for p in obj.payments.all()
+            ]
+        except Exception:
+            return []
+
+    def get_club_info(self, obj):
+        request = self.context.get("request")
+        tenant = getattr(request, "tenant", None) if request else None
+        if tenant:
+            return {
+                "name": tenant.name,
+                "business_name": getattr(tenant, "business_name", ""),
+                "phone": getattr(tenant, "phone", ""),
+                "email": getattr(tenant, "email", ""),
+                "logo": tenant.logo.url if getattr(tenant, "logo", None) else None,
+                "currency": getattr(tenant, "default_currency", "JOD"),
+                "country": getattr(tenant, "country", "JO"),
+            }
+        return None
 
 
 class PaymentSerializer(serializers.ModelSerializer):

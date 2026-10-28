@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface FormFieldProps {
   label: string;
   required?: boolean;
-  hint?: string;
+  hint?: string | ReactNode;
   error?: string;
   children: ReactNode;
   className?: string;
@@ -22,7 +22,7 @@ export function FormField({ label, required, hint, error, children, className }:
       </label>
       {children}
       {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
-      {hint && !error && <p className="text-[10px] font-bold text-muted-foreground/60">{hint}</p>}
+      {hint && !error && <div className="text-[10px] font-bold text-muted-foreground/60">{hint}</div>}
     </div>
   );
 }

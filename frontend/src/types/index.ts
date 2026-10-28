@@ -258,12 +258,50 @@ export interface CreditNote {
   issued_at: string;
 }
 
+export interface InvoicePaymentRecord {
+  id: number;
+  amount: number;
+  currency: string;
+  provider: string;
+  provider_transaction_id?: string;
+  status: string;
+  paid_at?: string | null;
+  notes?: string;
+}
+
+export interface InvoiceClubInfo {
+  name: string;
+  business_name?: string;
+  phone?: string;
+  email?: string;
+  logo?: string | null;
+  currency?: string;
+  country?: string;
+  tax_number?: string;
+  cr_number?: string;
+  address?: string;
+}
+
+export interface InvoiceMembershipDetails {
+  id: number;
+  plan_name?: string | null;
+  billing_cycle?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string;
+}
+
 export interface Invoice {
   id: number;
   invoice_number: string;
   student_id: number;
   student_name: string;
+  student_phone?: string;
+  student_email?: string;
+  student_number?: string;
+  location_name?: string | null;
   membership_id: number | null;
+  membership_details?: InvoiceMembershipDetails | null;
   subtotal: number;
   discount_amount: number;
   tax_rate: number;
@@ -273,6 +311,7 @@ export interface Invoice {
   amount_due: number;
   currency: string;
   status: InvoiceStatus;
+  is_overdue?: boolean;
   due_date: string;
   paid_at: string | null;
   notes: string;
@@ -287,6 +326,8 @@ export interface Invoice {
   voided_by_name?: string | null;
   void_reason?: string;
   credit_notes?: CreditNote[];
+  payments?: InvoicePaymentRecord[];
+  club_info?: InvoiceClubInfo | null;
   store_orders_count?: number;
   exam_candidacies_count?: number;
   student_status?: string;

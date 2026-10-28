@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { formatCurrency, formatDate, cn, isInvoiceOverdue } from "@/lib/utils";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
+import { BatchInvoicePrintModal } from "@/components/dashboard/billing/BatchInvoicePrintModal";
+import { printInvoices } from "@/lib/invoice-print-engine";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
-import { Receipt, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
+import { useTenant } from "@/lib/providers/tenant-provider";
+import {
+  Receipt, CheckCircle, ChevronRight, Loader2,
+  Printer, Download, Eye, X, CheckSquare, Square,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { Invoice } from "@/types";
 
@@ -63,6 +69,9 @@ interface InvoiceRowProps {
   onMarkPaid: (invoice: Invoice) => void;
   isMarkingPaid: boolean;
   showPlanPrimary?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: number) => void;
+  onQuickPrint?: (invoice: Invoice) => void;
 }
 
 function InvoiceRow({
@@ -71,6 +80,9 @@ function InvoiceRow({
   onMarkPaid,
   isMarkingPaid,
   showPlanPrimary = false,
+  isSelected = false,
+  onToggleSelect,
+  onQuickPrint,
 }: InvoiceRowProps) {
   const displayStatus = isInvoiceOverdue(invoice.status, invoice.due_date)
     ? "overdue"
@@ -84,8 +96,27 @@ function InvoiceRow({
     : invoice.plan_name;
 
   return (
-    <tr className="group hover:bg-white/[0.02] transition-colors border-b border-white/5 last:border-0">
-      <td className="py-4 px-5 text-start">
+    <tr className={cn(
+      "group transition-colors border-b border-white/5 last:border-0",
+      isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-white/[0.02]"
+    )}>
+      {/* Selection Checkbox */}
+      <td className="py-4 ps-4 pe-2 text-start w-10">
+        <button
+          type="button"
+          onClick={() => onToggleSelect?.(invoice.id)}
+          className="text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+          aria-label={`تحديد الفاتورة ${invoice.invoice_number}`}
+        >
+          {isSelected ? (
+            <CheckSquare className="w-4 h-4 text-primary" />
+          ) : (
+            <Square className="w-4 h-4 text-white/30 group-hover:text-white/60" />
+          )}
+        </button>
+      </td>
+
+      <td className="py-4 px-4 text-start">
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform"
@@ -98,19 +129,19 @@ function InvoiceRow({
           </p>
         </div>
       </td>
-      <td className="py-4 px-5 text-start">
+      <td className="py-4 px-4 text-start">
         <p className="font-bold text-sm text-white">{primaryTitle}</p>
         {secondaryTitle && (
           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{secondaryTitle}</p>
         )}
       </td>
-      <td className="py-4 px-5 text-start">
+      <td className="py-4 px-4 text-start">
         <StatusBadge status={displayStatus} />
       </td>
-      <td className="py-4 px-5 text-sm font-bold text-muted-foreground text-start">
+      <td className="py-4 px-4 text-sm font-bold text-muted-foreground text-start">
         <bdi>{formatDate(invoice.due_date)}</bdi>
       </td>
-      <td className="py-4 px-5 text-end">
+      <td className="py-4 px-4 text-end">
         <p className="font-black text-sm text-white">
           <bdi>{formatCurrency(invoice.total_amount, invoice.currency)}</bdi>
         </p>
@@ -121,7 +152,16 @@ function InvoiceRow({
         )}
       </td>
       <td className="py-4 px-5 text-end">
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-1.5 justify-end">
+          <button
+            type="button"
+            onClick={() => onQuickPrint?.(invoice)}
+            title="معاينة وطباعة الفاتورة"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white transition-all active:scale-90"
+            aria-label={`طباعة الفاتورة ${invoice.invoice_number}`}
+          >
+            <Printer className="w-4 h-4" />
+          </button>
           <MarkPaidButton
             invoice={invoice}
             canMarkPaid={canMarkPaid}
@@ -147,6 +187,9 @@ function InvoiceMobileCard({
   onMarkPaid,
   isMarkingPaid,
   showPlanPrimary = false,
+  isSelected = false,
+  onToggleSelect,
+  onQuickPrint,
 }: InvoiceRowProps) {
   const displayStatus = isInvoiceOverdue(invoice.status, invoice.due_date)
     ? "overdue"
@@ -160,10 +203,25 @@ function InvoiceMobileCard({
     : invoice.plan_name;
 
   return (
-    <div className="glass-card p-4 space-y-3">
+    <div className={cn(
+      "glass-card p-4 space-y-3 transition-colors",
+      isSelected && "border-primary/40 bg-primary/5"
+    )}>
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            type="button"
+            onClick={() => onToggleSelect?.(invoice.id)}
+            className="text-muted-foreground hover:text-primary transition-colors focus:outline-none p-1"
+            aria-label={`تحديد الفاتورة ${invoice.invoice_number}`}
+          >
+            {isSelected ? (
+              <CheckSquare className="w-5 h-5 text-primary" />
+            ) : (
+              <Square className="w-5 h-5 text-white/30" />
+            )}
+          </button>
           <div
             className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-primary shrink-0"
             aria-hidden="true"
@@ -212,6 +270,14 @@ function InvoiceMobileCard({
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+        <button
+          type="button"
+          onClick={() => onQuickPrint?.(invoice)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs font-bold text-white hover:bg-white/10 transition-all"
+        >
+          <Printer className="w-3.5 h-3.5 text-primary" />
+          <span>طباعة</span>
+        </button>
         <MarkPaidButton
           invoice={invoice}
           canMarkPaid={canMarkPaid}
@@ -223,7 +289,7 @@ function InvoiceMobileCard({
           className="me-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/5 text-muted-foreground text-xs font-black hover:bg-primary hover:text-white transition-all touch-target"
           aria-label={`عرض تفاصيل الفاتورة ${invoice.invoice_number}`}
         >
-          عرض التفاصيل
+          التفاصيل
           <ChevronRight className="w-3.5 h-3.5 rtl-flip" aria-hidden="true" />
         </Link>
       </div>
@@ -280,10 +346,31 @@ export function InvoicesList({
 }: InvoicesListProps) {
   const queryClient = useQueryClient();
   const perms = useBillingPermissions();
+  const { tenant } = useTenant();
   const canMarkPaid = canMarkPaidProp !== undefined ? canMarkPaidProp : perms.canMarkInvoicePaid;
 
   const [modalInvoice, setModalInvoice] = useState<Invoice | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
+
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [printModalInvoices, setPrintModalInvoices] = useState<Invoice[] | null>(null);
+  const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+
+  const invoiceList = invoices || [];
+
+  const clubInfo = useMemo(() => {
+    if (!tenant) return null;
+    return {
+      name: tenant.name,
+      business_name: tenant.business_name || "",
+      phone: tenant.phone || "",
+      email: tenant.email || "",
+      logo: tenant.logo || null,
+      currency: tenant.default_currency || "JOD",
+      country: tenant.country || "JO",
+    };
+  }, [tenant]);
 
   const markPaidMutation = useMutation({
     mutationFn: ({
@@ -342,10 +429,61 @@ export function InvoicesList({
     markPaidMutation.mutate({ invoice: modalInvoice, data });
   };
 
-  const invoiceList = invoices || [];
+  // Selection handlers
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const isAllVisibleSelected =
+    invoiceList.length > 0 && invoiceList.every((inv) => selectedIds.has(inv.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllVisibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(invoiceList.map((inv) => inv.id)));
+    }
+  };
+
+  const selectedInvoices = useMemo(
+    () => invoiceList.filter((inv) => selectedIds.has(inv.id)),
+    [invoiceList, selectedIds]
+  );
+
+  const selectedTotalSum = useMemo(
+    () => selectedInvoices.reduce((acc, inv) => acc + Number(inv.total_amount || 0), 0),
+    [selectedInvoices]
+  );
+
+  const handleBatchPrint = () => {
+    if (selectedInvoices.length === 0) return;
+    setPrintModalInvoices(selectedInvoices);
+  };
+
+  const handleDirectBatchDownload = async () => {
+    if (selectedInvoices.length === 0) return;
+    setIsBulkPrinting(true);
+    toast.info("يرجى اختيار 'حفظ بتنسيق PDF' / 'Save as PDF' من خيارات الطابعة", { duration: 4000 });
+    try {
+      await printInvoices(selectedInvoices, { clubInfo });
+    } catch (err) {
+      toast.error("فشل تجهيز ملف الطباعة");
+    } finally {
+      setIsBulkPrinting(false);
+    }
+  };
+
+  const handleQuickPrint = (invoice: Invoice) => {
+    setPrintModalInvoices([invoice]);
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
       {/* ── Desktop Table ── */}
       {isLoading ? (
         <div className="table-desktop glass-card overflow-hidden">
@@ -353,19 +491,20 @@ export function InvoicesList({
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-white/[0.03] border-b border-white/5">
-                  <th className="py-5 px-5 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="py-5 ps-4 pe-2 w-10 text-start" />
+                  <th className="py-5 px-4 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     رقم الفاتورة
                   </th>
-                  <th className="py-5 px-5 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="py-5 px-4 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     {showPlanPrimary ? "الباقة / الوصف" : "اسم الطالب"}
                   </th>
-                  <th className="py-5 px-5 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="py-5 px-4 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     الحالة
                   </th>
-                  <th className="py-5 px-5 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="py-5 px-4 text-start text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     تاريخ الاستحقاق
                   </th>
-                  <th className="py-5 px-5 text-end text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="py-5 px-4 text-end text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     المبلغ الإجمالي
                   </th>
                   <th className="py-5 px-5 text-end" />
@@ -374,19 +513,22 @@ export function InvoicesList({
               <tbody className="divide-y divide-white/5">
                 {[...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-5">
+                    <td className="py-4 ps-4 pe-2">
+                      <div className="w-4 h-4 bg-white/5 rounded" />
+                    </td>
+                    <td className="py-4 px-4">
                       <div className="h-4 bg-white/5 rounded w-24" />
                     </td>
-                    <td className="py-4 px-5">
+                    <td className="py-4 px-4">
                       <div className="h-4 bg-white/5 rounded w-36" />
                     </td>
-                    <td className="py-4 px-5">
+                    <td className="py-4 px-4">
                       <div className="h-6 bg-white/5 rounded-xl w-16" />
                     </td>
-                    <td className="py-4 px-5">
+                    <td className="py-4 px-4">
                       <div className="h-4 bg-white/5 rounded w-20" />
                     </td>
-                    <td className="py-4 px-5 text-end">
+                    <td className="py-4 px-4 text-end">
                       <div className="h-4 bg-white/5 rounded w-16 ms-auto" />
                     </td>
                     <td className="py-4 px-5 text-end">
@@ -408,22 +550,38 @@ export function InvoicesList({
             <table className="w-full border-collapse" aria-label="جدول الفواتير">
               <thead>
                 <tr className="bg-white/[0.03] border-b border-white/5">
-                  <th className="py-5 px-5 rounded-s-lg text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
+                  {/* Select All Checkbox */}
+                  <th className="py-5 ps-4 pe-2 text-start w-10">
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAll}
+                      className="text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                      title={isAllVisibleSelected ? "إلغاء تحديد الكل" : "تحديد كل الفواتير المعروضة"}
+                      aria-label="تحديد كل الفواتير"
+                    >
+                      {isAllVisibleSelected ? (
+                        <CheckSquare className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Square className="w-4 h-4 text-white/30 hover:text-white/60" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
                     رقم الفاتورة
                   </th>
-                  <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
+                  <th className="py-5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
                     {showPlanPrimary ? "الباقة / الوصف" : "اسم الطالب"}
                   </th>
-                  <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
+                  <th className="py-5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
                     الحالة
                   </th>
-                  <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
+                  <th className="py-5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-start">
                     تاريخ الاستحقاق
                   </th>
-                  <th className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-end">
+                  <th className="py-5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-end">
                     المبلغ الإجمالي
                   </th>
-                  <th className="py-5 px-5 rounded-e-lg text-end" />
+                  <th className="py-5 px-5 text-end" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -435,6 +593,9 @@ export function InvoicesList({
                     onMarkPaid={handleMarkPaid}
                     isMarkingPaid={markingId === invoice.id}
                     showPlanPrimary={showPlanPrimary}
+                    isSelected={selectedIds.has(invoice.id)}
+                    onToggleSelect={handleToggleSelect}
+                    onQuickPrint={handleQuickPrint}
                   />
                 ))}
               </tbody>
@@ -501,6 +662,9 @@ export function InvoicesList({
               onMarkPaid={handleMarkPaid}
               isMarkingPaid={markingId === invoice.id}
               showPlanPrimary={showPlanPrimary}
+              isSelected={selectedIds.has(invoice.id)}
+              onToggleSelect={handleToggleSelect}
+              onQuickPrint={handleQuickPrint}
             />
           ))}
 
@@ -528,6 +692,73 @@ export function InvoicesList({
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Sticky Batch Action Bar ── */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 start-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3 rounded-2xl bg-gray-900/95 border border-primary/30 backdrop-blur-xl shadow-2xl text-white">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-black text-xs flex items-center justify-center">
+                {selectedIds.size}
+              </span>
+              <span className="text-xs font-bold">
+                فاتورة محددة
+                <span className="hidden sm:inline text-muted-foreground ms-1.5">
+                  (الإجمالي: <strong className="text-white font-mono">{formatCurrency(selectedTotalSum, invoiceList[0]?.currency || "JOD")}</strong>)
+                </span>
+              </span>
+            </div>
+
+            <div className="h-4 w-px bg-white/20 hidden sm:block" />
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBatchPrint}
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة الكل</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDirectBatchDownload}
+                disabled={isBulkPrinting}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-all disabled:opacity-50"
+              >
+                {isBulkPrinting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-primary" />
+                )}
+                <span className="hidden sm:inline">تحميل PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                title="إلغاء التحديد"
+                className="p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="إلغاء التحديد"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Batch Print / Preview Modal ── */}
+      {printModalInvoices && (
+        <BatchInvoicePrintModal
+          open={Boolean(printModalInvoices)}
+          onClose={() => setPrintModalInvoices(null)}
+          invoices={printModalInvoices}
+          clubInfo={clubInfo}
+        />
       )}
 
       {/* ── Mark As Paid Modal ── */}
