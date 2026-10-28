@@ -33,8 +33,8 @@ docker compose -f docker-compose.prod.yml up -d --remove-orphans
 echo "[$(date)] Waiting 5 seconds for container network and DNS to settle..."
 sleep 5
 
-echo "[$(date)] Reloading Nginx to refresh container DNS resolution..."
-docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+echo "[$(date)] Recreating Nginx to refresh bind-mounted config and container DNS resolution..."
+docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps nginx
 
 # 4. Apply database migrations
 echo "[$(date)] Applying shared database migrations..."
