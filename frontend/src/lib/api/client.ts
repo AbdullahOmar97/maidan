@@ -37,12 +37,44 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 let isRedirectingToLogin = false;
+let sessionPromise: Promise<any> | null = null;
+let cachedSession: any = null;
+let cachedSessionAt = 0;
+const SESSION_CACHE_TTL_MS = 5000;
+
+export function clearCachedSession() {
+  cachedSession = null;
+  cachedSessionAt = 0;
+  sessionPromise = null;
+}
+
+async function getDeduplicatedSession() {
+  const now = Date.now();
+  if (cachedSession && now - cachedSessionAt < SESSION_CACHE_TTL_MS) {
+    return cachedSession;
+  }
+  if (!sessionPromise) {
+    sessionPromise = getSession()
+      .then((s) => {
+        if (s) {
+          cachedSession = s;
+          cachedSessionAt = Date.now();
+        }
+        return s;
+      })
+      .finally(() => {
+        sessionPromise = null;
+      });
+  }
+  return sessionPromise;
+}
 
 function redirectToLogin() {
   if (typeof window === "undefined" || isRedirectingToLogin) return;
   if (window.location.pathname.startsWith("/login")) return;
 
   isRedirectingToLogin = true;
+  clearCachedSession();
   import("next-auth/react")
     .then(({ signOut }) => signOut({ redirect: false }))
     .catch(() => {})
@@ -54,7 +86,7 @@ function redirectToLogin() {
 // Attach JWT token from NextAuth session (skip on public routes — avoids slow/stuck session fetch blocking AllowAny calls)
 apiClient.interceptors.request.use(async (config) => {
   if (!config.skipAuth) {
-    const session = await getSession();
+    const session = await getDeduplicatedSession();
     const sessionRecord = session as unknown as Record<string, unknown> | null;
     const token = sessionRecord?.accessToken as string | undefined;
     const error = sessionRecord?.error as string | undefined;
@@ -64,9 +96,11 @@ apiClient.interceptors.request.use(async (config) => {
       return Promise.reject(new axios.Cancel("Session expired"));
     }
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (!token) {
+      return Promise.reject(new axios.Cancel("Missing session token"));
     }
+
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });

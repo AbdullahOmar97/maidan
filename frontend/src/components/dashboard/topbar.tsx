@@ -13,7 +13,7 @@ import type { Session } from "next-auth";
 import { UserRole, PaginatedResponse, NotificationLog } from "@/types";
 import { cn, ARABIC_MONTHS_WITH_NUMBERS } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
-import { api } from "@/lib/api/client";
+import { api, clearCachedSession } from "@/lib/api/client";
 import { toast } from "sonner";
 
 interface TopBarProps {
@@ -107,6 +107,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
       if (themePref) localStorage.setItem("theme", themePref);
     }
     queryClient.clear();
+    clearCachedSession();
     await signOut({ redirect: false });
     if (typeof window !== "undefined") {
       window.location.href = "/login";
