@@ -452,6 +452,10 @@ export function InvoicesList({
     }
   };
 
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
   const selectedInvoices = useMemo(
     () => invoiceList.filter((inv) => selectedIds.has(inv.id)),
     [invoiceList, selectedIds]
