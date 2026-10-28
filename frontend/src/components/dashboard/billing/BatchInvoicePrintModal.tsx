@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { Printer, Download, X, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Printer, Download, X, Loader2, ChevronRight, ChevronLeft, FileSpreadsheet, Layers } from "lucide-react";
 import type { Invoice, InvoiceClubInfo } from "@/types";
 import { InvoiceDocument } from "@/components/dashboard/billing/InvoiceDocument";
-import { printInvoices } from "@/lib/invoice-print-engine";
+import { ConsolidatedInvoiceDocument } from "@/components/dashboard/billing/ConsolidatedInvoiceDocument";
+import { printInvoices, printConsolidatedStatement } from "@/lib/invoice-print-engine";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -16,6 +17,8 @@ interface BatchInvoicePrintModalProps {
   clubInfo?: InvoiceClubInfo | null;
 }
 
+type ViewMode = "statement" | "all" | "single";
+
 export function BatchInvoicePrintModal({
   open,
   onClose,
@@ -24,7 +27,7 @@ export function BatchInvoicePrintModal({
 }: BatchInvoicePrintModalProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<"single" | "all">("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("statement");
 
   if (!open || invoices.length === 0) return null;
 
@@ -33,15 +36,28 @@ export function BatchInvoicePrintModal({
 
   const handlePrint = async () => {
     setIsPrinting(true);
-    toast.loading(`جارٍ تجهيز طباعة ${invoices.length} فاتورة...`, { id: "batch-print" });
-    try {
-      await printInvoices(invoices, { clubInfo });
-      toast.success("تم إرسال الفواتير للطباعة بنجاح ✓", { id: "batch-print" });
-    } catch (err) {
-      console.error("Print error:", err);
-      toast.error("حدث خطأ أثناء محاولة الطباعة", { id: "batch-print" });
-    } finally {
-      setIsPrinting(false);
+    if (viewMode === "statement") {
+      toast.loading(`جارٍ تجهيز طباعة كشف فواتير مجمع (${invoices.length} بند)...`, { id: "batch-print" });
+      try {
+        await printConsolidatedStatement(invoices, { clubInfo });
+        toast.success("تم إرسال الكشف المجمع للطباعة بنجاح ✓", { id: "batch-print" });
+      } catch (err) {
+        console.error("Print error:", err);
+        toast.error("حدث خطأ أثناء محاولة الطباعة", { id: "batch-print" });
+      } finally {
+        setIsPrinting(false);
+      }
+    } else {
+      toast.loading(`جارٍ تجهيز طباعة ${invoices.length} فاتورة منفصلة...`, { id: "batch-print" });
+      try {
+        await printInvoices(invoices, { clubInfo });
+        toast.success("تم إرسال الفواتير للطباعة بنجاح ✓", { id: "batch-print" });
+      } catch (err) {
+        console.error("Print error:", err);
+        toast.error("حدث خطأ أثناء محاولة الطباعة", { id: "batch-print" });
+      } finally {
+        setIsPrinting(false);
+      }
     }
   };
 
@@ -65,7 +81,11 @@ export function BatchInvoicePrintModal({
     setIsPrinting(true);
     toast.info("يرجى اختيار 'حفظ بتنسيق PDF' / 'Save as PDF' من نافذة الطباعة", { duration: 4000 });
     try {
-      await printInvoices(invoices, { clubInfo });
+      if (viewMode === "statement") {
+        await printConsolidatedStatement(invoices, { clubInfo });
+      } else {
+        await printInvoices(invoices, { clubInfo });
+      }
     } catch (err) {
       console.error("PDF export error:", err);
       toast.error("فشل تجهيز ملف PDF");
@@ -91,17 +111,30 @@ export function BatchInvoicePrintModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {invoices.length > 1 && (
             <div className="flex items-center rounded-xl bg-white/5 p-1 border border-white/10 text-xs">
               <button
                 type="button"
+                onClick={() => setViewMode("statement")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  viewMode === "statement" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"
+                }`}
+                title="عرض جميع الفواتير الـ 22 في بيان خدمة واحد مجمع"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>كشف مجمع ({invoices.length})</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setViewMode("all")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
                   viewMode === "all" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"
                 }`}
+                title="عرض كل فاتورة على صفحة مستقلة"
               >
-                عرض الكل ({invoices.length})
+                <Layers className="w-3.5 h-3.5" />
+                <span>فواتير منفصلة ({invoices.length})</span>
               </button>
               <button
                 type="button"
@@ -134,7 +167,7 @@ export function BatchInvoicePrintModal({
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all disabled:opacity-50"
           >
             <Download className="w-4 h-4 text-primary" />
-            <span>تحميل PDF ({invoices.length})</span>
+            <span>تحميل PDF</span>
           </button>
 
           <button
@@ -148,7 +181,11 @@ export function BatchInvoicePrintModal({
             ) : (
               <Printer className="w-4 h-4" />
             )}
-            <span>طباعة الكل ({invoices.length})</span>
+            <span>
+              {viewMode === "statement"
+                ? `طباعة الكشف المجمع (${invoices.length})`
+                : `طباعة الفواتير (${invoices.length})`}
+            </span>
           </button>
 
           <button
@@ -176,7 +213,7 @@ export function BatchInvoicePrintModal({
               السابقة
             </button>
             <span className="font-bold text-white">
-              فاتورة {activeIndex + 1} من {invoices.length} (#{invoices[activeIndex].invoice_number})
+              فاتورة {activeIndex + 1} من {invoices.length} (#{invoices[activeIndex].invoice_number}) — {invoices[activeIndex].student_name}
             </span>
             <button
               type="button"
@@ -190,7 +227,14 @@ export function BatchInvoicePrintModal({
           </div>
         )}
 
-        {viewMode === "single" ? (
+        {viewMode === "statement" ? (
+          <div className="animate-in fade-in duration-200">
+            <ConsolidatedInvoiceDocument
+              invoices={invoices}
+              clubInfo={clubInfo}
+            />
+          </div>
+        ) : viewMode === "single" ? (
           <div className="animate-in fade-in duration-200">
             <InvoiceDocument
               invoice={invoices[activeIndex]}

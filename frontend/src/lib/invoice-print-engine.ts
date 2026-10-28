@@ -957,3 +957,331 @@ export async function printInvoices(
     }
   });
 }
+
+/**
+ * Builds HTML for a single Consolidated Billing Statement containing all invoices as line items.
+ */
+export async function buildConsolidatedStatementHtml(
+  invoices: Invoice[],
+  options: InvoicePrintOptions = {}
+): Promise<string> {
+  const club = invoices[0]?.club_info || options.clubInfo;
+  const clubName = club?.name || "نادي ميدان الرياضي";
+  const clubBusinessName = club?.business_name || "MAIDAN SPORTS CLUB";
+  const taxNumber = options.taxNumber || club?.tax_number || "300000000000003";
+  const crNumber = options.crNumber || club?.cr_number || "";
+  const phone = club?.phone || "";
+  const email = club?.email || "";
+  const address = options.clubAddress || club?.address || invoices[0]?.location_name || "المملكة العربية السعودية";
+  const currency = invoices[0]?.currency || "JOD";
+
+  const totalAmount = invoices.reduce((acc, inv) => acc + Number(inv.total_amount || 0), 0);
+  const totalSubtotal = invoices.reduce((acc, inv) => acc + Number(inv.subtotal || inv.total_amount || 0), 0);
+  const totalTax = invoices.reduce((acc, inv) => acc + Number(inv.tax_amount || 0), 0);
+  const totalPaid = invoices.reduce((acc, inv) => acc + Number(inv.amount_paid || 0), 0);
+  const totalDue = invoices.reduce((acc, inv) => acc + Number(inv.amount_due || 0), 0);
+
+  let qrDataUrl = "";
+  try {
+    const qrPayload = [
+      `Seller: ${clubName}`,
+      taxNumber ? `VAT: ${taxNumber}` : "",
+      `Date: ${new Date().toISOString().split("T")[0]}`,
+      `Consolidated Statement: ${invoices.length} invoices`,
+      `Total: ${totalAmount} ${currency}`,
+      `Tax: ${totalTax} ${currency}`,
+    ].filter(Boolean).join("\n");
+
+    qrDataUrl = await QRCode.toDataURL(qrPayload, {
+      width: 140,
+      margin: 1,
+      color: { dark: "#111827", light: "#ffffff" },
+      errorCorrectionLevel: "M",
+    });
+  } catch (err) {
+    console.error("Statement QR generation failed:", err);
+  }
+
+  const tableRowsHtml = invoices.map((inv, idx) => {
+    const plan = inv.plan_name || inv.notes || "اشتراك خدمات رياضية";
+    return `
+      <tr>
+        <td class="td-num">${idx + 1}</td>
+        <td class="td-invoice mono font-bold">${inv.invoice_number}</td>
+        <td class="td-student">
+          <strong>${inv.student_name}</strong>
+          ${inv.student_number ? `<span class="block text-muted mono text-xs">#${inv.student_number}</span>` : ""}
+        </td>
+        <td class="td-desc">
+          <span>${plan}</span>
+          ${inv.notes && inv.plan_name ? `<span class="block text-muted text-xs">${inv.notes}</span>` : ""}
+        </td>
+        <td class="td-date">${formatDate(inv.due_date)}</td>
+        <td class="td-status">
+          <span class="status-chip ${inv.status === 'paid' ? 'chip-paid' : inv.status === 'void' ? 'chip-void' : 'chip-pending'}">
+            ${inv.status === 'paid' ? 'مدفوعة' : inv.status === 'void' ? 'ملغاة' : 'معلقة'}
+          </span>
+        </td>
+        <td class="td-price mono font-bold text-end">${formatCurrency(inv.total_amount, inv.currency)}</td>
+      </tr>
+    `;
+  }).join("\n");
+
+  const statementStyles = `
+    .statement-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 10px;
+    }
+    .statement-table th {
+      background: #f3f4f6;
+      color: #1f2937;
+      font-weight: 800;
+      padding: 7px 8px;
+      border: 1px solid #e5e7eb;
+      text-align: start;
+    }
+    .statement-table td {
+      padding: 6px 8px;
+      border: 1px solid #e5e7eb;
+      vertical-align: middle;
+    }
+    .status-chip {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 8px;
+      font-weight: 700;
+    }
+    .chip-paid { background: #d1fae5; color: #065f46; }
+    .chip-void { background: #fee2e2; color: #991b1b; }
+    .chip-pending { background: #fef3c7; color: #92400e; }
+  `;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>كشف فواتير مجمع - ${clubName} (${invoices.length})</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+        <style>
+          ${getInvoiceStyles()}
+          ${statementStyles}
+        </style>
+      </head>
+      <body>
+        <div class="invoice-sheet">
+          <div class="invoice-page">
+            <!-- Header -->
+            <header class="invoice-header">
+              <div class="header-brand">
+                ${club?.logo ? `<img src="${club.logo}" alt="Logo" class="club-logo" />` : `<div class="club-logo-placeholder">MAIDAN</div>`}
+                <div>
+                  <h1 class="club-title">${clubName}</h1>
+                  <p class="club-subtitle">${clubBusinessName}</p>
+                  <div class="club-meta">
+                    ${taxNumber ? `<span>الرقم الضريبي / VAT: <strong>${taxNumber}</strong></span>` : ""}
+                    ${crNumber ? `<span>السجل التجاري / CR: <strong>${crNumber}</strong></span>` : ""}
+                    ${address ? `<span>العنوان: ${address}</span>` : ""}
+                    ${phone ? `<span>هاتف: ${phone}</span>` : ""}
+                    ${email ? `<span>بريد: ${email}</span>` : ""}
+                  </div>
+                </div>
+              </div>
+
+              <div class="header-doc-info">
+                <div class="doc-badge">
+                  <span class="doc-badge-ar">كشف فواتير مجمع</span>
+                  <span class="doc-badge-en">CONSOLIDATED STATEMENT</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">تاريخ الإصدار / Date:</span>
+                  <span class="meta-value">${formatDate(new Date().toISOString())}</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">عدد الفواتير / Count:</span>
+                  <span class="meta-value mono font-bold">${invoices.length} فاتورة</span>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">إجمالي المطالبات / Total:</span>
+                  <span class="meta-value mono font-bold">${formatCurrency(totalAmount, currency)}</span>
+                </div>
+              </div>
+            </header>
+
+            <!-- Description & Line Items Table with All Invoices -->
+            <div class="table-wrapper">
+              <table class="statement-table">
+                <thead>
+                  <tr>
+                    <th style="width: 25px; text-align: center;">#</th>
+                    <th style="width: 100px;">رقم الفاتورة</th>
+                    <th>المشترك / الطالب</th>
+                    <th>بيان الخدمة / الباقة</th>
+                    <th style="width: 80px; text-align: center;">الاستحقاق</th>
+                    <th style="width: 65px; text-align: center;">الحالة</th>
+                    <th style="width: 90px; text-align: end;">المبلغ (${currency})</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Financial Summary & Signatures -->
+            <div class="summary-container">
+              <div class="summary-grid">
+                <div class="totals-table">
+                  <div class="total-row">
+                    <span class="total-label">المجموع الفرعي / Subtotal:</span>
+                    <span class="total-val mono font-bold">${formatCurrency(totalSubtotal, currency)}</span>
+                  </div>
+                  ${totalTax > 0 ? `
+                  <div class="total-row">
+                    <span class="total-label">إجمالي الضريبة / Total VAT:</span>
+                    <span class="total-val mono font-bold">${formatCurrency(totalTax, currency)}</span>
+                  </div>` : ""}
+                  <div class="total-row grand-total-row">
+                    <span class="total-label font-black">المجموع الإجمالي / Grand Total:</span>
+                    <span class="total-val mono font-black text-lg">${formatCurrency(totalAmount, currency)}</span>
+                  </div>
+                  ${totalPaid > 0 ? `
+                  <div class="total-row">
+                    <span class="total-label">إجمالي المسدد / Paid:</span>
+                    <span class="total-val mono font-bold text-success">${formatCurrency(totalPaid, currency)}</span>
+                  </div>` : ""}
+                  ${totalDue > 0 ? `
+                  <div class="total-row balance-row has-balance">
+                    <span class="total-label font-bold">المتبقي المستحق / Balance Due:</span>
+                    <span class="total-val mono font-black text-lg">${formatCurrency(totalDue, currency)}</span>
+                  </div>` : ""}
+                </div>
+
+                <div class="signatures-box">
+                  <div class="sig-block">
+                    <span class="sig-title">توقيع المسؤول المالي</span>
+                    <div class="sig-content">
+                      ${club?.signature ? `<img src="${club.signature}" class="sig-img" alt="Authorized Signature" />` : `<div class="sig-line"></div>`}
+                    </div>
+                    <span class="sig-sub">Authorized Signature</span>
+                  </div>
+                  <div class="sig-block">
+                    <span class="sig-title">ختم النادي الرسمي</span>
+                    <div class="stamp-content">
+                      ${club?.stamp ? `<img src="${club.stamp}" class="stamp-img" alt="Official Stamp" />` : `
+                        <div class="stamp-placeholder">
+                          <span>ختم الإدارة<br>OFFICIAL STAMP</span>
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="invoice-footer">
+              <div>MAIDAN Cloud Management Platform — نظام إدارة الأندية الرياضية</div>
+              <div>كشف فواتير موحد — إجمالي ${invoices.length} بند</div>
+            </footer>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+/**
+ * Print consolidated master invoice statement.
+ */
+export async function printConsolidatedStatement(
+  invoices: Invoice[],
+  options: InvoicePrintOptions = {}
+): Promise<void> {
+  if (!invoices || invoices.length === 0) return;
+
+  const html = await buildConsolidatedStatementHtml(invoices, options);
+
+  return new Promise((resolve) => {
+    const staleFrames = document.querySelectorAll("iframe[data-maidan-print]");
+    staleFrames.forEach((el) => el.remove());
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("data-maidan-print", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    iframe.style.zIndex = "-99999";
+    iframe.setAttribute("aria-hidden", "true");
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      if (iframe.parentNode) document.body.removeChild(iframe);
+      resolve();
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    let isCleanedUp = false;
+    const cleanup = () => {
+      if (isCleanedUp) return;
+      isCleanedUp = true;
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe);
+        resolve();
+      }, 500);
+    };
+
+    const triggerPrint = async () => {
+      try {
+        const images = Array.from(doc.images || []);
+        if (images.length > 0) {
+          await Promise.all(
+            images.map((img) => {
+              if (img.complete) return Promise.resolve();
+              return new Promise((res) => {
+                img.onload = res;
+                img.onerror = res;
+                setTimeout(res, 2500);
+              });
+            })
+          );
+        }
+        await new Promise((r) => setTimeout(r, 200));
+
+        if (iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.onafterprint = cleanup;
+          iframe.contentWindow.print();
+          setTimeout(cleanup, 120000);
+        } else {
+          cleanup();
+        }
+      } catch (err) {
+        console.error("Statement print execution failed:", err);
+        cleanup();
+      }
+    };
+
+    if (doc.readyState === "complete") {
+      triggerPrint();
+    } else {
+      iframe.contentWindow!.onload = triggerPrint;
+    }
+  });
+}
