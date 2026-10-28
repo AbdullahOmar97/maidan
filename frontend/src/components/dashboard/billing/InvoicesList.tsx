@@ -356,6 +356,8 @@ export function InvoicesList({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [printModalInvoices, setPrintModalInvoices] = useState<Invoice[] | null>(null);
   const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+  const [isFetchingAllInvoices, setIsFetchingAllInvoices] = useState(false);
+  const [allInvoicesCache, setAllInvoicesCache] = useState<Invoice[] | null>(null);
 
   const invoiceList = invoices || [];
 
@@ -454,11 +456,30 @@ export function InvoicesList({
 
   const handleClearSelection = () => {
     setSelectedIds(new Set());
+    setAllInvoicesCache(null);
   };
 
+  const handleSelectAllAcrossPages = async () => {
+    if (!pagination?.totalCount) return;
+    try {
+      setIsFetchingAllInvoices(true);
+      toast.loading("جارٍ تحميل جميع الفواتير...", { id: "fetch-all-invoices" });
+      const res = await api.billing.invoices.list({ page_size: Math.min(200, pagination.totalCount) });
+      const allResults: Invoice[] = res.data.results || res.data;
+      setAllInvoicesCache(allResults);
+      setSelectedIds(new Set(allResults.map((inv) => inv.id)));
+      toast.success(`تم تحديد جميع الـ ${allResults.length} فاتورة بنجاح ✓`, { id: "fetch-all-invoices" });
+    } catch (err) {
+      toast.error("فشل تحميل الفواتير", { id: "fetch-all-invoices" });
+    } finally {
+      setIsFetchingAllInvoices(false);
+    }
+  };
+
+  const activeInvoicesPool = allInvoicesCache || invoiceList;
   const selectedInvoices = useMemo(
-    () => invoiceList.filter((inv) => selectedIds.has(inv.id)),
-    [invoiceList, selectedIds]
+    () => activeInvoicesPool.filter((inv) => selectedIds.has(inv.id)),
+    [activeInvoicesPool, selectedIds]
   );
 
   const selectedTotalSum = useMemo(
@@ -492,53 +513,76 @@ export function InvoicesList({
     <div className="space-y-4 relative">
       {/* ── Static Top Action Bar (Print & Download - Embedded in page, not floating) ── */}
       {selectedIds.size > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-primary/30 shadow-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center shadow-md shadow-primary/30">
-              {selectedIds.size}
-            </span>
-            <div>
-              <p className="text-sm font-black text-white">
-                تم تحديد {selectedIds.size} فاتورة للطباعة
-              </p>
-              <p className="text-xs text-muted-foreground font-bold">
-                إجمالي المبالغ: <strong className="text-primary font-mono">{formatCurrency(selectedTotalSum, invoiceList[0]?.currency || "JOD")}</strong>
-              </p>
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-primary/30 shadow-xl flex flex-col gap-4 animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center shadow-md shadow-primary/30">
+                {selectedIds.size}
+              </span>
+              <div>
+                <p className="text-sm font-black text-white">
+                  تم تحديد {selectedIds.size} فاتورة للطباعة
+                </p>
+                <p className="text-xs text-muted-foreground font-bold">
+                  إجمالي المبالغ: <strong className="text-primary font-mono">{formatCurrency(selectedTotalSum, invoiceList[0]?.currency || "JOD")}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleBatchPrint}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20"
+              >
+                <Printer className="w-4 h-4" />
+                <span>معاينة وطباعة ({selectedIds.size})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDirectBatchDownload}
+                disabled={isBulkPrinting}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-black text-white transition-all disabled:opacity-50"
+              >
+                {isBulkPrinting ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : (
+                  <Download className="w-4 h-4 text-primary" />
+                )}
+                <span>تحميل PDF ({selectedIds.size})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-muted-foreground hover:text-white transition-all"
+              >
+                إلغاء التحديد
+              </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleBatchPrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20"
-            >
-              <Printer className="w-4 h-4" />
-              <span>طباعة الكل ({selectedIds.size})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDirectBatchDownload}
-              disabled={isBulkPrinting}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-black text-white transition-all disabled:opacity-50"
-            >
-              {isBulkPrinting ? (
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              ) : (
-                <Download className="w-4 h-4 text-primary" />
-              )}
-              <span>تحميل PDF</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClearSelection}
-              className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-muted-foreground hover:text-white transition-all"
-            >
-              إلغاء التحديد
-            </button>
-          </div>
+          {pagination && pagination.totalCount > invoiceList.length && selectedIds.size < pagination.totalCount && (
+            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">
+                تم تحديد الفواتير المعروضة في الصفحة الحالية فقط (<strong>{selectedIds.size}</strong> فاتورة).
+              </span>
+              <button
+                type="button"
+                onClick={handleSelectAllAcrossPages}
+                disabled={isFetchingAllInvoices}
+                className="text-primary hover:underline font-bold inline-flex items-center gap-1.5"
+              >
+                {isFetchingAllInvoices ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckSquare className="w-3.5 h-3.5" />
+                )}
+                <span>تحديد جميع الـ {pagination.totalCount} فاتورة عبر كل الصفحات</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

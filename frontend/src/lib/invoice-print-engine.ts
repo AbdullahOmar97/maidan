@@ -104,9 +104,10 @@ async function renderSingleInvoiceHtml(
   const periodText = startDate && endDate ? `الفترة: من ${startDate} إلى ${endDate}` : "";
 
   return `
-    <div class="invoice-page">
-      ${isVoid ? `<div class="watermark watermark-void">ملغاة — VOID</div>` : ""}
-      ${isRefunded ? `<div class="watermark watermark-refunded">مستردة — REFUNDED</div>` : ""}
+    <div class="invoice-sheet">
+      <div class="invoice-page">
+        ${isVoid ? `<div class="watermark watermark-void">ملغاة — VOID</div>` : ""}
+        ${isRefunded ? `<div class="watermark watermark-refunded">مستردة — REFUNDED</div>` : ""}
 
       <!-- Header -->
       <header class="invoice-header">
@@ -333,6 +334,7 @@ async function renderSingleInvoiceHtml(
         <div>صفحة ${pageIndex} من ${totalPages}</div>
       </footer>
     </div>
+  </div>
   `;
 }
 
@@ -376,21 +378,32 @@ function getInvoiceStyles(): string {
     .block { display: block; }
     .mt-2 { margin-top: 6px; }
 
+    /* Print Sheets & Multi-page Break Isolation */
+    .invoice-sheet {
+      display: block;
+      width: 100%;
+      page-break-before: auto;
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      margin: 0;
+      padding: 0;
+    }
+    .invoice-sheet:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+
     /* Page container */
     .invoice-page {
       position: relative;
       background: #ffffff;
       padding: 0;
-      min-height: 275mm;
+      min-height: 270mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      break-after: page;
-      page-break-after: always;
-    }
-    .invoice-page:last-child {
-      break-after: auto;
-      page-break-after: auto;
     }
 
     /* Watermarks */
@@ -827,17 +840,20 @@ export async function printInvoices(
 
   return new Promise((resolve) => {
     const iframe = document.createElement("iframe");
+    // Position offscreen with physical A4 dimensions so media queries and fragmentation compute correctly
     iframe.style.position = "fixed";
-    iframe.style.right = "-9999px";
-    iframe.style.bottom = "-9999px";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
+    iframe.style.left = "-9999px";
+    iframe.style.top = "0";
+    iframe.style.width = "210mm";
+    iframe.style.height = "297mm";
     iframe.style.border = "none";
+    iframe.style.zIndex = "-9999";
+    iframe.setAttribute("aria-hidden", "true");
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
     if (!doc) {
-      document.body.removeChild(iframe);
+      if (iframe.parentNode) document.body.removeChild(iframe);
       resolve();
       return;
     }
@@ -846,31 +862,58 @@ export async function printInvoices(
     doc.write(html);
     doc.close();
 
-    // Allow CSS, web fonts, and images to render before triggering print
-    const trigger = () => {
+    let isCleanedUp = false;
+    const cleanup = () => {
+      if (isCleanedUp) return;
+      isCleanedUp = true;
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+        resolve();
+      }, 500);
+    };
+
+    const triggerPrint = async () => {
       try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+        // Wait for all QR codes, logo, stamp, and signature images to fully load
+        const images = Array.from(doc.images || []);
+        if (images.length > 0) {
+          await Promise.all(
+            images.map((img) => {
+              if (img.complete) return Promise.resolve();
+              return new Promise((res) => {
+                img.onload = res;
+                img.onerror = res;
+                setTimeout(res, 2500);
+              });
+            })
+          );
+        }
+
+        // Wait an additional tick for web fonts and layout spooling
+        await new Promise((r) => setTimeout(r, 200));
+
+        if (iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          // Bind to onafterprint so iframe remains alive until print preview/export finishes
+          iframe.contentWindow.onafterprint = cleanup;
+          iframe.contentWindow.print();
+          // Fallback cleanup after 2 minutes if onafterprint doesn't fire
+          setTimeout(cleanup, 120000);
+        } else {
+          cleanup();
+        }
       } catch (err) {
-        console.error("Print trigger failed:", err);
-      } finally {
-        setTimeout(() => {
-          if (iframe.parentNode) {
-            document.body.removeChild(iframe);
-          }
-          resolve();
-        }, 1500);
+        console.error("Print execution failed:", err);
+        cleanup();
       }
     };
 
-    if (iframe.contentWindow) {
-      if (doc.readyState === "complete") {
-        setTimeout(trigger, 300);
-      } else {
-        iframe.contentWindow.onload = () => setTimeout(trigger, 300);
-      }
+    if (doc.readyState === "complete") {
+      triggerPrint();
     } else {
-      setTimeout(trigger, 500);
+      iframe.contentWindow!.onload = triggerPrint;
     }
   });
 }
