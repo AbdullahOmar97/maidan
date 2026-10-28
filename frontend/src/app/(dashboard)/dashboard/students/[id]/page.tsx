@@ -452,8 +452,9 @@ export default function StudentDetailPage() {
                   if (endDate) {
                     daysLeft = Math.ceil((new Date(endDate).getTime() - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
                   }
-                  const isExpiring = daysLeft !== null && daysLeft <= 5;
-                  const isDue = isExpiring || overdueCount > 0 || balance > 0;
+                  const isExpiring = daysLeft !== null && daysLeft <= 7;
+                  const isExpired = !student.active_membership || (daysLeft !== null && daysLeft < 0);
+                  const isDue = student.has_due_membership || isExpiring || isExpired || overdueCount > 0 || balance > 0;
                   if (!isDue) return null;
 
                   if (balance > 0) {
@@ -467,7 +468,7 @@ export default function StudentDetailPage() {
                     );
                   }
 
-                  if (daysLeft !== null && daysLeft < 0) {
+                  if (isExpired) {
                     return (
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-black shadow-lg shadow-red-500/20 mx-auto md:mx-0">
                         <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block" />

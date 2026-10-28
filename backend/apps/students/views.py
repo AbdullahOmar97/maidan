@@ -65,12 +65,27 @@ class StudentFilter(django_filters.FilterSet):
         from django.db.models import Q
         import datetime
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=5)
-        due_condition = (
+        cutoff = today + datetime.timedelta(days=7)
+
+        # Invoices overdue or past-due pending (financial dues - old and new)
+        has_invoice_due = (
             Q(invoices__status="overdue") |
-            Q(memberships__status="active", memberships__end_date__lte=cutoff) |
-            Q(memberships__status__in=["pending", "pending_approval"])
+            (Q(invoices__status__in=["pending", "partially_paid"]) & Q(invoices__due_date__lte=today))
         )
+
+        # Pending memberships awaiting payment or approval
+        has_pending_membership = Q(memberships__status__in=["pending", "pending_approval"])
+
+        # Active memberships expiring soon or today (حديث)
+        has_expiring_membership = Q(memberships__status="active", memberships__end_date__lte=cutoff)
+
+        # Expired memberships in the past without a future active membership (القديم)
+        has_expired_membership = (
+            (Q(memberships__status="expired") | Q(memberships__end_date__lt=today)) &
+            ~Q(memberships__status="active", memberships__end_date__gt=cutoff)
+        )
+
+        due_condition = has_invoice_due | has_pending_membership | has_expiring_membership | has_expired_membership
         if value:
             return queryset.filter(due_condition).distinct()
         return queryset.exclude(due_condition).distinct()
@@ -479,12 +494,19 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             qs = base_qs
 
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=5)
-        due_condition = (
+        cutoff = today + datetime.timedelta(days=7)
+
+        has_invoice_due = (
             Q(invoices__status="overdue") |
-            Q(memberships__status="active", memberships__end_date__lte=cutoff) |
-            Q(memberships__status__in=["pending", "pending_approval"])
+            (Q(invoices__status__in=["pending", "partially_paid"]) & Q(invoices__due_date__lte=today))
         )
+        has_pending_membership = Q(memberships__status__in=["pending", "pending_approval"])
+        has_expiring_membership = Q(memberships__status="active", memberships__end_date__lte=cutoff)
+        has_expired_membership = (
+            (Q(memberships__status="expired") | Q(memberships__end_date__lt=today)) &
+            ~Q(memberships__status="active", memberships__end_date__gt=cutoff)
+        )
+        due_condition = has_invoice_due | has_pending_membership | has_expiring_membership | has_expired_membership
 
         stats = qs.aggregate(
             total=Count("id", distinct=True),

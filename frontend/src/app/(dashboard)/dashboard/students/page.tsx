@@ -47,7 +47,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
       );
     }
 
-    if (daysLeft !== null && daysLeft < 0) {
+    if (!student.active_membership || (daysLeft !== null && daysLeft < 0)) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] sm:text-xs font-black shadow-lg shadow-red-500/10">
           <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
@@ -288,7 +288,7 @@ export default function StudentsPage() {
             value={stats?.due ?? 0}
             icon={Calendar}
             color="red"
-            description="تنتهي قريباً أو متأخرة"
+            description="المنتهية والمتأخرة والحديثة"
             onClick={() => { setDueOnly(!dueOnly); setPage(1); }}
             className={cn("cursor-pointer transition-all", dueOnly && "ring-2 ring-red-500 shadow-lg shadow-red-500/20")}
           />

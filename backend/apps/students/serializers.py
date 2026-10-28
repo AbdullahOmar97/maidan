@@ -245,12 +245,34 @@ class StudentListSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         import datetime
         today = timezone.now().date()
-        cutoff = today + datetime.timedelta(days=5)
-        # Check if student has overdue invoices, pending memberships, or membership expiring within 5 days
-        has_overdue = obj.invoices.filter(status="overdue").exists()
-        has_expiring = obj.memberships.filter(status="active", end_date__lte=cutoff).exists()
-        has_pending = obj.memberships.filter(status__in=["pending", "pending_approval"]).exists()
-        return bool(has_overdue or has_expiring or has_pending)
+        cutoff = today + datetime.timedelta(days=7)
+
+        # 1. Overdue or past-due unpaid invoices
+        has_overdue_invoice = obj.invoices.filter(
+            status__in=["overdue", "pending", "partially_paid"],
+            due_date__lte=today
+        ).exists() or obj.invoices.filter(status="overdue").exists()
+        if has_overdue_invoice:
+            return True
+
+        # 2. Pending memberships
+        if obj.memberships.filter(status__in=["pending", "pending_approval"]).exists():
+            return True
+
+        # 3. If student has a future active membership beyond cutoff, they are not due
+        has_future_active = obj.memberships.filter(status="active", end_date__gt=cutoff).exists()
+        if has_future_active:
+            return False
+
+        # 4. Active membership expiring soon (حديث)
+        if obj.memberships.filter(status="active", end_date__lte=cutoff).exists():
+            return True
+
+        # 5. Expired membership in the past (القديم)
+        if obj.memberships.filter(status="expired").exists() or obj.memberships.filter(end_date__lt=today).exists():
+            return True
+
+        return False
 
     def get_photo_url(self, obj):
         if obj.photo:
