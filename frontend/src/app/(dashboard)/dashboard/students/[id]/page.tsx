@@ -9,7 +9,8 @@ import {
   Loader2, AlertCircle, User, History,
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
-  Filter, Clock, QrCode, Camera, Upload
+  Filter, Clock, QrCode, Camera, Upload,
+  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -28,6 +29,38 @@ import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
 import LinkFamilyDialog from "@/components/dashboard/LinkFamilyDialog";
 import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
+
+const LEAD_SOURCES_MAP: Record<string, string> = {
+  walk_in: "زيارة مباشرة للنادي (Walk-in)",
+  referral: "توصية من مشترك (Referral)",
+  social_media: "وسائل التواصل الاجتماعي (Social Media)",
+  website: "الموقع الإلكتروني (Website)",
+  google: "بحث جوجل (Google)",
+  event: "فعالية / بطولة (Event)",
+  phone: "استفسار هاتفي (Phone)",
+  other: "أخرى (Other)",
+};
+
+const NATIONALITIES_MAP: Record<string, string> = {
+  SA: "سعودي (SA)",
+  AE: "إماراتي (AE)",
+  KW: "كويتي (KW)",
+  QA: "قطري (QA)",
+  BH: "بحريني (BH)",
+  OM: "عماني (OM)",
+  JO: "أردني (JO)",
+  EG: "مصري (EG)",
+  SY: "سوري (SY)",
+  LB: "لبناني (LB)",
+  PS: "فلسطيني (PS)",
+  IQ: "عراقي (IQ)",
+  YE: "يمني (YE)",
+  SD: "سوداني (SD)",
+  MA: "مغربي (MA)",
+  DZ: "جزائري (DZ)",
+  TN: "تونسي (TN)",
+  LY: "ليبي (LY)",
+};
 
 export default function StudentDetailPage() {
   const { tenant } = useTenant();
@@ -503,9 +536,22 @@ export default function StudentDetailPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-border" />
                   {student.gender === "male" ? "ذكر" : "أنثى"}
                 </span>
+                {student.age !== null && (
+                  <span className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                    {student.age} سنة
+                  </span>
+                )}
+                {student.nationality && (
+                  <span className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                    {NATIONALITIES_MAP[student.nationality] || student.nationality}
+                  </span>
+                )}
                 <span className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-border" />
-                  {student.age} سنة
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  {student.location?.name || "الفرع الرئيسي"}
                 </span>
               </div>
             </div>
@@ -529,11 +575,71 @@ export default function StudentDetailPage() {
           <div className="space-y-6">
             <div className="glass-card p-6 space-y-6 group">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/70">معلومات التواصل</h3>
-              <div className="space-y-5">
-                <ContactItem icon={Phone} label="رقم الهاتف" value={student.phone} />
-                <ContactItem icon={Mail} label="البريد الإلكتروني" value={student.email} />
-                <ContactItem icon={MapPin} label="الفرع الملحق" value="الفرع الرئيسي" />
+              <div className="space-y-4">
+                <ContactItem
+                  icon={Phone}
+                  label="رقم الهاتف"
+                  value={student.phone}
+                  href={student.phone ? `tel:${student.phone}` : undefined}
+                  linkText="اتصال"
+                />
+                {student.whatsapp && (
+                  <ContactItem
+                    icon={Phone}
+                    label="رقم الواتساب"
+                    value={student.whatsapp}
+                    href={`https://wa.me/${student.whatsapp.replace(/[^0-9]/g, "")}`}
+                    linkText="محادثة"
+                  />
+                )}
+                <ContactItem
+                  icon={Mail}
+                  label="البريد الإلكتروني"
+                  value={student.email}
+                  href={student.email ? `mailto:${student.email}` : undefined}
+                  linkText="إرسال"
+                />
+                <ContactItem
+                  icon={MapPin}
+                  label="الفرع الملحق"
+                  value={student.location?.name || "الفرع الرئيسي"}
+                />
               </div>
+            </div>
+
+            {/* Emergency Contact Card in Sidebar */}
+            <div className="glass-card p-6 space-y-4 group">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-400">جهة الطوارئ وولي الأمر</h3>
+                {student.emergency_contact_relation && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    {student.emergency_contact_relation}
+                  </span>
+                )}
+              </div>
+              {student.emergency_contact_name || student.emergency_contact_phone ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground">الاسم</p>
+                    <p className="text-xs font-black text-white">{student.emergency_contact_name || "—"}</p>
+                  </div>
+                  {student.emergency_contact_phone && (
+                    <div>
+                      <p className="text-[10px] font-bold text-muted-foreground">رقم الهاتف</p>
+                      <a
+                        href={`tel:${student.emergency_contact_phone}`}
+                        className="text-xs font-mono font-bold text-primary hover:underline block"
+                      >
+                        <bdi>{student.emergency_contact_phone}</bdi>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-2 text-xs text-muted-foreground/60 font-semibold">
+                  لم يتم تسجيل جهة اتصال للطوارئ
+                </div>
+              )}
             </div>
 
             <div className="glass-card p-6 space-y-6 relative overflow-hidden group">
@@ -723,6 +829,153 @@ export default function StudentDetailPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Health & Medical Status Card */}
+                  <div className="glass-card p-8 group relative overflow-hidden">
+                    <div className="absolute top-0 end-0 w-64 h-64 bg-red-500/5 blur-3xl -me-32 -mt-32 pointer-events-none" />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400">
+                          <HeartPulse className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-black text-white">الملف الصحي والطبي</h4>
+                          <p className="text-[11px] text-muted-foreground">بيانات فصيلة الدم والحالات الصحية والحساسية</p>
+                        </div>
+                      </div>
+                      {student.blood_type && (
+                        <span className="px-3.5 py-1.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-black w-fit">
+                          فصيلة الدم: {student.blood_type}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">الحساسية المسجلة</p>
+                        {student.allergies ? (
+                          <p className="text-xs font-bold text-amber-400 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span>{student.allergies}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>لا توجد حساسية مسجلة</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">ملاحظات طبية خاصة</p>
+                        {student.medical_notes ? (
+                          <p className="text-xs font-bold text-white/90 whitespace-pre-wrap leading-relaxed">{student.medical_notes}</p>
+                        ) : (
+                          <p className="text-xs font-semibold text-muted-foreground">سليم طبياً — لا توجد ملاحظات خاصة</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Registration Details & Legal Consents */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Consents Card */}
+                    <div className="glass-card p-6 space-y-4 group">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-white">الموافقات والإقرارات الرسمية</h4>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                          <span className="text-xs font-bold text-white">إقرار إخلاء المسؤولية</span>
+                          {student.waiver_signed ? (
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              مُوقّع {student.waiver_signed_at ? `(${formatDate(student.waiver_signed_at)})` : ""}
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-black flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              غير مُوقّع
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                          <span className="text-xs font-bold text-white">الموافقة على التصوير والنشر</span>
+                          {student.photo_consent ? (
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              تمت الموافقة
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-lg bg-white/5 text-muted-foreground border border-white/10 text-[10px] font-bold">
+                              غير معتمدة
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Registration Details Card */}
+                    <div className="glass-card p-6 space-y-4 group">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-white">بيانات التسجيل والاستقطاب</h4>
+                      </div>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                          <span className="font-bold text-muted-foreground">مصدر التسجيل (القناة)</span>
+                          <span className="font-bold text-white">
+                            {LEAD_SOURCES_MAP[student.source] || student.source || "غير محدد"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                          <span className="font-bold text-muted-foreground">تاريخ الانضمام للنظام</span>
+                          <span className="font-bold text-white">{formatDate(student.created_at)}</span>
+                        </div>
+
+                        {student.date_of_birth && (
+                          <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <span className="font-bold text-muted-foreground">تاريخ الميلاد</span>
+                            <span className="font-bold text-white">{formatDate(student.date_of_birth)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* General & Internal Notes Banner */}
+                  {(student.notes || student.internal_notes) && (
+                    <div className="space-y-4">
+                      {student.notes && (
+                        <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            ملاحظات عامة حول الطالب
+                          </p>
+                          <p className="text-xs font-semibold text-white/90 leading-relaxed whitespace-pre-wrap">{student.notes}</p>
+                        </div>
+                      )}
+
+                      {student.internal_notes && (
+                        <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/15 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                            ملاحظة سرية خاصة بالإدارة والمدربين
+                          </p>
+                          <p className="text-xs font-semibold text-amber-200/90 leading-relaxed whitespace-pre-wrap">{student.internal_notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -933,6 +1186,29 @@ export default function StudentDetailPage() {
                   </div>
 
                   <div className="space-y-4">
+                    {(student.notes || student.internal_notes) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {student.notes && (
+                          <div className="glass-card p-5 space-y-2 border-primary/20">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              ملاحظات الملف الأساسية (عند التسجيل)
+                            </p>
+                            <p className="text-xs font-semibold text-white/90 leading-relaxed whitespace-pre-wrap">{student.notes}</p>
+                          </div>
+                        )}
+                        {student.internal_notes && (
+                          <div className="glass-card p-5 space-y-2 border-amber-500/20 bg-amber-500/5">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                              <ShieldAlert className="w-3.5 h-3.5" />
+                              ملاحظات داخلية خاصة بالإدارة
+                            </p>
+                            <p className="text-xs font-semibold text-amber-200/90 leading-relaxed whitespace-pre-wrap">{student.internal_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {notes && notes.length > 0 ? (
                       notes.map((note) => (
                         <div key={note.id} className="glass-card p-6 space-y-4 group relative hover:border-primary/20 transition-all">
@@ -1366,16 +1642,40 @@ export default function StudentDetailPage() {
   );
 }
 
-function ContactItem({ icon: Icon, label, value }: { icon: any, label: string, value?: string }) {
+function ContactItem({
+  icon: Icon,
+  label,
+  value,
+  href,
+  linkText,
+}: {
+  icon: any;
+  label: string;
+  value?: string | null;
+  href?: string;
+  linkText?: string;
+}) {
   return (
-    <div className="flex items-center gap-4 group/item text-start">
-      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-sm">
-        <Icon className="w-4 h-4" />
+    <div className="flex items-center justify-between gap-3 group/item text-start">
+      <div className="flex items-center gap-3.5 min-w-0">
+        <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-sm shrink-0">
+          <Icon className="w-4 h-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
+          <p className="text-xs font-bold text-white break-all truncate"><bdi>{value || "—"}</bdi></p>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
-        <p className="text-sm font-bold text-white break-all"><bdi>{value || "—"}</bdi></p>
-      </div>
+      {href && value && (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-bold text-primary hover:underline shrink-0 px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
+        >
+          {linkText || "فتح"}
+        </a>
+      )}
     </div>
   );
 }

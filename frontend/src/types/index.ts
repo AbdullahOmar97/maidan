@@ -53,10 +53,12 @@ export interface Student {
   status: StudentStatus;
   source: string;
   location_id: number;
+  location?: Location;
   family: Family | null;
   trial_start_date: string | null;
   trial_end_date: string | null;
   waiver_signed: boolean;
+  waiver_signed_at?: string | null;
   photo_consent?: boolean;
   nationality?: string | null;
   emergency_contact_name?: string;
