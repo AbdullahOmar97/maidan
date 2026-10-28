@@ -1,7 +1,8 @@
 "use client";
 import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { api } from "@/lib/api/client";
@@ -76,6 +77,11 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
     <div className="relative group h-full flex flex-col">
       <Link
         href={`/dashboard/students/${student.id}`}
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("students_scroll_pos", window.scrollY.toString());
+          }
+        }}
         className="glass-card group flex flex-col justify-between h-full p-4 sm:p-5 hover:border-primary/40 transition-all duration-300 relative overflow-hidden active:scale-[0.99] min-h-[190px]"
       >
         {/* Dynamic Hover Glow */}
@@ -244,18 +250,41 @@ function StudentCardSkeleton() {
 }
 
 
-export default function StudentsPage() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [dueOnly, setDueOnly] = useState(false);
-  const [locationId, setLocationId] = useState("");
-  const [page, setPage] = useState(1);
+function StudentsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [status, setStatus] = useState(() => searchParams.get("status") || "");
+  const [dueOnly, setDueOnly] = useState(() => searchParams.get("due_membership") === "true");
+  const [locationId, setLocationId] = useState(() => searchParams.get("location") || "");
+  const [page, setPage] = useState(() => {
+    const p = parseInt(searchParams.get("page") || "1", 10);
+    return isNaN(p) || p < 1 ? 1 : p;
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedQRStudent, setSelectedQRStudent] = useState<Student | null>(null);
 
   const queryClient = useQueryClient();
 
   const debouncedSearch = useDebounce(search, 400);
+
+  // Sync filters and pagination to URL query params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (status) params.set("status", status);
+    if (dueOnly) params.set("due_membership", "true");
+    if (locationId) params.set("location", locationId);
+    if (page > 1) params.set("page", page.toString());
+
+    const queryString = params.toString();
+    const newPath = queryString ? `/dashboard/students?${queryString}` : "/dashboard/students";
+
+    if (typeof window !== "undefined" && window.location.pathname + window.location.search !== newPath) {
+      window.history.replaceState(null, "", newPath);
+    }
+  }, [debouncedSearch, status, dueOnly, locationId, page]);
 
   const { data: locations } = useQuery<Location[]>({
     queryKey: ["locations"],
@@ -275,6 +304,22 @@ export default function StudentsPage() {
         })
         .then((r) => r.data),
   });
+
+  // Restore scroll position when returning from student detail page
+  useEffect(() => {
+    if (!isLoading && data) {
+      const savedScroll = sessionStorage.getItem("students_scroll_pos");
+      if (savedScroll) {
+        sessionStorage.removeItem("students_scroll_pos");
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: parseInt(savedScroll, 10),
+            behavior: "instant" as ScrollBehavior,
+          });
+        });
+      }
+    }
+  }, [isLoading, data]);
 
   const { data: stats } = useQuery({
     queryKey: ["students", "stats", { location: locationId }],
@@ -416,7 +461,13 @@ export default function StudentsPage() {
                 لم نتمكن من العثور على أي طالب يطابق معايير البحث الحالية. جرب تغيير كلمات البحث أو إعادة ضبط الفلاتر.
               </p>
               <button
-                onClick={() => { setSearch(""); setStatus(""); setLocationId(""); }}
+                onClick={() => {
+                  setSearch("");
+                  setStatus("");
+                  setLocationId("");
+                  setDueOnly(false);
+                  setPage(1);
+                }}
                 className="mt-10 px-8 py-3 rounded-2xl bg-primary/10 text-primary font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all relative z-10"
               >
                 إعادة ضبط البحث
@@ -480,5 +531,22 @@ export default function StudentsPage() {
         />
       )}
     </PermissionGuard>
+  );
+}
+
+export default function StudentsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[60vh] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <p className="text-sm font-bold text-muted-foreground animate-pulse">جاري تحميل قائمة الطلاب...</p>
+          </div>
+        </div>
+      }
+    >
+      <StudentsContent />
+    </Suspense>
   );
 }

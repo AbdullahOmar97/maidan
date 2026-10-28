@@ -358,18 +358,27 @@ export default function StudentDetailPage() {
     { id: "documents", label: "الوثائق", icon: FileText },
   ];
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/dashboard/students");
+    }
+  };
+
   return (
     <PermissionGuard permission="can_manage_students">
       <div className="space-y-8 pb-12">
         {/* Navigation & Actions */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.back()}
-            className="group flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-white transition-colors"
+            onClick={handleBack}
+            className="group flex items-center gap-2.5 text-sm font-bold text-muted-foreground hover:text-white transition-colors"
           >
-            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
               <ArrowRight className="w-4 h-4" />
             </div>
+            <span>العودة للطلاب</span>
           </button>
 
           <div className="flex items-center gap-2">
