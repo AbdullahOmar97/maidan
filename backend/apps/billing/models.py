@@ -178,6 +178,10 @@ class Invoice(models.Model):
     voided_by_id = models.UUIDField(null=True, blank=True)
     void_reason = models.TextField(blank=True)
 
+    # Archiving tracking
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -186,6 +190,7 @@ class Invoice(models.Model):
         indexes = [
             models.Index(fields=["status", "due_date"]),
             models.Index(fields=["student", "status"]),
+            models.Index(fields=["is_archived"]),
         ]
 
     def __str__(self):
