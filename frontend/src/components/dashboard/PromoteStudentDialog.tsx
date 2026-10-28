@@ -35,6 +35,8 @@ export default function PromoteStudentDialog({
   const [promotedAt, setPromotedAt] = useState(new Date().toISOString().split("T")[0]);
   const [createInvoice, setCreateInvoice] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number | "">(0);
+  const [includeTax, setIncludeTax] = useState(false);
+  const [taxRate, setTaxRate] = useState<number | "">("");
 
   const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
     queryKey: ["belts", "ranks"],
@@ -74,6 +76,8 @@ export default function PromoteStudentDialog({
     if (!rankId) {
       setFeeAmount(0);
       setCreateInvoice(false);
+      setIncludeTax(false);
+      setTaxRate("");
       return;
     }
     const foundRank = ranks.find((r) => r.id === rankId);
@@ -81,6 +85,9 @@ export default function PromoteStudentDialog({
       const fee = Number(foundRank.promotion_fee ?? 0);
       setFeeAmount(fee);
       setCreateInvoice(fee > 0);
+      const tr = Number(foundRank.tax_rate ?? 0);
+      setIncludeTax(tr > 0);
+      setTaxRate(tr > 0 ? tr : "");
     }
   };
 
@@ -95,6 +102,7 @@ export default function PromoteStudentDialog({
       is_current: true,
       create_invoice: createInvoice,
       fee_amount: createInvoice ? Number(feeAmount || 0) : 0,
+      tax_rate: createInvoice && includeTax ? Number(taxRate || 0) : 0,
     });
   };
 
@@ -169,18 +177,52 @@ export default function PromoteStudentDialog({
             </label>
 
             {createInvoice && (
-              <FormField label="مبلغ الفاتورة (شامل ضريبة القيمة المضافة إن وجدت)">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={feeAmount}
-                  onChange={(e) => setFeeAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                  disabled={promotionMutation.isPending}
-                  placeholder="0.00"
-                  required
-                />
-              </FormField>
+              <div className="space-y-3 pt-1">
+                <FormField label="مبلغ الفاتورة (قبل الضريبة)" required>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={feeAmount}
+                    onChange={(e) => setFeeAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    disabled={promotionMutation.isPending}
+                    placeholder="0.00"
+                    required
+                  />
+                </FormField>
+
+                <div className="pt-2 border-t border-white/5 space-y-2">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={includeTax}
+                      onChange={(e) => {
+                        setIncludeTax(e.target.checked);
+                        if (!e.target.checked) setTaxRate("");
+                        else if (!taxRate) setTaxRate(15);
+                      }}
+                      disabled={promotionMutation.isPending}
+                      className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/40 focus:ring-offset-0"
+                    />
+                    <span className="text-xs text-white">إضافة ضريبة على الفاتورة (اختياري)</span>
+                  </label>
+
+                  {includeTax && (
+                    <FormField label="نسبة الضريبة (%)">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={taxRate}
+                        onChange={(e) => setTaxRate(e.target.value === "" ? "" : Number(e.target.value))}
+                        disabled={promotionMutation.isPending}
+                        placeholder="15"
+                      />
+                    </FormField>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 

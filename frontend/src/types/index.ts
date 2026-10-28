@@ -169,6 +169,7 @@ export interface BeltRank {
   min_attendance_sessions: number;
   min_months_since_last: number;
   promotion_fee?: number | string;
+  tax_rate?: number | string;
 }
 
 export interface MembershipSummary {

@@ -21,6 +21,7 @@ class Belt(models.Model):
     min_attendance_sessions = models.PositiveIntegerField(default=0)
     min_months_since_last = models.PositiveIntegerField(default=0)
     promotion_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, blank=True)
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -167,10 +168,11 @@ class ExamCandidate(models.Model):
             if is_new and self.exam.auto_create_invoice and self.exam.registration_fee > 0 and not self.invoice:
                 from apps.billing.models import Invoice
                 from decimal import Decimal
+                target_tax_rate = getattr(self.target_belt, "tax_rate", Decimal("0.00")) or Decimal("0.00")
                 invoice = Invoice.objects.create(
                     student=self.student,
                     subtotal=self.exam.registration_fee,
-                    tax_rate=Decimal("15.00"),  # Standard VAT
+                    tax_rate=target_tax_rate,
                     status=Invoice.Status.PENDING,
                     due_date=self.exam.date,
                     notes=f"رسوم التسجيل في اختبار الترقية: {self.exam.name}",

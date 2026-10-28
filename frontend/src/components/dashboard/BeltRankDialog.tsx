@@ -29,6 +29,8 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
   const [minSessions, setMinSessions] = useState(0);
   const [minMonths, setMinMonths] = useState(0);
   const [promotionFee, setPromotionFee] = useState<number | "">(0);
+  const [applyTax, setApplyTax] = useState(false);
+  const [taxRate, setTaxRate] = useState<number | "">("");
 
   useEffect(() => {
     if (rankToEdit) {
@@ -40,6 +42,9 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       setMinSessions(rankToEdit.min_attendance_sessions ?? 0);
       setMinMonths(rankToEdit.min_months_since_last ?? 0);
       setPromotionFee(Number(rankToEdit.promotion_fee ?? 0));
+      const tr = Number(rankToEdit.tax_rate ?? 0);
+      setApplyTax(tr > 0);
+      setTaxRate(tr > 0 ? tr : "");
     } else {
       setMartialArt(defaultMartialArt || "BJJ");
       setName("");
@@ -49,6 +54,8 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       setMinSessions(0);
       setMinMonths(0);
       setPromotionFee(0);
+      setApplyTax(false);
+      setTaxRate("");
     }
   }, [rankToEdit, isOpen]);
 
@@ -88,6 +95,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
       min_attendance_sessions: Number(minSessions),
       min_months_since_last: Number(minMonths),
       promotion_fee: Number(promotionFee || 0),
+      tax_rate: applyTax ? Number(taxRate || 0) : 0,
       is_active: true,
     });
   };
@@ -222,6 +230,41 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
               placeholder="0.00"
             />
           </FormField>
+
+          <div className="p-3.5 rounded-xl bg-secondary/20 border border-border/50 space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={applyTax}
+                onChange={(e) => {
+                  setApplyTax(e.target.checked);
+                  if (!e.target.checked) {
+                    setTaxRate("");
+                  } else if (!taxRate) {
+                    setTaxRate(15);
+                  }
+                }}
+                disabled={saveMutation.isPending || deleteMutation.isPending}
+                className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/40 focus:ring-offset-0"
+              />
+              <span className="text-xs font-semibold text-white">إضافة ضريبة على رسوم هذا الحزام (اختياري)</span>
+            </label>
+
+            {applyTax && (
+              <FormField label="نسبة الضريبة (%)">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value === "" ? "" : Number(e.target.value))}
+                  disabled={saveMutation.isPending || deleteMutation.isPending}
+                  placeholder="15"
+                />
+              </FormField>
+            )}
+          </div>
 
           <ErrorBanner message={errorMessage} />
         </ModalBody>

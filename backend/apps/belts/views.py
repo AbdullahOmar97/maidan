@@ -37,6 +37,9 @@ class StudentBeltSerializer(serializers.ModelSerializer):
     fee_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, write_only=True, required=False, allow_null=True
     )
+    tax_rate = serializers.DecimalField(
+        max_digits=5, decimal_places=2, write_only=True, required=False, allow_null=True
+    )
 
     class Meta:
         model = StudentBelt
@@ -90,6 +93,7 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
         validated_data = serializer.validated_data
         create_invoice = validated_data.pop("create_invoice", False)
         fee_amount = validated_data.pop("fee_amount", None)
+        tax_rate = validated_data.pop("tax_rate", None)
 
         with transaction.atomic():
             instance = serializer.save(promoted_by_id=self.request.user.id)
@@ -99,11 +103,19 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
             # Determine invoice fee
             final_fee = fee_amount if fee_amount is not None else belt.promotion_fee
 
+            # Determine tax rate (optional: custom rate -> belt rate -> 0.00)
+            if tax_rate is not None:
+                final_tax_rate = Decimal(str(tax_rate))
+            elif getattr(belt, "tax_rate", None) is not None:
+                final_tax_rate = Decimal(str(belt.tax_rate))
+            else:
+                final_tax_rate = Decimal("0.00")
+
             if create_invoice and final_fee and Decimal(str(final_fee)) > 0:
                 invoice = Invoice.objects.create(
                     student=student,
                     subtotal=Decimal(str(final_fee)),
-                    tax_rate=Decimal("15.00"),
+                    tax_rate=final_tax_rate,
                     status=Invoice.Status.PENDING,
                     due_date=instance.promoted_at,
                     notes=f"رسوم الترقية إلى حزام: {belt.name}",
