@@ -3,7 +3,7 @@ import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useState, useEffect } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
-import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles } from "lucide-react";
+import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles, Stamp, PenTool, Trash2 } from "lucide-react";
 
 import { cn, formatDate } from "@/lib/utils";
 import { api } from "@/lib/api/client";
@@ -12,6 +12,7 @@ import { useSettingsPermissions } from "@/lib/hooks/use-permission";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/constants";
 import { useSession } from "next-auth/react";
+import { removeImageBackground } from "@/lib/image-processing";
 
 
 export default function SettingsPage() {
@@ -73,11 +74,19 @@ export default function SettingsPage() {
 
   const [initialBranding, setInitialBranding] = useState({
     logoUrl: "",
+    stampUrl: "",
+    signatureUrl: "",
   });
   const [branding, setBranding] = useState({
     logo: null as File | null,
     logoUrl: "",
+    stamp: null as File | null,
+    stampUrl: "",
+    signature: null as File | null,
+    signatureUrl: "",
   });
+  const [isProcessingStamp, setIsProcessingStamp] = useState(false);
+  const [isProcessingSig, setIsProcessingSig] = useState(false);
   const profileNamesInvalid = !profile.first_name.trim() || !profile.last_name.trim();
   const canEditAcademy = perms.canManageAcademy;
 
@@ -133,9 +142,13 @@ export default function SettingsPage() {
 
           const brandingData = {
             logoUrl: tenantData.logo || "",
+            stampUrl: tenantData.stamp || "",
+            signatureUrl: tenantData.signature || "",
           };
           setBranding({
             logo: null,
+            stamp: null,
+            signature: null,
             ...brandingData,
           });
           setInitialBranding(brandingData);
@@ -174,7 +187,13 @@ export default function SettingsPage() {
 
   const profileHasChanges = JSON.stringify(profile) !== JSON.stringify(initialProfile);
   const academyHasChanges = JSON.stringify(academy) !== JSON.stringify(initialAcademy);
-  const brandingHasChanges = !!branding.logo;
+  const brandingHasChanges =
+    Boolean(branding.logo) ||
+    Boolean(branding.stamp) ||
+    Boolean(branding.signature) ||
+    branding.logoUrl !== initialBranding.logoUrl ||
+    branding.stampUrl !== initialBranding.stampUrl ||
+    branding.signatureUrl !== initialBranding.signatureUrl;
 
   const handleProfileSave = async () => {
     if (profileNamesInvalid) {
@@ -227,6 +246,55 @@ export default function SettingsPage() {
     }
   };
 
+  const handleStampChange = async (file: File) => {
+    setIsProcessingStamp(true);
+    const toastId = toast.loading("جارٍ تفريغ خلفية صورة الختم تلقائياً...");
+    try {
+      const result = await removeImageBackground(file);
+      setBranding(prev => ({
+        ...prev,
+        stamp: result.file,
+        stampUrl: result.dataUrl,
+      }));
+      toast.success("تم تفريغ خلفية الختم بنجاح ✓", { id: toastId });
+    } catch (err) {
+      console.error("Stamp processing error:", err);
+      // Fallback to raw file if canvas fails
+      setBranding(prev => ({
+        ...prev,
+        stamp: file,
+        stampUrl: URL.createObjectURL(file),
+      }));
+      toast.info("تم رفع صورة الختم (سيقوم الخادم بمعالجة الشفافية)", { id: toastId });
+    } finally {
+      setIsProcessingStamp(false);
+    }
+  };
+
+  const handleSignatureChange = async (file: File) => {
+    setIsProcessingSig(true);
+    const toastId = toast.loading("جارٍ تفريغ خلفية صورة التوقيع تلقائياً...");
+    try {
+      const result = await removeImageBackground(file);
+      setBranding(prev => ({
+        ...prev,
+        signature: result.file,
+        signatureUrl: result.dataUrl,
+      }));
+      toast.success("تم تفريغ خلفية التوقيع بنجاح ✓", { id: toastId });
+    } catch (err) {
+      console.error("Signature processing error:", err);
+      setBranding(prev => ({
+        ...prev,
+        signature: file,
+        signatureUrl: URL.createObjectURL(file),
+      }));
+      toast.info("تم رفع صورة التوقيع (سيقوم الخادم بمعالجة الشفافية)", { id: toastId });
+    } finally {
+      setIsProcessingSig(false);
+    }
+  };
+
   const handleBrandingSave = async () => {
     if (!perms.canManageBranding) {
       toast.error("ليس لديك صلاحية لتعديل الهوية البصرية.");
@@ -239,15 +307,25 @@ export default function SettingsPage() {
       if (branding.logo instanceof File) {
         formData.append("logo", branding.logo);
       }
+      if (branding.stamp instanceof File) {
+        formData.append("stamp", branding.stamp);
+      }
+      if (branding.signature instanceof File) {
+        formData.append("signature", branding.signature);
+      }
 
       const response = await api.tenants.updateMe(formData);
 
       if (response.data) {
         const newData = {
           logoUrl: response.data.logo || branding.logoUrl,
+          stampUrl: response.data.stamp || branding.stampUrl,
+          signatureUrl: response.data.signature || branding.signatureUrl,
         };
         setBranding({
           logo: null,
+          stamp: null,
+          signature: null,
           ...newData,
         });
         setInitialBranding(newData);
@@ -255,11 +333,11 @@ export default function SettingsPage() {
 
       await refreshTenant();
       setSaveStatus(prev => ({ ...prev, branding: "success" }));
-      toast.success("تم تحديث الهوية البصرية بنجاح");
+      toast.success("تم تحديث الهوية البصرية والختم والتوقيع بنجاح ✓");
       setTimeout(() => setSaveStatus(prev => ({ ...prev, branding: "idle" })), 3000);
     } catch (error) {
       setSaveStatus(prev => ({ ...prev, branding: "error" }));
-      toast.error("فشل تحديث الهوية البصرية");
+      toast.error("فشل تحديث الهوية البصرية والختم");
     }
   };
 
@@ -486,35 +564,58 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "branding" && perms.canManageBranding && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div>
-                <h2 className="text-lg font-semibold">الهوية البصرية</h2>
-                <p className="text-sm text-muted-foreground">تخصيص ألوان وشعارات النادي</p>
+                <h2 className="text-xl font-black text-white">الهوية البصرية والطباعة الرسمية</h2>
+                <p className="text-sm text-muted-foreground mt-1">تخصيص شعار النادي، ختم الإدارة، وتوقيع المسؤول المعتمد للظهور تلقائياً على الفواتير والسندات</p>
               </div>
               <hr className="border-border/50" />
 
-              <div className="grid grid-cols-1 gap-6 max-w-md">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">شعار النادي (Logo)</label>
-                  <div className="relative group border-2 border-dashed border-border rounded-xl p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[150px]">
+              {/* Informational tip */}
+              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-white">ميزة التفريغ التلقائي للخلفية (Auto Background Removal)</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    عند رفع صورة الختم أو التوقيع، يقوم النظام تلقائياً وبشكل فوري بإزالة الخلفية الورقية البيضاء وجعلها شفافة بالكامل، لتوضع بشكل أنيق ومحترف فوق السطر المخصص في فواتير النادي.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. Club Logo */}
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Palette className="w-4 h-4" />
+                      </div>
+                      <label className="text-sm font-bold text-white">شعار النادي (Logo)</label>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">يظهر في رأس الفواتير، التقارير ولوحة التحكم</p>
+                  </div>
+
+                  <div className="relative group border-2 border-dashed border-border rounded-xl p-4 hover:bg-muted/30 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[160px]">
                     {branding.logo ? (
                       <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center border border-white/10">
                           <img src={URL.createObjectURL(branding.logo)} alt="New Logo" className="max-w-full max-h-full object-contain" />
                         </div>
-                        <p className="text-sm text-muted-foreground">{branding.logo.name}</p>
+                        <p className="text-xs text-primary font-bold">{branding.logo.name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">انقر للتغيير</p>
                       </div>
                     ) : branding.logoUrl ? (
                       <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center group-hover:opacity-50 transition-opacity">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden mb-2 bg-background/50 flex items-center justify-center border border-white/10">
                           <img src={branding.logoUrl} alt="Current Logo" className="max-w-full max-h-full object-contain" />
                         </div>
-                        <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الشعار</p>
+                        <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">انقر لتغيير الشعار</p>
                       </div>
                     ) : (
                       <>
                         <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
-                        <p className="text-sm text-muted-foreground">اضغط لرفع الشعار</p>
+                        <p className="text-xs font-bold text-white">رفع الشعار</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG حتى 5MB</p>
                       </>
                     )}
                     <input
@@ -529,25 +630,138 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
+
+                {/* 2. Official Stamp */}
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                          <Stamp className="w-4 h-4" />
+                        </div>
+                        <label className="text-sm font-bold text-white">ختم النادي الرسمي</label>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20">
+                        تفريغ تلقائي
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">يُطبع كختم رسمي معتمد في أسفل الفاتورة</p>
+                  </div>
+
+                  <div className="relative group border-2 border-dashed border-border rounded-xl p-4 hover:bg-muted/30 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[160px]">
+                    {isProcessingStamp ? (
+                      <div className="flex flex-col items-center py-4">
+                        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mb-2" />
+                        <p className="text-xs font-bold text-white">جارٍ تفريغ الخلفية...</p>
+                      </div>
+                    ) : branding.stampUrl ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:6px_6px] bg-slate-950 flex items-center justify-center border border-emerald-500/30 p-2 shadow-inner">
+                          <img src={branding.stampUrl} alt="Club Stamp" className="max-w-full max-h-full object-contain -rotate-6" />
+                        </div>
+                        <span className="text-[10px] font-black text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          خلفية مفرغة وجاهزة
+                        </span>
+                        <p className="text-[10px] text-muted-foreground mt-1 group-hover:text-primary">انقر للاستبدال</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-emerald-400 transition-colors" />
+                        <p className="text-xs font-bold text-white">رفع صورة الختم</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">يفرغ النظام الخلفية تلقائياً</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isProcessingStamp}
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleStampChange(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Authorized Signature */}
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                          <PenTool className="w-4 h-4" />
+                        </div>
+                        <label className="text-sm font-bold text-white">توقيع المسؤول المعتمد</label>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black border border-blue-500/20">
+                        تفريغ تلقائي
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">يُطبع فوق سطر التوقيع المعتمد بالفاتورة</p>
+                  </div>
+
+                  <div className="relative group border-2 border-dashed border-border rounded-xl p-4 hover:bg-muted/30 transition-colors flex flex-col items-center justify-center text-center cursor-pointer min-h-[160px]">
+                    {isProcessingSig ? (
+                      <div className="flex flex-col items-center py-4">
+                        <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-2" />
+                        <p className="text-xs font-bold text-white">جارٍ تفريغ الخلفية...</p>
+                      </div>
+                    ) : branding.signatureUrl ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-28 h-16 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:6px_6px] bg-slate-950 flex items-center justify-center border border-blue-500/30 p-2 shadow-inner">
+                          <img src={branding.signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <span className="text-[10px] font-black text-blue-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          خلفية مفرغة وجاهزة
+                        </span>
+                        <p className="text-[10px] text-muted-foreground mt-1 group-hover:text-primary">انقر للاستبدال</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2 group-hover:text-blue-400 transition-colors" />
+                        <p className="text-xs font-bold text-white">رفع صورة التوقيع</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">يفرغ النظام الخلفية تلقائياً</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isProcessingSig}
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleSignatureChange(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={handleBrandingSave}
-                disabled={saveStatus.branding === "saving" || !brandingHasChanges}
-                className={cn(
-                  "px-6 py-2.5 rounded-lg text-white text-sm font-medium shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 mt-6",
-                  saveStatus.branding === "success" ? "bg-green-600" : "gradient-brand hover:opacity-90"
-                )}
-              >
-                {saveStatus.branding === "saving" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : saveStatus.branding === "success" ? (
-                  <Shield className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {saveStatus.branding === "saving" ? "جاري الحفظ..." :
-                  saveStatus.branding === "success" ? "تم الحفظ بنجاح" : "حفظ الهوية البصرية"}
-              </button>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleBrandingSave}
+                  disabled={saveStatus.branding === "saving" || !brandingHasChanges || isProcessingStamp || isProcessingSig}
+                  className={cn(
+                    "px-7 py-3 rounded-2xl text-white text-sm font-black shadow-xl transition-all flex items-center gap-2 disabled:opacity-50",
+                    saveStatus.branding === "success" ? "bg-emerald-600" : "gradient-brand hover:brightness-110 active:scale-95"
+                  )}
+                >
+                  {saveStatus.branding === "saving" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : saveStatus.branding === "success" ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saveStatus.branding === "saving" ? "جاري الحفظ..." :
+                    saveStatus.branding === "success" ? "تم الحفظ بنجاح ✓" : "حفظ الهوية والختم والتوقيع"}
+                </button>
+              </div>
             </div>
           )}
 

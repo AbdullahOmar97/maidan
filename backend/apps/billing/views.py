@@ -304,6 +304,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
                 "phone": getattr(tenant, "phone", ""),
                 "email": getattr(tenant, "email", ""),
                 "logo": tenant.logo.url if getattr(tenant, "logo", None) else None,
+                "stamp": tenant.stamp.url if getattr(tenant, "stamp", None) else None,
+                "signature": tenant.signature.url if getattr(tenant, "signature", None) else None,
                 "currency": getattr(tenant, "default_currency", "JOD"),
                 "country": getattr(tenant, "country", "JO"),
             }

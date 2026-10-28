@@ -313,15 +313,36 @@ export function InvoiceDocument({
           {/* Stamp & Signature block */}
           <div className="p-3 border-t border-gray-200 grid grid-cols-2 gap-3 text-center text-[9px] text-gray-500">
             <div>
-              <p className="font-bold text-gray-700">توقيع المسؤول</p>
-              <div className="border-b border-gray-300 w-3/4 mx-auto my-3" />
-              <p className="text-[8px]">Authorized Sign</p>
+              <p className="font-bold text-gray-700">توقيع المسؤول المعتمد</p>
+              <div className="h-12 flex items-center justify-center my-1 relative">
+                {club?.signature ? (
+                  <img
+                    src={club.signature}
+                    alt="Authorized Signature"
+                    className="max-h-11 max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="border-b border-gray-300 w-3/4 mx-auto mt-6" />
+                )}
+              </div>
+              <p className="text-[8px] text-gray-400">Authorized Sign</p>
             </div>
             <div>
               <p className="font-bold text-gray-700">ختم النادي الرسمي</p>
-              <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center mx-auto my-1 text-[7px] text-gray-400 font-bold">
-                ختم الإدارة
+              <div className="h-12 flex items-center justify-center my-1 relative">
+                {club?.stamp ? (
+                  <img
+                    src={club.stamp}
+                    alt="Official Stamp"
+                    className="max-h-12 max-w-full object-contain -rotate-3"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center mx-auto text-[7px] text-gray-400 font-bold">
+                    ختم الإدارة
+                  </div>
+                )}
               </div>
+              <p className="text-[8px] text-gray-400">Official Stamp</p>
             </div>
           </div>
         </div>

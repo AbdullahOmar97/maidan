@@ -43,6 +43,8 @@ export default function InvoiceDetailPage() {
     phone: tenant.phone || "",
     email: tenant.email || "",
     logo: tenant.logo || null,
+    stamp: tenant.stamp || null,
+    signature: tenant.signature || null,
     currency: tenant.default_currency || "JOD",
     country: tenant.country || "JO",
   } : null;
@@ -221,28 +223,28 @@ export default function InvoiceDetailPage() {
             </div>
           </div>
 
-          {/* Print / Download — hide on smallest screens */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Static Print & Download Buttons */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={handlePrint}
-              className="touch-target flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95"
+              className="touch-target flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider hover:brightness-110 shadow-lg shadow-primary/20 transition-all active:scale-95"
               aria-label="طباعة الفاتورة"
             >
-              <Printer className="w-4 h-4 text-primary" aria-hidden="true" />
-              <span className="hidden xs:inline">طباعة</span>
+              <Printer className="w-4 h-4" aria-hidden="true" />
+              <span>طباعة الفاتورة</span>
             </button>
             <button
               onClick={handleDownloadPdf}
               disabled={isPrinting}
-              className="touch-target flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+              className="touch-target flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 border border-white/10 text-xs font-black uppercase tracking-wider text-white hover:bg-white/15 transition-all active:scale-95 disabled:opacity-50"
               aria-label="تحميل الفاتورة بصيغة PDF"
             >
               {isPrinting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
               ) : (
                 <Download className="w-4 h-4 text-primary" aria-hidden="true" />
               )}
-              <span className="hidden xs:inline">تحميل PDF</span>
+              <span>تحميل PDF</span>
             </button>
           </div>
         </div>

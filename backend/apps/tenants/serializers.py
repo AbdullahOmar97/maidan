@@ -31,7 +31,7 @@ class TenantSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
             "is_active", "status", "plan", "subscription_end_date", "on_trial", "trial_ends_at", "trial_days_remaining",
-            "logo", "default_language",
+            "logo", "stamp", "signature", "default_language",
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input",
             "active_students_count", "active_locations_count", "active_staff_count"
@@ -95,6 +95,54 @@ class TenantSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return data
+
+    def update(self, instance, validated_data):
+        for field in ["stamp", "signature"]:
+            img_file = validated_data.get(field)
+            if img_file and hasattr(img_file, "file"):
+                processed = self._ensure_transparent_background(img_file)
+                if processed:
+                    validated_data[field] = processed
+        return super().update(instance, validated_data)
+
+    def _ensure_transparent_background(self, uploaded_file):
+        try:
+            from PIL import Image
+            import io
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+
+            image = Image.open(uploaded_file).convert("RGBA")
+            data = image.getdata()
+
+            new_data = []
+            for item in data:
+                # If pixel is near-white or light paper background
+                if item[0] > 220 and item[1] > 220 and item[2] > 220:
+                    new_data.append((255, 255, 255, 0))
+                else:
+                    new_data.append(item)
+
+            image.putdata(new_data)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            output.seek(0)
+
+            name = getattr(uploaded_file, "name", "image.png")
+            if not name.lower().endswith(".png"):
+                name = name.rsplit(".", 1)[0] + ".png"
+
+            return InMemoryUploadedFile(
+                output,
+                "ImageField",
+                name,
+                "image/png",
+                output.getbuffer().nbytes,
+                None,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to auto-process transparent background: %s", e)
+            return uploaded_file
 
     def create(self, validated_data):
         domain_input = validated_data.pop("domain_input", None)

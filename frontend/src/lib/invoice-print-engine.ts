@@ -307,14 +307,20 @@ async function renderSingleInvoiceHtml(
           <!-- Signatures & Official Stamp -->
           <div class="signatures-box">
             <div class="sig-block">
-              <span class="sig-title">توقيع الموظف المعتمد</span>
-              <div class="sig-line"></div>
+              <span class="sig-title">توقيع المسؤول المعتمد</span>
+              <div class="sig-content">
+                ${club?.signature ? `<img src="${club.signature}" class="sig-img" alt="Authorized Signature" />` : `<div class="sig-line"></div>`}
+              </div>
               <span class="sig-sub">Authorized Signature</span>
             </div>
             <div class="sig-block">
               <span class="sig-title">ختم النادي الرسمي</span>
-              <div class="stamp-placeholder">
-                <span>ختم الإدارة<br>OFFICIAL STAMP</span>
+              <div class="stamp-content">
+                ${club?.stamp ? `<img src="${club.stamp}" class="stamp-img" alt="Official Stamp" />` : `
+                  <div class="stamp-placeholder">
+                    <span>ختم الإدارة<br>OFFICIAL STAMP</span>
+                  </div>
+                `}
               </div>
             </div>
           </div>
@@ -718,8 +724,33 @@ function getInvoiceStyles(): string {
       justify-content: space-between;
     }
     .sig-title { font-size: 9px; font-weight: 800; color: #374151; }
+    .sig-content {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .sig-img {
+      max-height: 46px;
+      max-width: 90%;
+      object-fit: contain;
+    }
     .sig-line { border-bottom: 1px solid #9ca3af; width: 70%; margin: 18px auto 2px; }
     .sig-sub { font-size: 8px; color: #6b7280; }
+    .stamp-content {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .stamp-img {
+      max-height: 56px;
+      max-width: 85px;
+      object-fit: contain;
+      transform: rotate(-3deg);
+    }
     .stamp-placeholder {
       width: 58px;
       height: 58px;

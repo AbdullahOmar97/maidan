@@ -275,6 +275,8 @@ export interface InvoiceClubInfo {
   phone?: string;
   email?: string;
   logo?: string | null;
+  stamp?: string | null;
+  signature?: string | null;
   currency?: string;
   country?: string;
   tax_number?: string;

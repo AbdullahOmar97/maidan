@@ -97,6 +97,8 @@ class Tenant(TenantMixin):
 
     # Branding
     logo = models.ImageField(upload_to="tenant_logos/", null=True, blank=True)
+    stamp = models.ImageField(upload_to="tenant_stamps/", null=True, blank=True)
+    signature = models.ImageField(upload_to="tenant_signatures/", null=True, blank=True)
 
     # Locale settings
     default_language = models.CharField(max_length=5, default="ar")

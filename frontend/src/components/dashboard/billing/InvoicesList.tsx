@@ -367,6 +367,8 @@ export function InvoicesList({
       phone: tenant.phone || "",
       email: tenant.email || "",
       logo: tenant.logo || null,
+      stamp: tenant.stamp || null,
+      signature: tenant.signature || null,
       currency: tenant.default_currency || "JOD",
       country: tenant.country || "JO",
     };
@@ -484,6 +486,58 @@ export function InvoicesList({
 
   return (
     <div className="space-y-4 relative">
+      {/* ── Static Top Action Bar (Print & Download - Embedded in page, not floating) ── */}
+      {selectedIds.size > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-primary/30 shadow-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center shadow-md shadow-primary/30">
+              {selectedIds.size}
+            </span>
+            <div>
+              <p className="text-sm font-black text-white">
+                تم تحديد {selectedIds.size} فاتورة للطباعة
+              </p>
+              <p className="text-xs text-muted-foreground font-bold">
+                إجمالي المبالغ: <strong className="text-primary font-mono">{formatCurrency(selectedTotalSum, invoiceList[0]?.currency || "JOD")}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleBatchPrint}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20"
+            >
+              <Printer className="w-4 h-4" />
+              <span>طباعة الكل ({selectedIds.size})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDirectBatchDownload}
+              disabled={isBulkPrinting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-black text-white transition-all disabled:opacity-50"
+            >
+              {isBulkPrinting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              ) : (
+                <Download className="w-4 h-4 text-primary" />
+              )}
+              <span>تحميل PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-muted-foreground hover:text-white transition-all"
+            >
+              إلغاء التحديد
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Desktop Table ── */}
       {isLoading ? (
         <div className="table-desktop glass-card overflow-hidden">
@@ -691,63 +745,6 @@ export function InvoicesList({
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── Sticky Batch Action Bar ── */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 start-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3 rounded-2xl bg-gray-900/95 border border-primary/30 backdrop-blur-xl shadow-2xl text-white">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-black text-xs flex items-center justify-center">
-                {selectedIds.size}
-              </span>
-              <span className="text-xs font-bold">
-                فاتورة محددة
-                <span className="hidden sm:inline text-muted-foreground ms-1.5">
-                  (الإجمالي: <strong className="text-white font-mono">{formatCurrency(selectedTotalSum, invoiceList[0]?.currency || "JOD")}</strong>)
-                </span>
-              </span>
-            </div>
-
-            <div className="h-4 w-px bg-white/20 hidden sm:block" />
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBatchPrint}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20"
-              >
-                <Printer className="w-4 h-4" />
-                <span>طباعة الكل</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDirectBatchDownload}
-                disabled={isBulkPrinting}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-all disabled:opacity-50"
-              >
-                {isBulkPrinting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Download className="w-3.5 h-3.5 text-primary" />
-                )}
-                <span className="hidden sm:inline">تحميل PDF</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedIds(new Set())}
-                title="إلغاء التحديد"
-                className="p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="إلغاء التحديد"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
