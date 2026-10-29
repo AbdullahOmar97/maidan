@@ -32,6 +32,9 @@ import {
   XCircle,
   Eye,
   AlertTriangle,
+  ExternalLink,
+  Copy,
+  Share2,
 } from "lucide-react";
 import type { Product, Order, ProductOption } from "@/types";
 
@@ -236,13 +239,46 @@ export default function StorePage() {
     return cart.reduce((total, item) => total + getItemPrice(item.product, item.option) * item.quantity, 0);
   };
 
+  // Copy store link helper
+  const [copiedLink, setCopiedLink] = useState(false);
+  const handleCopyStoreLink = () => {
+    if (typeof window === "undefined") return;
+    const storeUrl = `${window.location.origin}/store`;
+    navigator.clipboard.writeText(storeUrl);
+    setCopiedLink(true);
+    toast.success("تم نسخ رابط المتجر العام إلى الحافظة");
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
   return (
     <div className="space-y-6 text-right" dir="rtl">
       <PageHeader
         title="متجر الأكاديمية"
-        description="شراء المعدات الرياضية، الأحزمة، والملابس الخاصة بالنادي بسلاسة."
+        description="شراء وتوفير المعدات الرياضية، الأحزمة، والملابس الخاصة بالنادي."
       >
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* Public Store Direct Actions */}
+          <button
+            type="button"
+            onClick={handleCopyStoreLink}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all"
+            title="نسخ رابط المتجر العام للعملاء والزوّار"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+            <span>{copiedLink ? "تم النسخ" : "نسخ رابط المتجر"}</span>
+          </button>
+
+          <a
+            href="/store"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-bold transition-all"
+            title="فتح المتجر كما يراه الزوار والعملاء"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">معاينة المتجر العام</span>
+          </a>
+
           {isStaff && (
             <button
               onClick={() => {
@@ -270,6 +306,46 @@ export default function StorePage() {
           </button>
         </div>
       </PageHeader>
+
+      {/* Public Store Callout Card for Staff */}
+      {isStaff && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-white/[0.02] to-transparent border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+              <Share2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-white">رابط المتجر الإلكتروني العام للأكاديمية</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                شارك هذا الرابط مع المشتركين وعبر وسائل التواصل لتلقي طلبات الشراء أونلاين دون الحاجة لحساب.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 max-w-[200px] truncate select-all">
+              /store
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyStoreLink}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>نسخ الرابط</span>
+            </button>
+            <a
+              href="/store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>زيارة</span>
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-white/5 pb-px overflow-x-auto">
