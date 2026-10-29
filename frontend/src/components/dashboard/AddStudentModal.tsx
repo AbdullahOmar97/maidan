@@ -6,15 +6,17 @@ import {
   Phone, Mail, User, Info, CheckCircle2,
   Camera, X, Award, CreditCard, HeartPulse,
   Users, ShieldCheck, Calendar, Globe,
-  MessageSquare, ChevronLeft, ChevronRight, FileText
+  MessageSquare, ChevronLeft, ChevronRight, FileText,
+  ShoppingBag, Package, Trash2, Plus, Minus, Search
 } from "lucide-react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, ErrorBanner } from "@/components/ui/form-field";
 import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
-import type { Location, BeltRank, MembershipPlan, Family } from "@/types";
-import { parseApiError, cn } from "@/lib/utils";
+import type { Location, BeltRank, MembershipPlan, Family, Product, ProductOption } from "@/types";
+import { parseApiError, cn, formatCurrency } from "@/lib/utils";
 import { NATIONALITIES, BLOOD_TYPES, LEAD_SOURCES, EMERGENCY_RELATIONS } from "@/lib/constants";
+import { useTenant } from "@/lib/providers/tenant-provider";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -22,15 +24,34 @@ interface AddStudentModalProps {
   onSuccess: () => void;
 }
 
-type TabType = "basic" | "subscription" | "personal" | "medical" | "notes";
+type TabType = "basic" | "subscription" | "products" | "personal" | "medical" | "notes";
+
+interface SelectedProductItem {
+  product_id: number;
+  product_name: string;
+  product_price: number;
+  product_currency: string;
+  option_id?: number | null;
+  option_name?: string | null;
+  additional_price: number;
+  quantity: number;
+  max_stock?: number;
+}
 
 export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalProps) {
+  const { tenant } = useTenant();
+  const tenantCurrency = tenant?.default_currency || "JOD";
   const [activeTab, setActiveTab] = useState<TabType>("basic");
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [belts, setBelts] = useState<BeltRank[]>([]);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProductItem[]>([]);
+  const [productOptionsState, setProductOptionsState] = useState<Record<number, number | "">>({});
+  const [productSearch, setProductSearch] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -142,6 +163,20 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
           setFamilies(Array.isArray(famData) ? famData : []);
         })
         .catch(() => setFamilies([]));
+
+      // Load store products (optional)
+      setLoadingProducts(true);
+      api.store.products.list()
+        .then((res: any) => {
+          const pData = res.data?.results ?? res.data ?? [];
+          setProducts(Array.isArray(pData) ? pData.filter((p: Product) => p.is_active) : []);
+        })
+        .catch(() => setProducts([]))
+        .finally(() => setLoadingProducts(false));
+
+      setSelectedProducts([]);
+      setProductOptionsState({});
+      setProductSearch("");
     }
   }, [isOpen]);
 
@@ -183,6 +218,70 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
     }
   };
 
+  const addProductToOrder = (product: Product, specificOption?: ProductOption) => {
+    let option: ProductOption | undefined = specificOption;
+    if (!option && product.options && product.options.length > 0) {
+      const selectedOptId = productOptionsState[product.id];
+      option = product.options.find(o => o.id === Number(selectedOptId)) || product.options[0];
+    }
+
+    setSelectedProducts(prev => {
+      const existingIndex = prev.findIndex(p => p.product_id === product.id && p.option_id === (option?.id || null));
+      if (existingIndex > -1) {
+        const updated = [...prev];
+        const maxStock = option ? option.stock : 999;
+        if (updated[existingIndex].quantity < maxStock) {
+          updated[existingIndex].quantity += 1;
+        }
+        return updated;
+      }
+      const unitPrice = parseFloat(product.price) + (option ? parseFloat(option.additional_price) : 0);
+      return [
+        ...prev,
+        {
+          product_id: product.id,
+          product_name: product.name,
+          product_price: unitPrice,
+          product_currency: product.currency || tenantCurrency,
+          option_id: option?.id || null,
+          option_name: option ? `${option.name}: ${option.value}` : null,
+          additional_price: option ? parseFloat(option.additional_price) : 0,
+          quantity: 1,
+          max_stock: option ? option.stock : undefined,
+        }
+      ];
+    });
+  };
+
+  const updateProductQuantity = (index: number, delta: number) => {
+    setSelectedProducts(prev => {
+      const updated = [...prev];
+      const target = updated[index];
+      const newQty = target.quantity + delta;
+      if (newQty <= 0) {
+        return prev.filter((_, i) => i !== index);
+      }
+      const max = target.max_stock ?? 999;
+      target.quantity = Math.min(newQty, max);
+      return updated;
+    });
+  };
+
+  const removeProductFromOrder = (index: number) => {
+    setSelectedProducts(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const filteredProducts = products.filter(p => {
+    if (!productSearch.trim()) return true;
+    const q = productSearch.toLowerCase();
+    return p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q);
+  });
+
+  const selectedPlan = plans.find(p => p.id === Number(formData.initial_membership_plan_id));
+  const planPrice = selectedPlan ? Number(selectedPlan.price) : 0;
+  const productsTotal = selectedProducts.reduce((sum, p) => sum + (p.product_price * p.quantity), 0);
+  const grandTotal = planPrice + productsTotal;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.full_name?.trim()) {
@@ -202,6 +301,12 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
     setError("");
     setIsSubmitting(true);
 
+    const initialProductsPayload = selectedProducts.map(p => ({
+      product_id: p.product_id,
+      option_id: p.option_id || null,
+      quantity: p.quantity,
+    }));
+
     try {
       if (photo) {
         const data = new FormData();
@@ -210,6 +315,9 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
             data.append(k, String(v));
           }
         });
+        if (initialProductsPayload.length > 0) {
+          data.append("initial_products", JSON.stringify(initialProductsPayload));
+        }
         data.append("photo", photo);
         await api.students.create(data);
       } else {
@@ -219,6 +327,9 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
             payload[k] = v;
           }
         });
+        if (initialProductsPayload.length > 0) {
+          payload.initial_products = initialProductsPayload;
+        }
         await api.students.create(payload);
       }
       onSuccess();
@@ -245,6 +356,14 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
       label: "الاشتراك والحزام",
       icon: Award,
       hasData: Boolean(formData.initial_membership_plan_id || formData.initial_belt_id),
+    },
+    {
+      id: "products" as TabType,
+      label: "المعدات والمنتجات",
+      icon: ShoppingBag,
+      badge: selectedProducts.length > 0 ? `${selectedProducts.length}` : undefined,
+      badgeColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+      hasData: selectedProducts.length > 0,
     },
     {
       id: "personal" as TabType,
@@ -538,6 +657,221 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                   </div>
                 );
               })()}
+            </div>
+          )}
+
+          {/* TAB: PRODUCTS & GEAR */}
+          {activeTab === "products" && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
+                <ShoppingBag className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="font-bold text-white mb-0.5">تجهيز الطالب بالمعدات والزي المبدئي (اختياري)</p>
+                  <p className="text-muted-foreground">
+                    يمكنك إضافة بدلة التدريب، القفازات، أو الأدوات الخاصة بالنادي مباشرة عند التسجيل ليتم خصمها من المخزون وإنشاء فاتورة رسمية للطالب.
+                  </p>
+                </div>
+              </div>
+
+              {/* Selected Items Cart */}
+              {selectedProducts.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-muted-foreground px-1">
+                    <span>المعدات المختارة ({selectedProducts.length})</span>
+                    <span className="text-emerald-400 font-black">
+                      المجموع: {formatCurrency(productsTotal, tenant?.currency)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-56 overflow-y-auto pe-1">
+                    {selectedProducts.map((item, index) => (
+                      <div
+                        key={`${item.product_id}-${item.option_id ?? "none"}-${index}`}
+                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{item.product_name}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              {item.option_name && (
+                                <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-slate-300">
+                                  {item.option_name}
+                                </span>
+                              )}
+                              <span>سعر الوحدة: {formatCurrency(item.product_price, tenant?.currency)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          {/* Quantity Counter */}
+                          <div className="flex items-center border border-white/10 rounded-lg bg-white/5 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => updateProductQuantity(index, -1)}
+                              className="p-1 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="px-2 text-xs font-bold text-white min-w-[1.5rem] text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateProductQuantity(index, 1)}
+                              disabled={item.max_stock !== undefined && item.quantity >= item.max_stock}
+                              className="p-1 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors disabled:opacity-40"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Line item total */}
+                          <span className="text-xs font-black text-white min-w-[4rem] text-end">
+                            {formatCurrency(item.product_price * item.quantity, tenant?.currency)}
+                          </span>
+
+                          {/* Remove button */}
+                          <button
+                            type="button"
+                            onClick={() => removeProductFromOrder(index)}
+                            className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                            title="إزالة"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Product Catalog Picker */}
+              <div className="space-y-3 pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="ابحث في متجر الأكاديمية (الاسم، الوصف)..."
+                      className="ps-9 h-9 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center p-8 text-muted-foreground text-xs gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span>جاري تحميل المنتجات المتوفرة...</span>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="p-8 text-center rounded-2xl bg-white/[0.01] border border-dashed border-white/10">
+                    <Package className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-muted-foreground">لا توجد منتجات متوفرة مطابقة</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                      {productSearch ? "جرب البحث بكلمات أخرى" : "لم يتم إضافة منتجات في متجر الأكاديمية بعد"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pe-1">
+                    {filteredProducts.map((prod) => {
+                      const options = prod.options || [];
+                      const selectedOptId = productOptionsState[prod.id] ?? (options.length > 0 ? options[0].id : null);
+                      const selectedOpt = options.find((o) => o.id === selectedOptId);
+
+                      const effectivePrice = Number(prod.price) + (selectedOpt ? Number(selectedOpt.additional_price || 0) : 0);
+                      const effectiveStock = selectedOpt ? selectedOpt.stock : 999;
+                      const isOutOfStock = selectedOpt !== undefined && effectiveStock <= 0;
+
+                      return (
+                        <div
+                          key={prod.id}
+                          className="flex flex-col justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="text-xs font-black text-white line-clamp-1">{prod.name}</span>
+                              <span className="text-xs font-black text-emerald-400 shrink-0">
+                                {formatCurrency(effectivePrice, tenant?.currency)}
+                              </span>
+                            </div>
+
+                            {options.length > 0 && (
+                              <div className="pt-1">
+                                <label className="text-[10px] text-muted-foreground block mb-1">الخيار / المقاس:</label>
+                                <select
+                                  value={selectedOptId ?? ""}
+                                  onChange={(e) =>
+                                    setProductOptionsState((prev) => ({
+                                      ...prev,
+                                      [prod.id]: Number(e.target.value),
+                                    }))
+                                  }
+                                  className="w-full text-[11px] bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-white focus:outline-none focus:border-primary"
+                                >
+                                  {options.map((opt) => (
+                                    <option key={opt.id} value={opt.id}>
+                                      {opt.name}: {opt.value}
+                                      {Number(opt.additional_price) > 0 ? ` (+${formatCurrency(Number(opt.additional_price), tenant?.currency)})` : ""}
+                                      {` (متبقي: ${opt.stock})`}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-white/5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {selectedOpt ? (
+                                isOutOfStock ? (
+                                  <span className="text-red-400 font-bold">نفد المخزون</span>
+                                ) : (
+                                  <span>المتوفر: {effectiveStock}</span>
+                                )
+                              ) : (
+                                <span className="text-emerald-400/80">متوفر</span>
+                              )}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => addProductToOrder(prod, selectedOpt)}
+                              disabled={isOutOfStock}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>إضافة</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Total Calculation Card */}
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
+                <div className="space-y-0.5">
+                  <span className="text-muted-foreground">قيمة الاشتراك المبدئي: </span>
+                  <span className="font-bold text-white">{formatCurrency(planPrice, tenant?.currency)}</span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-muted-foreground">قيمة المعدات: </span>
+                  <span className="font-bold text-emerald-400">{formatCurrency(productsTotal, tenant?.currency)}</span>
+                </div>
+                <div className="space-y-0.5 text-end">
+                  <span className="text-muted-foreground block text-[10px]">الإجمالي المطلوب:</span>
+                  <span className="font-black text-sm text-primary">{formatCurrency(grandTotal, tenant?.currency)}</span>
+                </div>
+              </div>
             </div>
           )}
 

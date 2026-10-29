@@ -305,6 +305,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     initial_belt_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     initial_membership_plan_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     membership_start_date = serializers.DateField(write_only=True, required=False, allow_null=True)
+    initial_products = serializers.ListField(child=serializers.DictField(), write_only=True, required=False, allow_empty=True)
     internal_notes = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
@@ -322,7 +323,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "trial_start_date", "trial_end_date", "trial_sessions_used",
             "waiver_signed", "waiver_signed_at", "photo_consent",
             "notes", "internal_notes",
-            "initial_belt_id", "initial_membership_plan_id", "membership_start_date",
+            "initial_belt_id", "initial_membership_plan_id", "membership_start_date", "initial_products",
             "active_membership", "current_belt", "belt_history",
             "is_archived", "archived_at", "archive_reason", "archived_by_id",
             "created_at", "updated_at",
@@ -363,6 +364,15 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                         data[bool_field] = True
                     elif val.lower() in ["false", "0", ""]:
                         data[bool_field] = False
+
+        if "initial_products" in data:
+            val = data["initial_products"]
+            if isinstance(val, str):
+                import json
+                try:
+                    data["initial_products"] = json.loads(val)
+                except Exception:
+                    data["initial_products"] = []
 
         return super().to_internal_value(data)
 
@@ -491,6 +501,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         initial_belt_id = validated_data.pop("initial_belt_id", None)
         initial_plan_id = validated_data.pop("initial_membership_plan_id", None)
         membership_start_date = validated_data.pop("membership_start_date", None)
+        initial_products = validated_data.pop("initial_products", None)
 
         from django.db import transaction
         with transaction.atomic():
@@ -535,6 +546,103 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).warning("Failed to create initial membership: %s", e)
+
+            if initial_products and isinstance(initial_products, list):
+                try:
+                    from apps.store.models import Product, ProductOption, Order, OrderItem
+                    from apps.billing.models import Invoice
+                    from django.utils import timezone
+                    from decimal import Decimal
+
+                    order_items = []
+                    total_amount = Decimal("0.00")
+                    order_currency = "JOD"
+
+                    for item_data in initial_products:
+                        prod_id = item_data.get("product_id") or item_data.get("product")
+                        if not prod_id:
+                            continue
+                        opt_id = item_data.get("option_id") or item_data.get("option")
+                        qty = max(1, int(item_data.get("quantity", 1)))
+
+                        prod = Product.objects.filter(id=prod_id, is_active=True).first()
+                        if not prod:
+                            continue
+
+                        order_currency = prod.currency
+                        unit_price = Decimal(str(prod.price))
+
+                        option = None
+                        if opt_id:
+                            option = ProductOption.objects.filter(id=opt_id, product=prod).first()
+                            if option:
+                                if option.stock > 0:
+                                    qty = min(qty, option.stock)
+                                    option.stock = max(0, option.stock - qty)
+                                    option.save(update_fields=["stock"])
+                                unit_price += Decimal(str(option.additional_price))
+
+                        item_total = unit_price * Decimal(str(qty))
+                        total_amount += item_total
+                        order_items.append({
+                            "product": prod,
+                            "option": option,
+                            "quantity": qty,
+                            "unit_price": unit_price,
+                            "total_price": item_total,
+                        })
+
+                    if order_items and total_amount > Decimal("0.00"):
+                        order = Order.objects.create(
+                            student=student,
+                            buyer_name=student.full_name,
+                            buyer_phone=student.phone or "",
+                            buyer_email=student.email or "",
+                            total_amount=total_amount,
+                            payment_method=Order.PaymentMethod.CASH,
+                            payment_status=Order.PaymentStatus.PENDING,
+                            status=Order.Status.READY,
+                            notes="طلب تجهيزات ومعدات التسجيل الأولي",
+                        )
+
+                        item_instances = [
+                            OrderItem(
+                                order=order,
+                                product=oi["product"],
+                                option=oi["option"],
+                                quantity=oi["quantity"],
+                                unit_price=oi["unit_price"],
+                                total_price=oi["total_price"]
+                            )
+                            for oi in order_items
+                        ]
+                        OrderItem.objects.bulk_create(item_instances)
+
+                        due_date = timezone.now().date()
+                        tax_rate = Decimal("15.0")
+                        subtotal = total_amount / (Decimal("1.0") + (tax_rate / Decimal("100.0")))
+                        tax_amount = total_amount - subtotal
+
+                        invoice = Invoice.objects.create(
+                            student=student,
+                            subtotal=round(subtotal, 2),
+                            discount_amount=Decimal("0.00"),
+                            tax_rate=tax_rate,
+                            tax_amount=round(tax_amount, 2),
+                            total_amount=total_amount,
+                            amount_paid=Decimal("0.00"),
+                            currency=order_currency,
+                            status=Invoice.Status.PENDING,
+                            due_date=due_date,
+                            is_recurring=False,
+                            notes=f"فاتورة طلب تجهيزات ومعدات التسجيل #{order.id}"
+                        )
+                        order.invoice = invoice
+                        order.save(update_fields=["invoice"])
+
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning("Failed to create initial store products order: %s", e)
 
             return student
 
