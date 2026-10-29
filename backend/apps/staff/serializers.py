@@ -61,15 +61,23 @@ class StaffAdvanceSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
         staff_member_val = data.get("staff_member")
-        if staff_member_val:
+        if staff_member_val is not None:
+            import uuid
             try:
-                import uuid
                 uuid_obj = uuid.UUID(str(staff_member_val))
-                member = StaffMember.objects.filter(user_id=uuid_obj).first()
-                if member:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.filter(id=uuid_obj).first()
+                if user:
+                    member, _ = StaffMember.objects.get_or_create(user=user)
                     data["staff_member"] = member.id
+                else:
+                    raise serializers.ValidationError({"staff_member": "الموظف المحدد غير موجود في النظام."})
             except (ValueError, TypeError):
-                pass
+                try:
+                    data["staff_member"] = int(str(staff_member_val))
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError({"staff_member": "معرف الموظف غير صالح."})
         return super().to_internal_value(data)
 
     class Meta:
@@ -143,15 +151,23 @@ class StaffDocumentSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
         staff_member_val = data.get("staff_member")
-        if staff_member_val:
+        if staff_member_val is not None:
+            import uuid
             try:
-                import uuid
                 uuid_obj = uuid.UUID(str(staff_member_val))
-                member = StaffMember.objects.filter(user_id=uuid_obj).first()
-                if member:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.filter(id=uuid_obj).first()
+                if user:
+                    member, _ = StaffMember.objects.get_or_create(user=user)
                     data["staff_member"] = member.id
+                else:
+                    raise serializers.ValidationError({"staff_member": "الموظف المحدد غير موجود في النظام."})
             except (ValueError, TypeError):
-                pass
+                try:
+                    data["staff_member"] = int(str(staff_member_val))
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError({"staff_member": "معرف الموظف غير صالح."})
         return super().to_internal_value(data)
 
     class Meta:

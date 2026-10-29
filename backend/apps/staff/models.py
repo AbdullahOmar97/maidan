@@ -318,17 +318,20 @@ class StaffAdvance(models.Model):
         return f"Advance #{self.id} for {self.staff_member.user.get_full_name()} ({self.amount} {self.currency})"
 
     def save(self, *args, **kwargs):
+        amt = self.amount or Decimal("0.00")
+        repaid = self.total_repaid or Decimal("0.00")
+
         # Calculate monthly installment if installments selected
         if self.repayment_type == self.RepaymentType.INSTALLMENT:
-            count = max(1, self.installments_count)
+            count = max(1, self.installments_count or 1)
             if not self.monthly_installment or self.monthly_installment <= Decimal("0.00"):
-                self.monthly_installment = round(self.amount / Decimal(count), 2)
+                self.monthly_installment = round(amt / Decimal(count), 2)
         else:
             self.installments_count = 1
-            self.monthly_installment = self.amount
+            self.monthly_installment = amt
 
         # Calculate remaining balance
-        self.remaining_amount = max(Decimal("0.00"), self.amount - self.total_repaid)
+        self.remaining_amount = max(Decimal("0.00"), amt - repaid)
 
         # Auto transition to repaid if remaining is 0 and status was disbursed
         if self.status == self.Status.DISBURSED and self.remaining_amount <= Decimal("0.00"):
