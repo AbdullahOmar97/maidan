@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { formatCurrency, formatDate, cn, isInvoiceOverdue } from "@/lib/utils";
+import { formatCurrency, formatDate, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
 import { BatchInvoicePrintModal } from "@/components/dashboard/billing/BatchInvoicePrintModal";
@@ -13,7 +13,7 @@ import { useBillingPermissions } from "@/lib/hooks/use-permission";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import {
   Receipt, CheckCircle, ChevronRight, Loader2,
-  Printer, Download, Eye, X, CheckSquare, Square,
+  Printer, Download, Eye, X, CheckSquare, Square, Archive,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Invoice } from "@/types";
@@ -138,7 +138,15 @@ function InvoiceRow({
         )}
       </td>
       <td className="py-4 px-4 text-start">
-        <StatusBadge status={displayStatus} />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusBadge status={displayStatus} />
+          {invoice.is_archived && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black">
+              <Archive className="w-2.5 h-2.5" />
+              مؤرشفة
+            </span>
+          )}
+        </div>
       </td>
       <td className="py-4 px-4 text-sm font-bold text-muted-foreground text-start">
         <bdi>{formatDate(invoice.due_date)}</bdi>
@@ -247,7 +255,15 @@ function InvoiceMobileCard({
             )}
           </div>
         </div>
-        <StatusBadge status={displayStatus} />
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+          <StatusBadge status={displayStatus} />
+          {invoice.is_archived && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black">
+              <Archive className="w-2.5 h-2.5" />
+              مؤرشفة
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Details grid */}
@@ -368,6 +384,7 @@ export function InvoicesList({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [printModalInvoices, setPrintModalInvoices] = useState<Invoice[] | null>(null);
   const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+  const [isBulkArchiving, setIsBulkArchiving] = useState(false);
   const [isFetchingAllInvoices, setIsFetchingAllInvoices] = useState(false);
   const [allInvoicesCache, setAllInvoicesCache] = useState<Invoice[] | null>(null);
 
@@ -517,6 +534,30 @@ export function InvoicesList({
     }
   };
 
+  const handleBatchArchive = async () => {
+    if (selectedInvoices.length === 0) return;
+    if (!window.confirm(`هل أنت متأكد من رغبتك في أرشفة ${selectedIds.size} فاتورة محددة؟ سيتم نقل الفواتير المؤهلة إلى الأرشيف.`)) {
+      return;
+    }
+    setIsBulkArchiving(true);
+    try {
+      const res = await api.billing.invoices.bulkArchive({
+        invoice_ids: Array.from(selectedIds),
+        reason: "أرشفة جماعية للفواتير من قائمة الفواتير",
+      });
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      setSelectedIds(new Set());
+      setAllInvoicesCache(null);
+      toast.success(res.data?.message || `تم أرشفة الفواتير المحددة بنجاح ✓`);
+      onInvoiceUpdated?.();
+    } catch (err: any) {
+      toast.error(parseApiError(err, "فشل أرشفة الفواتير المحددة"));
+    } finally {
+      setIsBulkArchiving(false);
+    }
+  };
+
   const handleQuickPrint = (invoice: Invoice) => {
     if (selectedIds.has(invoice.id) && selectedInvoices.length > 1) {
       setPrintModalInvoices(selectedInvoices);
@@ -567,6 +608,20 @@ export function InvoicesList({
                   <Download className="w-4 h-4 text-primary" />
                 )}
                 <span>تحميل PDF ({selectedIds.size})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBatchArchive}
+                disabled={isBulkArchiving}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-xs font-black text-amber-300 border border-amber-500/30 transition-all disabled:opacity-50"
+              >
+                {isBulkArchiving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Archive className="w-4 h-4" />
+                )}
+                <span>أرشفة المحددة ({selectedIds.size})</span>
               </button>
 
               <button

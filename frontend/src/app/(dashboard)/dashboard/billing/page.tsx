@@ -11,7 +11,7 @@ import { api } from "@/lib/api/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import {
   CreditCard, AlertTriangle, CheckCircle, Clock,
-  TrendingUp, Search, Plus, Filter, Sparkles, Download,
+  TrendingUp, Search, Plus, Filter, Sparkles, Download, Archive, Receipt,
 } from "lucide-react";
 import type { Invoice, PaginatedResponse, BillingSummary, Location } from "@/types";
 import { PeriodFilterBar } from "@/components/dashboard/PeriodFilterBar";
@@ -53,6 +53,7 @@ export default function BillingPage() {
   const [planId, setPlanId] = useState("");
   const [dateBy, setDateBy] = useState("created_at");
   const [statusFilter, setStatusFilter] = useState("");
+  const [archiveFilter, setArchiveFilter] = useState<"active" | "archived">("active");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -86,6 +87,7 @@ export default function BillingPage() {
 
   const invoiceParams = {
     status: statusFilter || undefined,
+    is_archived: archiveFilter === "archived" ? "true" : "false",
     search: debouncedSearch || undefined,
     period: period || undefined,
     start_date: period === "custom" && startDate ? startDate : undefined,
@@ -108,6 +110,7 @@ export default function BillingPage() {
     !!locationId ||
     !!planId ||
     !!statusFilter ||
+    archiveFilter !== "active" ||
     dateBy !== "created_at" ||
     !!search;
 
@@ -118,6 +121,7 @@ export default function BillingPage() {
     setLocationId("");
     setPlanId("");
     setStatusFilter("");
+    setArchiveFilter("active");
     setDateBy("created_at");
     setSearch("");
     setPage(1);
@@ -255,6 +259,50 @@ export default function BillingPage() {
             loading={isSummaryLoading}
           />
         </div>
+
+        {/* Active vs Archived Sub-tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setArchiveFilter("active"); setPage(1); }}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                archiveFilter === "active"
+                  ? "bg-primary/20 text-primary border border-primary/30 shadow-sm"
+                  : "text-muted-foreground hover:text-white hover:bg-white/5"
+              )}
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>الفواتير النشطة ({summary?.invoice_count ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setArchiveFilter("archived"); setPage(1); }}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                archiveFilter === "archived"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm"
+                  : "text-muted-foreground hover:text-white hover:bg-white/5"
+              )}
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>أرشيف الفواتير ({summary?.archived_count ?? 0})</span>
+            </button>
+          </div>
+        </div>
+
+        {archiveFilter === "archived" && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-3 animate-in fade-in">
+            <Archive className="w-5 h-5 flex-shrink-0 text-amber-400" />
+            <div>
+              <p className="font-bold">أنت تستعرض أرشيف الفواتير</p>
+              <p className="text-amber-200/70 text-[11px] mt-0.5">
+                وفقاً للمعايير المحاسبية وقوانين الضرائب، لا يتم حذف الفواتير نهائياً. يتم حفظ الفواتير المؤرشفة للرجوع إليها في الفحص الضريبي أو التدقيق المحاسبي.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="relative group">

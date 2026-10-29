@@ -253,6 +253,72 @@ class DunningSuspensionTestCase(TestCase):
             self.student.refresh_from_db()
             self.assertEqual(self.student.status, Student.Status.ACTIVE)
 
+    def test_invoice_archiving_and_deletion_prevention(self):
+        """Test suite for invoice archiving, dues enforcement, and deletion prevention."""
+        with schema_context(self.tenant.schema_name):
+            from rest_framework.test import APIClient
+            from apps.accounts.models import User
+
+            user = User.objects.create_user(
+                username="billing_admin",
+                email="billing@test.com",
+                password="password123",
+                role="owner",
+                is_staff=True,
+            )
+            client = APIClient()
+            client.credentials(HTTP_HOST=self.domain.domain)
+            client.force_authenticate(user=user)
+
+            # 1. Invoice deletion must be forbidden
+            del_resp = client.delete(f"/api/v1/billing/invoices/{self.overdue_invoice.id}/")
+            self.assertEqual(del_resp.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(del_resp.data.get("code"), "invoice_deletion_not_allowed")
+            self.assertTrue(Invoice.objects.filter(id=self.overdue_invoice.id).exists())
+
+            # 2. Archive precheck for overdue invoice
+            pre_resp = client.get(f"/api/v1/billing/invoices/{self.overdue_invoice.id}/archive_precheck/")
+            self.assertEqual(pre_resp.status_code, status.HTTP_200_OK)
+            self.assertFalse(pre_resp.data["can_archive_cleanly"])
+            self.assertTrue(pre_resp.data["requires_debt_acknowledgment"])
+
+            # 3. Archive without force should be rejected
+            rej_resp = client.post(
+                f"/api/v1/billing/invoices/{self.overdue_invoice.id}/archive/",
+                {"reason": "انقطاع", "force_with_debt": False},
+                format="json",
+            )
+            self.assertEqual(rej_resp.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(rej_resp.data.get("code"), "outstanding_invoice_due")
+
+            # 4. Archive with force succeeds
+            arch_resp = client.post(
+                f"/api/v1/billing/invoices/{self.overdue_invoice.id}/archive/",
+                {"reason": "إعدام دين لتعذر التحصيل", "force_with_debt": True},
+                format="json",
+            )
+            self.assertEqual(arch_resp.status_code, status.HTTP_200_OK)
+            self.overdue_invoice.refresh_from_db()
+            self.assertTrue(self.overdue_invoice.is_archived)
+            self.assertIsNotNone(self.overdue_invoice.archived_at)
+
+            # 5. Default list excludes archived invoice
+            list_resp = client.get("/api/v1/billing/invoices/")
+            ids = [inv["id"] for inv in list_resp.data.get("results", list_resp.data)]
+            self.assertNotIn(self.overdue_invoice.id, ids)
+
+            # List with is_archived=true includes it
+            arch_list_resp = client.get("/api/v1/billing/invoices/?is_archived=true")
+            arch_ids = [inv["id"] for inv in arch_list_resp.data.get("results", arch_list_resp.data)]
+            self.assertIn(self.overdue_invoice.id, arch_ids)
+
+            # 6. Unarchive restores it
+            unarch_resp = client.post(f"/api/v1/billing/invoices/{self.overdue_invoice.id}/unarchive/")
+            self.assertEqual(unarch_resp.status_code, status.HTTP_200_OK)
+            self.overdue_invoice.refresh_from_db()
+            self.assertFalse(self.overdue_invoice.is_archived)
+            self.assertIsNone(self.overdue_invoice.archived_at)
+
     def tearDown(self):
         with schema_context("public"):
             self.tenant.delete()

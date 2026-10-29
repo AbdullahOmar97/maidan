@@ -180,6 +180,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     created_by_name = serializers.SerializerMethodField()
     paid_by_name = serializers.SerializerMethodField()
     voided_by_name = serializers.SerializerMethodField()
+    archived_by_name = serializers.SerializerMethodField()
     credit_notes = CreditNoteSerializer(many=True, read_only=True)
     student_id = serializers.PrimaryKeyRelatedField(
         queryset=Student.objects.all(), source="student"
@@ -202,6 +203,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "notes", "is_recurring", "created_by_id", "created_by_name",
             "paid_by_id", "paid_by_name",
             "voided_at", "voided_by_id", "voided_by_name", "void_reason",
+            "is_archived", "archived_at", "archive_reason", "archived_by_id", "archived_by_name",
             "credit_notes", "payments", "club_info", "store_orders_count", "exam_candidacies_count", "created_at",
         ]
         read_only_fields = [
@@ -210,7 +212,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "membership_details", "tax_amount",
             "total_amount", "amount_due", "is_overdue",
             "created_by_id", "created_by_name", "paid_by_id", "paid_by_name",
-            "voided_at", "voided_by_id", "voided_by_name", "credit_notes",
+            "voided_at", "voided_by_id", "voided_by_name",
+            "is_archived", "archived_at", "archive_reason", "archived_by_id", "archived_by_name",
+            "credit_notes",
             "payments", "club_info", "store_orders_count", "exam_candidacies_count", "created_at",
         ]
 
@@ -219,6 +223,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_exam_candidacies_count(self, obj):
         return obj.exam_candidates.count() if hasattr(obj, "exam_candidates") else 0
+
+    def get_archived_by_name(self, obj):
+        return self._resolve_user_name(obj.archived_by_id)
 
     def _resolve_user_name(self, user_id):
         """Return full name for a given user UUID, or None."""
@@ -557,6 +564,7 @@ class InvoiceFilter(django_filters.FilterSet):
     plan = django_filters.NumberFilter(field_name="membership__plan_id")
     plan_id = django_filters.NumberFilter(field_name="membership__plan_id")
     is_recurring = django_filters.BooleanFilter(field_name="is_recurring")
+    is_archived = django_filters.BooleanFilter(field_name="is_archived")
 
     date_from = django_filters.CharFilter(method="filter_date_from")
     date_to = django_filters.CharFilter(method="filter_date_to")
@@ -621,7 +629,25 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Invoice.objects.select_related("student", "membership__plan").all()
+        archived_param = self.request.query_params.get("is_archived")
+        if archived_param is not None:
+            if str(archived_param).lower() in ["true", "1"]:
+                qs = qs.filter(is_archived=True)
+            elif str(archived_param).lower() in ["false", "0"]:
+                qs = qs.filter(is_archived=False)
+        elif self.action == "list":
+            qs = qs.filter(is_archived=False)
         return self.get_location_filtered_queryset(qs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Invoice deletion is strictly prohibited to preserve tax compliance and financial ledger audit trails."""
+        return Response(
+            {
+                "detail": "حذف الفواتير غير متاح نظامياً للحفاظ على الامتثال المالي والضريبي وتكامل القيود المحاسبية. يمكنك أرشفة الفاتورة أو إلغاؤها (Void).",
+                "code": "invoice_deletion_not_allowed",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     def get_permissions(self):
         if self.action == "create":
@@ -631,7 +657,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
         if self.action == "mark_paid":
             return [permissions.IsAuthenticated(), CanMarkInvoicePaid()]
         # All other write actions require general billing management
-        if self.action in ["update", "partial_update", "destroy"]:
+        if self.action in ["update", "partial_update", "destroy", "archive", "unarchive", "bulk_archive"]:
             return [permissions.IsAuthenticated(), CanManageBilling()]
         return [permissions.IsAuthenticated()]
 
@@ -992,6 +1018,9 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             paid_at__year=today.year,
         ).aggregate(s=Sum("total_amount"))["s"] or 0
 
+        # Calculate archived invoices count for the location scope
+        archived_count = self.get_location_filtered_queryset(Invoice.objects.all()).filter(is_archived=True).count()
+
         return Response({
             "total_paid": float(total_paid),
             "total_pending": float(total_pending),
@@ -999,12 +1028,135 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             "overdue_count": overdue_qs.count(),
             "total_invoiced": float(total_invoiced),
             "invoice_count": invoice_count,
+            "archived_count": archived_count,
             "collection_rate": collected_pct,
             "paid_this_month": float(paid_this_month),
             "currency": currency,
             "period": period,
             "start_date": str(resolved_start) if resolved_start else None,
             "end_date": str(resolved_end) if resolved_end else None,
+        })
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def archive_precheck(self, request, pk=None):
+        """Pre-archival audit of an invoice."""
+        invoice = self.get_object()
+        amount_due = invoice.total_amount - invoice.amount_paid
+        is_clean = amount_due <= Decimal("0.00") or invoice.status in [Invoice.Status.PAID, Invoice.Status.VOID, Invoice.Status.REFUNDED]
+
+        return Response({
+            "id": invoice.id,
+            "invoice_number": invoice.invoice_number,
+            "status": invoice.status,
+            "total_amount": float(invoice.total_amount),
+            "amount_paid": float(invoice.amount_paid),
+            "amount_due": float(amount_due),
+            "currency": invoice.currency,
+            "is_archived": invoice.is_archived,
+            "can_archive_cleanly": is_clean,
+            "requires_debt_acknowledgment": not is_clean,
+        })
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanManageBilling])
+    def archive(self, request, pk=None):
+        """Archive an invoice with documented audit trail."""
+        invoice = self.get_object()
+        if invoice.is_archived:
+            return Response({"detail": "هذه الفاتورة مؤرشفة بالفعل."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = request.data.get("reason", "").strip()
+        force_with_debt = bool(request.data.get("force_with_debt", False))
+
+        amount_due = invoice.total_amount - invoice.amount_paid
+        if amount_due > Decimal("0.00") and invoice.status not in [Invoice.Status.VOID, Invoice.Status.REFUNDED] and not force_with_debt:
+            return Response(
+                {
+                    "detail": f"لا يمكن أرشفة الفاتورة لوجود رصيد مستحق بقيمة {amount_due} {invoice.currency}. يرجى تسديد الفاتورة أولاً أو تفعيل خيار إحالة المديونية كدين معلق/معدوم.",
+                    "amount_due": float(amount_due),
+                    "code": "outstanding_invoice_due",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        staff_name = request.user.get_full_name() or request.user.username
+        audit_note = f"[مؤرشفة بواسطة {staff_name} في {now.date()}: {reason or 'أرشفة نظامية'}]"
+
+        with transaction.atomic():
+            invoice.is_archived = True
+            invoice.archived_at = now
+            invoice.archive_reason = reason
+            user_id = request.user.id
+            if user_id:
+                try:
+                    import uuid
+                    if isinstance(user_id, uuid.UUID):
+                        invoice.archived_by_id = user_id
+                    elif isinstance(user_id, str):
+                        invoice.archived_by_id = uuid.UUID(user_id)
+                except Exception:
+                    pass
+            invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
+            invoice.save(update_fields=["is_archived", "archived_at", "archive_reason", "archived_by_id", "notes", "updated_at"])
+
+        serializer = self.get_serializer(invoice)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanManageBilling])
+    def unarchive(self, request, pk=None):
+        """Restore an archived invoice back to active accounts."""
+        invoice = self.get_object()
+        if not invoice.is_archived:
+            return Response({"detail": "هذه الفاتورة غير مؤرشفة."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        staff_name = request.user.get_full_name() or request.user.username
+        audit_note = f"[تمت استعادة الفاتورة من الأرشيف بواسطة {staff_name} في {now.date()}]"
+
+        with transaction.atomic():
+            invoice.is_archived = False
+            invoice.archived_at = None
+            invoice.archive_reason = ""
+            invoice.archived_by_id = None
+            invoice.notes = ((invoice.notes or "") + f"\n{audit_note}").strip()
+            invoice.save(update_fields=["is_archived", "archived_at", "archive_reason", "archived_by_id", "notes", "updated_at"])
+
+        serializer = self.get_serializer(invoice)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanManageBilling])
+    def bulk_archive(self, request):
+        """Bulk archive invoices (e.g. for settled fiscal periods)."""
+        invoice_ids = request.data.get("invoice_ids", [])
+        if not isinstance(invoice_ids, list) or not invoice_ids:
+            return Response({"error": "يجب تحديد قائمة معرفات الفواتير المراد أرشفتها."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = request.data.get("reason", "أرشفة جماعية للفواتير").strip()
+        force_with_debt = bool(request.data.get("force_with_debt", False))
+
+        invoices = Invoice.objects.filter(id__in=invoice_ids, is_archived=False)
+        archived_count = 0
+        skipped_count = 0
+        now = timezone.now()
+        staff_name = request.user.get_full_name() or request.user.username
+
+        with transaction.atomic():
+            for inv in invoices:
+                due = inv.total_amount - inv.amount_paid
+                if due > Decimal("0.00") and inv.status not in [Invoice.Status.VOID, Invoice.Status.REFUNDED] and not force_with_debt:
+                    skipped_count += 1
+                    continue
+                inv.is_archived = True
+                inv.archived_at = now
+                inv.archive_reason = reason
+                inv.notes = ((inv.notes or "") + f"\n[مؤرشفة جماعياً بواسطة {staff_name} في {now.date()}: {reason}]").strip()
+                inv.save(update_fields=["is_archived", "archived_at", "archive_reason", "notes", "updated_at"])
+                archived_count += 1
+
+        return Response({
+            "archived_count": archived_count,
+            "skipped_due_count": skipped_count,
+            "message": f"تمت أرشفة {archived_count} فاتورة بنجاح." + (f" تم تجاوز {skipped_count} فاتورة لوجود رصيد غير مسدد." if skipped_count else "")
         })
 
 

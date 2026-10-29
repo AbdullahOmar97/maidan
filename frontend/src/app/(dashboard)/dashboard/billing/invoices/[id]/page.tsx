@@ -8,12 +8,12 @@ import {
   ArrowRight, Receipt, Calendar, User, CreditCard,
   Download, Printer, Send, Clock, CheckCircle,
   AlertTriangle, Info, Sparkles, DollarSign, Loader2, Ban,
-  RotateCcw, FileText, CheckCircle2,
+  RotateCcw, FileText, CheckCircle2, Archive,
 } from "lucide-react";
 import Link from "next/link";
 import {
   formatCurrency, formatDate, getStatusBadgeClass,
-  getStatusLabel, cn, isInvoiceOverdue,
+  getStatusLabel, cn, isInvoiceOverdue, parseApiError,
 } from "@/lib/utils";
 import type { Invoice } from "@/types";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import MarkAsPaidModal, { type PaymentMethodKey } from "@/components/dashboard/MarkAsPaidModal";
 import VoidInvoiceModal from "@/components/dashboard/VoidInvoiceModal";
 import RefundInvoiceModal from "@/components/dashboard/RefundInvoiceModal";
+import ArchiveInvoiceModal from "@/components/dashboard/billing/ArchiveInvoiceModal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { BatchInvoicePrintModal } from "@/components/dashboard/billing/BatchInvoicePrintModal";
 import { printInvoices } from "@/lib/invoice-print-engine";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
@@ -33,9 +35,11 @@ export default function InvoiceDetailPage() {
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
   const [voidOpen, setVoidOpen]         = useState(false);
   const [refundOpen, setRefundOpen]     = useState(false);
+  const [archiveOpen, setArchiveOpen]   = useState(false);
+  const [unarchiveOpen, setUnarchiveOpen] = useState(false);
   const [printOpen, setPrintOpen]       = useState(false);
   const [isPrinting, setIsPrinting]     = useState(false);
-  const { canMarkInvoicePaid, canVoidInvoice } = useBillingPermissions();
+  const { canMarkInvoicePaid, canVoidInvoice, canManageBilling } = useBillingPermissions();
 
   const clubInfo = tenant ? {
     name: tenant.name,
@@ -160,6 +164,21 @@ export default function InvoiceDetailPage() {
     onError: (err: any) => toast.error(err.response?.data?.error || "فشل إصدار الإشعار الدائن أو الاسترداد"),
   });
 
+  const unarchiveMutation = useMutation({
+    mutationFn: () => api.billing.invoices.unarchive(parseInt(id as string)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices", id] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "summary"] });
+      toast.success("تمت استعادة الفاتورة من الأرشيف بنجاح ✓");
+      setUnarchiveOpen(false);
+    },
+    onError: (err: any) => {
+      console.error("Unarchive invoice error:", err);
+      toast.error(parseApiError(err, "حدث خطأ أثناء استعادة الفاتورة من الأرشيف."));
+    },
+  });
+
   // ── Loading state ──
   if (isLoading) {
     return (
@@ -215,6 +234,12 @@ export default function InvoiceDetailPage() {
                 >
                   {getStatusLabel(statusKey)}
                 </span>
+                {invoice.is_archived && (
+                  <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-500/30 bg-amber-500/20 text-amber-300 shadow-lg flex items-center gap-1">
+                    <Archive className="w-3 h-3" />
+                    مؤرشفة
+                  </span>
+                )}
               </div>
               <p className="text-muted-foreground text-sm font-bold mt-1 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
@@ -248,6 +273,42 @@ export default function InvoiceDetailPage() {
             </button>
           </div>
         </div>
+
+        {/* Archived Banner */}
+        {invoice.is_archived && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-start shadow-xl">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <Archive className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-black text-amber-300">
+                    هذه الفاتورة مؤرشفة في السجلات المغلقة
+                  </h3>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                    محفوظة للامتثال المالي والضريبي
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {invoice.archived_at && `تاريخ الأرشفة: ${formatDate(invoice.archived_at)} | `}
+                  {invoice.archived_by_name && `بواسطة: ${invoice.archived_by_name} | `}
+                  {invoice.archive_reason ? `السبب: ${invoice.archive_reason}` : "أرشفة نظامية"}
+                </p>
+              </div>
+            </div>
+
+            {canManageBilling && (
+              <button
+                onClick={() => setUnarchiveOpen(true)}
+                className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-black transition-all active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                استعادة الفاتورة من الأرشيف
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ── Content Grid ── */}
         {/* On mobile: sidebar stacks below main. On lg: 3-col grid */}
@@ -570,6 +631,29 @@ export default function InvoiceDetailPage() {
                   </div>
                 </>
               )}
+
+              {/* General Archive Action for all statuses */}
+              {canManageBilling && (
+                <div className="pt-3 border-t border-white/5">
+                  {invoice.is_archived ? (
+                    <button
+                      onClick={() => setUnarchiveOpen(true)}
+                      className="touch-target w-full py-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      استعادة الفاتورة من الأرشيف
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setArchiveOpen(true)}
+                      className="touch-target w-full py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 text-amber-400 font-bold text-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                      أرشفة الفاتورة
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quick Info */}
@@ -665,6 +749,53 @@ export default function InvoiceDetailPage() {
           invoices={[invoice]}
           clubInfo={clubInfo}
         />
+      )}
+
+      {/* Archive Invoice Modal */}
+      {archiveOpen && invoice && (
+        <ArchiveInvoiceModal
+          isOpen={archiveOpen}
+          onClose={() => setArchiveOpen(false)}
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoice_number}
+        />
+      )}
+
+      {/* Unarchive Confirmation Modal */}
+      {unarchiveOpen && invoice && (
+        <Modal open={unarchiveOpen} onClose={() => setUnarchiveOpen(false)} size="sm">
+          <ModalHeader
+            icon={<RotateCcw className="w-5 h-5 text-emerald-500" />}
+            title="استعادة الفاتورة من الأرشيف"
+            subtitle={invoice.invoice_number}
+            onClose={() => setUnarchiveOpen(false)}
+          />
+          <ModalBody className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed text-start">
+              هل أنت متأكد من رغبتك في إلغاء أرشفة هذه الفاتورة وإعادتها إلى قائمة الفواتير النشطة؟
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setUnarchiveOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={unarchiveMutation.isPending}
+                onClick={() => unarchiveMutation.mutate()}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {unarchiveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                تأكيد الاستعادة
+              </button>
+            </div>
+          </ModalFooter>
+        </Modal>
       )}
     </PermissionGuard>
   );

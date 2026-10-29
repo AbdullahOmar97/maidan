@@ -181,6 +181,8 @@ class Invoice(models.Model):
     # Archiving tracking
     is_archived = models.BooleanField(default=False)
     archived_at = models.DateTimeField(null=True, blank=True)
+    archive_reason = models.TextField(blank=True, default="")
+    archived_by_id = models.UUIDField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -363,6 +363,11 @@ export interface Invoice {
   voided_by_id?: string | null;
   voided_by_name?: string | null;
   void_reason?: string;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  archive_reason?: string;
+  archived_by_id?: string | null;
+  archived_by_name?: string | null;
   credit_notes?: CreditNote[];
   payments?: InvoicePaymentRecord[];
   club_info?: InvoiceClubInfo | null;
@@ -372,6 +377,19 @@ export interface Invoice {
   created_at: string;
 }
 
+export interface ArchiveInvoicePrecheckData {
+  id: number;
+  invoice_number: string;
+  status: string;
+  total_amount: number;
+  amount_paid: number;
+  amount_due: number;
+  currency: string;
+  is_archived: boolean;
+  can_archive_cleanly: boolean;
+  requires_debt_acknowledgment: boolean;
+}
+
 export interface BillingSummary {
   total_paid: number;
   total_pending: number;
@@ -379,6 +397,7 @@ export interface BillingSummary {
   overdue_count: number;
   total_invoiced: number;
   invoice_count: number;
+  archived_count?: number;
   collection_rate: number;
   paid_this_month: number;
   currency: string;

@@ -337,6 +337,14 @@ export const api = {
         apiClient.post(`/billing/invoices/${id}/void/`, data ?? {}),
       refund: (id: number, data: { amount?: number; reason?: string; reason_details?: string; refund_method?: string; cancel_membership?: boolean }) =>
         apiClient.post(`/billing/invoices/${id}/refund/`, data),
+      archivePrecheck: (id: number) =>
+        apiClient.get(`/billing/invoices/${id}/archive_precheck/`),
+      archive: (id: number, data: { reason: string; force_with_debt?: boolean }) =>
+        apiClient.post(`/billing/invoices/${id}/archive/`, data),
+      unarchive: (id: number) =>
+        apiClient.post(`/billing/invoices/${id}/unarchive/`),
+      bulkArchive: (data: { invoice_ids: number[]; reason: string; force_with_debt?: boolean }) =>
+        apiClient.post("/billing/invoices/bulk_archive/", data),
     },
     creditNotes: {
       list: (params?: Record<string, unknown>) =>
