@@ -554,9 +554,8 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                     from django.utils import timezone
                     from decimal import Decimal
 
-                    order_items = []
-                    total_amount = Decimal("0.00")
-                    order_currency = "JOD"
+                    due_date = timezone.now().date()
+                    tax_rate = Decimal("15.0")
 
                     for item_data in initial_products:
                         prod_id = item_data.get("product_id") or item_data.get("product")
@@ -573,6 +572,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                         unit_price = Decimal(str(prod.price))
 
                         option = None
+                        option_desc = ""
                         if opt_id:
                             option = ProductOption.objects.filter(id=opt_id, product=prod).first()
                             if option:
@@ -581,47 +581,37 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                                     option.stock = max(0, option.stock - qty)
                                     option.save(update_fields=["stock"])
                                 unit_price += Decimal(str(option.additional_price))
+                                option_desc = f" ({option.name}: {option.value})"
 
                         item_total = unit_price * Decimal(str(qty))
-                        total_amount += item_total
-                        order_items.append({
-                            "product": prod,
-                            "option": option,
-                            "quantity": qty,
-                            "unit_price": unit_price,
-                            "total_price": item_total,
-                        })
+                        if item_total <= Decimal("0.00"):
+                            continue
 
-                    if order_items and total_amount > Decimal("0.00"):
+                        # Independent order per product item
                         order = Order.objects.create(
                             student=student,
                             buyer_name=student.full_name,
                             buyer_phone=student.phone or "",
                             buyer_email=student.email or "",
-                            total_amount=total_amount,
+                            total_amount=item_total,
                             payment_method=Order.PaymentMethod.CASH,
                             payment_status=Order.PaymentStatus.PENDING,
                             status=Order.Status.READY,
-                            notes="طلب تجهيزات ومعدات التسجيل الأولي",
+                            notes=f"تجهيز منتج: {prod.name}{option_desc} × {qty}",
                         )
 
-                        item_instances = [
-                            OrderItem(
-                                order=order,
-                                product=oi["product"],
-                                option=oi["option"],
-                                quantity=oi["quantity"],
-                                unit_price=oi["unit_price"],
-                                total_price=oi["total_price"]
-                            )
-                            for oi in order_items
-                        ]
-                        OrderItem.objects.bulk_create(item_instances)
+                        OrderItem.objects.create(
+                            order=order,
+                            product=prod,
+                            option=option,
+                            quantity=qty,
+                            unit_price=unit_price,
+                            total_price=item_total,
+                        )
 
-                        due_date = timezone.now().date()
-                        tax_rate = Decimal("15.0")
-                        subtotal = total_amount / (Decimal("1.0") + (tax_rate / Decimal("100.0")))
-                        tax_amount = total_amount - subtotal
+                        # Independent invoice per product item
+                        subtotal = item_total / (Decimal("1.0") + (tax_rate / Decimal("100.0")))
+                        tax_amount = item_total - subtotal
 
                         invoice = Invoice.objects.create(
                             student=student,
@@ -629,13 +619,13 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                             discount_amount=Decimal("0.00"),
                             tax_rate=tax_rate,
                             tax_amount=round(tax_amount, 2),
-                            total_amount=total_amount,
+                            total_amount=item_total,
                             amount_paid=Decimal("0.00"),
                             currency=order_currency,
                             status=Invoice.Status.PENDING,
                             due_date=due_date,
                             is_recurring=False,
-                            notes=f"فاتورة طلب تجهيزات ومعدات التسجيل #{order.id}"
+                            notes=f"فاتورة {prod.name}{option_desc} (كمية: {qty}) - طلب #{order.id}",
                         )
                         order.invoice = invoice
                         order.save(update_fields=["invoice"])
