@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import type { Invoice, InvoiceClubInfo } from "@/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, isInvoiceOverdue } from "@/lib/utils";
 
 interface ConsolidatedInvoiceDocumentProps {
   invoices: Invoice[];
@@ -155,7 +155,7 @@ export function ConsolidatedInvoiceDocument({
                     {(() => {
                       const isPaid = inv.status === "paid" || (Number(inv.amount_due ?? 0) <= 0 && Number(inv.total_amount ?? 0) > 0);
                       const isPartial = inv.status === "partially_paid" || (Number(inv.amount_paid ?? 0) > 0 && Number(inv.amount_due ?? 0) > 0);
-                      const isOverdue = inv.status === "overdue" || Boolean(inv.is_overdue);
+                      const isOverdue = inv.status === "overdue" || Boolean(inv.is_overdue) || isInvoiceOverdue(inv.status, inv.due_date);
                       const isVoid = inv.status === "void";
                       const isRefunded = inv.status === "refunded";
 

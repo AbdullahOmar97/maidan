@@ -361,7 +361,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: "profile", label: "الملف الشخصي", icon: User },
     ...(perms.canManageAcademy ? [{ id: "academy", label: "إعدادات الأكاديمية", icon: Building2 }] : []),
-    ...(perms.canManageBranding ? [{ id: "branding", label: "الهوية البصرية", icon: Palette }] : []),
+    ...(perms.canManageBranding ? [{ id: "branding", label: "الهوية والختم والتوقيع", icon: Stamp }] : []),
     { id: "billing", label: "الفوترة والدفع", icon: CreditCard },
     { id: "notifications", label: "الإشعارات", icon: Bell },
     ...(userRole === "tenant_owner" ? [{ id: "security", label: "الأمان", icon: Shield }] : []),
@@ -566,8 +566,8 @@ export default function SettingsPage() {
           {activeTab === "branding" && perms.canManageBranding && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div>
-                <h2 className="text-xl font-black text-white">الهوية البصرية والطباعة الرسمية</h2>
-                <p className="text-sm text-muted-foreground mt-1">تخصيص شعار النادي، ختم الإدارة، وتوقيع المسؤول المعتمد للظهور تلقائياً على الفواتير والسندات</p>
+                <h2 className="text-xl font-black text-white">الهوية، الختم والتوقيع الرسمي</h2>
+                <p className="text-sm text-muted-foreground mt-1">تخصيص شعار النادي، ختم الإدارة الرسمي، وتوقيع المسؤول المعتمد للظهور تلقائياً على الفواتير والسندات</p>
               </div>
               <hr className="border-border/50" />
 

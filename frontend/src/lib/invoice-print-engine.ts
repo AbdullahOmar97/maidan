@@ -8,7 +8,7 @@
 
 import QRCode from "qrcode";
 import type { Invoice, InvoiceClubInfo } from "@/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, isInvoiceOverdue } from "@/lib/utils";
 
 export interface InvoicePrintOptions {
   clubInfo?: InvoiceClubInfo | null;
@@ -65,9 +65,9 @@ async function renderSingleInvoiceHtml(
   }
 
   // Status-dependent styling and badges
-  const isPaid = invoice.status === "paid";
-  const isPartiallyPaid = invoice.status === "partially_paid";
-  const isOverdue = invoice.status === "overdue" || invoice.is_overdue;
+  const isPaid = invoice.status === "paid" || (Number(invoice.amount_due ?? 0) <= 0 && Number(invoice.total_amount ?? 0) > 0);
+  const isPartiallyPaid = invoice.status === "partially_paid" || (Number(invoice.amount_paid ?? 0) > 0 && Number(invoice.amount_due ?? 0) > 0);
+  const isOverdue = invoice.status === "overdue" || Boolean(invoice.is_overdue) || isInvoiceOverdue(invoice.status, invoice.due_date);
   const isVoid = invoice.status === "void";
   const isRefunded = invoice.status === "refunded";
 
@@ -1023,7 +1023,7 @@ export async function buildConsolidatedStatementHtml(
           ${(() => {
             const isPaid = inv.status === 'paid' || (Number(inv.amount_due ?? 0) <= 0 && Number(inv.total_amount ?? 0) > 0);
             const isPartial = inv.status === 'partially_paid' || (Number(inv.amount_paid ?? 0) > 0 && Number(inv.amount_due ?? 0) > 0);
-            const isOverdue = inv.status === 'overdue' || Boolean(inv.is_overdue);
+            const isOverdue = inv.status === 'overdue' || Boolean(inv.is_overdue) || isInvoiceOverdue(inv.status, inv.due_date);
             const isVoid = inv.status === 'void';
             const isRefunded = inv.status === 'refunded';
 

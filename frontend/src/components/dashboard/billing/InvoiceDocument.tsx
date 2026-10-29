@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import type { Invoice, InvoiceClubInfo } from "@/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, isInvoiceOverdue } from "@/lib/utils";
 
 interface InvoiceDocumentProps {
   invoice: Invoice;
@@ -49,9 +49,9 @@ export function InvoiceDocument({
       .catch((e: unknown) => console.error("Error generating QR:", e));
   }, [invoice, clubName, taxNumber]);
 
-  const isPaid = invoice.status === "paid";
-  const isPartiallyPaid = invoice.status === "partially_paid";
-  const isOverdue = invoice.status === "overdue" || invoice.is_overdue;
+  const isPaid = invoice.status === "paid" || (Number(invoice.amount_due ?? 0) <= 0 && Number(invoice.total_amount ?? 0) > 0);
+  const isPartiallyPaid = invoice.status === "partially_paid" || (Number(invoice.amount_paid ?? 0) > 0 && Number(invoice.amount_due ?? 0) > 0);
+  const isOverdue = invoice.status === "overdue" || Boolean(invoice.is_overdue) || isInvoiceOverdue(invoice.status, invoice.due_date);
   const isVoid = invoice.status === "void";
   const isRefunded = invoice.status === "refunded";
 
