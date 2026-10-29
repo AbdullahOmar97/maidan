@@ -41,6 +41,13 @@ class StaffPayslipSerializer(serializers.ModelSerializer):
 
 
 class StaffAdvanceRepaymentSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        if hasattr(instance, "repayment_date") and instance.repayment_date is not None:
+            import datetime
+            if isinstance(instance.repayment_date, datetime.datetime):
+                instance.repayment_date = instance.repayment_date.date()
+        return super().to_representation(instance)
+
     class Meta:
         model = StaffAdvanceRepayment
         fields = [
@@ -60,6 +67,10 @@ class StaffAdvanceSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, "copy") else dict(data)
+        for date_key in ["request_date", "disbursement_date"]:
+            if data.get(date_key) and isinstance(data[date_key], str) and "T" in data[date_key]:
+                data[date_key] = data[date_key].split("T")[0]
+
         staff_member_val = data.get("staff_member")
         if staff_member_val is not None:
             import uuid
@@ -79,6 +90,16 @@ class StaffAdvanceSerializer(serializers.ModelSerializer):
                 except (ValueError, TypeError):
                     raise serializers.ValidationError({"staff_member": "معرف الموظف غير صالح."})
         return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        import datetime
+        if hasattr(instance, "request_date") and instance.request_date is not None:
+            if isinstance(instance.request_date, datetime.datetime):
+                instance.request_date = instance.request_date.date()
+        if hasattr(instance, "disbursement_date") and instance.disbursement_date is not None:
+            if isinstance(instance.disbursement_date, datetime.datetime):
+                instance.disbursement_date = instance.disbursement_date.date()
+        return super().to_representation(instance)
 
     class Meta:
         model = StaffAdvance

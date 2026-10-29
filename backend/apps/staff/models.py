@@ -263,7 +263,7 @@ class StaffAdvance(models.Model):
         choices=CURRENCY_CHOICES,
         default="JOD"
     )
-    request_date = models.DateField(default=timezone.now)
+    request_date = models.DateField(default=timezone.localdate)
     disbursement_date = models.DateField(null=True, blank=True)
 
     status = models.CharField(
@@ -318,6 +318,14 @@ class StaffAdvance(models.Model):
         return f"Advance #{self.id} for {self.staff_member.user.get_full_name()} ({self.amount} {self.currency})"
 
     def save(self, *args, **kwargs):
+        import datetime
+        if hasattr(self, "request_date") and self.request_date is not None:
+            if isinstance(self.request_date, datetime.datetime):
+                self.request_date = self.request_date.date()
+        if hasattr(self, "disbursement_date") and self.disbursement_date is not None:
+            if isinstance(self.disbursement_date, datetime.datetime):
+                self.disbursement_date = self.disbursement_date.date()
+
         try:
             amt = Decimal(str(self.amount)) if self.amount is not None else Decimal("0.00")
         except Exception:
@@ -384,7 +392,7 @@ class StaffAdvanceRepayment(models.Model):
         decimal_places=2,
         help_text="المبلغ المسدد"
     )
-    repayment_date = models.DateField(default=timezone.now)
+    repayment_date = models.DateField(default=timezone.localdate)
     repayment_method = models.CharField(
         max_length=20,
         choices=RepaymentMethod.choices,
@@ -403,6 +411,10 @@ class StaffAdvanceRepayment(models.Model):
         return f"Repayment {self.amount} for Advance #{self.advance_id}"
 
     def save(self, *args, **kwargs):
+        import datetime
+        if hasattr(self, "repayment_date") and self.repayment_date is not None:
+            if isinstance(self.repayment_date, datetime.datetime):
+                self.repayment_date = self.repayment_date.date()
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new:

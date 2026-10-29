@@ -294,8 +294,11 @@ class StaffAdvanceViewSet(viewsets.ModelViewSet):
     ordering = ["-created_at"]
 
     def create(self, request, *args, **kwargs):
+        from rest_framework.exceptions import APIException
         try:
             return super().create(request, *args, **kwargs)
+        except APIException:
+            raise
         except Exception as exc:
             import traceback
             import logging
