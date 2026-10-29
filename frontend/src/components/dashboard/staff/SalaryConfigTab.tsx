@@ -79,11 +79,11 @@ export function SalaryConfigTab() {
   ];
 
   const CURRENCIES = [
-    { value: "JOD", label: "دينار أردني (JOD)" },
-    { value: "SAR", label: "ريال سعودي (SAR)" },
-    { value: "AED", label: "درهم إماراتي (AED)" },
-    { value: "KWD", label: "دينار كويتي (KWD)" },
-    { value: "USD", label: "دولار أمريكي (USD)" },
+    { value: "JOD", label: "JOD" },
+    { value: "SAR", label: "SAR" },
+    { value: "AED", label: "AED" },
+    { value: "KWD", label: "KWD" },
+    { value: "USD", label: "USD" },
   ];
 
   return (

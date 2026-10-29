@@ -319,15 +319,15 @@ function NewInvoiceContent() {
                       onChange={handleChange}
                       aria-label="عملة الفاتورة"
                     >
-                      <option value="JOD">JOD - دينار أردني</option>
-                      <option value="SAR">SAR - ريال سعودي</option>
-                      <option value="AED">AED - درهم إماراتي</option>
-                      <option value="KWD">KWD - دينار كويتي</option>
-                      <option value="BHD">BHD - دينار بحريني</option>
-                      <option value="OMR">OMR - ريال عماني</option>
-                      <option value="QAR">QAR - ريال قطري</option>
-                      <option value="EGP">EGP - جنيه مصري</option>
-                      <option value="USD">USD - دولار أمريكي</option>
+                      <option value="JOD">JOD</option>
+                      <option value="SAR">SAR</option>
+                      <option value="AED">AED</option>
+                      <option value="KWD">KWD</option>
+                      <option value="BHD">BHD</option>
+                      <option value="OMR">OMR</option>
+                      <option value="QAR">QAR</option>
+                      <option value="EGP">EGP</option>
+                      <option value="USD">USD</option>
                     </Select>
                   </InputWrapper>
 

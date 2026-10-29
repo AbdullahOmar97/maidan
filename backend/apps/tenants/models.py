@@ -11,15 +11,15 @@ from django_tenants.models import DomainMixin, TenantMixin
 
 
 CURRENCY_CHOICES = (
-    ("JOD", "دينار أردني (JOD)"),
-    ("SAR", "ريال سعودي (SAR)"),
-    ("AED", "درهم إماراتي (AED)"),
-    ("KWD", "دينار كويتي (KWD)"),
-    ("BHD", "دينار بحريني (BHD)"),
-    ("OMR", "ريال عماني (OMR)"),
-    ("QAR", "ريال قطري (QAR)"),
-    ("EGP", "جنيه مصري (EGP)"),
-    ("USD", "دولار أمريكي (USD)"),
+    ("JOD", "JOD"),
+    ("SAR", "SAR"),
+    ("AED", "AED"),
+    ("KWD", "KWD"),
+    ("BHD", "BHD"),
+    ("OMR", "OMR"),
+    ("QAR", "QAR"),
+    ("EGP", "EGP"),
+    ("USD", "USD"),
 )
 
 

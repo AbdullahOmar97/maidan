@@ -15,7 +15,8 @@ import {
   ExternalLink,
   ShieldAlert,
 } from "lucide-react";
-import { cn, parseApiError } from "@/lib/utils";
+import { cn, parseApiError, formatCurrency } from "@/lib/utils";
+import { useTenant } from "@/lib/providers/tenant-provider";
 import type { ArchivePrecheckData } from "@/types";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -49,6 +50,8 @@ export default function ArchiveStudentModal({
   onArchived,
 }: ArchiveStudentModalProps) {
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
+  const currency = tenant?.default_currency || "JOD";
   const [selectedReason, setSelectedReason] = useState<string>("انسحاب برغبة الطالب أو ولي الأمر");
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [forceWithDebt, setForceWithDebt] = useState(false);
@@ -140,7 +143,7 @@ export default function ArchiveStudentModal({
                     <span>مستحقات مالية غير مسددة</span>
                   </div>
                   <span className="px-3 py-1 rounded-xl bg-red-500/20 text-red-400 font-mono font-black text-sm">
-                    {precheck?.total_due} د.أ
+                    {formatCurrency(precheck?.total_due ?? 0, currency)}
                   </span>
                 </div>
 
@@ -196,7 +199,7 @@ export default function ArchiveStudentModal({
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-300">
                 <span>تنبيه محفظة: يوجد رصيد دائن متبقي للطالب:</span>
                 <span className="font-mono font-bold text-amber-400">
-                  {precheck?.account_credit} د.أ
+                  {formatCurrency(precheck?.account_credit ?? 0, currency)}
                 </span>
               </div>
             )}

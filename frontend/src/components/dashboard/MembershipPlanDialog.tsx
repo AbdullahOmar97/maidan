@@ -161,15 +161,15 @@ export default function MembershipPlanDialog({ isOpen, onClose, plan }: Membersh
                 value={formData.currency}
                 onChange={(e) => set("currency", e.target.value)}
               >
-                <option value="JOD">دينار أردني (JOD)</option>
-                <option value="SAR">ريال سعودي (SAR)</option>
-                <option value="USD">دولار أمريكي (USD)</option>
-                <option value="AED">درهم إماراتي (AED)</option>
-                <option value="EGP">جنيه مصري (EGP)</option>
-                <option value="KWD">دينار كويتي (KWD)</option>
-                <option value="QAR">ريال قطري (QAR)</option>
-                <option value="BHD">دينار بحريني (BHD)</option>
-                <option value="OMR">ريال عماني (OMR)</option>
+                <option value="JOD">JOD</option>
+                <option value="SAR">SAR</option>
+                <option value="AED">AED</option>
+                <option value="KWD">KWD</option>
+                <option value="BHD">BHD</option>
+                <option value="OMR">OMR</option>
+                <option value="QAR">QAR</option>
+                <option value="EGP">EGP</option>
+                <option value="USD">USD</option>
               </Select>
             </FormField>
           </div>

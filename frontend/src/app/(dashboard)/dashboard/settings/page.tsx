@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Settings, User, Building2, CreditCard, Bell, Shield, Globe, Loader2, Save, Palette, Upload, UserCog, AlertTriangle, CheckCircle2, XCircle, Plus, Users, Clock, Sparkles, Stamp, PenTool, Trash2 } from "lucide-react";
 
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { useSettingsPermissions } from "@/lib/hooks/use-permission";
@@ -510,15 +510,15 @@ export default function SettingsPage() {
                       value={academy.default_currency}
                       onChange={(e) => setAcademy({ ...academy, default_currency: e.target.value })}
                     >
-                      <option value="JOD">دينار أردني (JOD)</option>
-                      <option value="SAR">ريال سعودي (SAR)</option>
-                      <option value="AED">درهم إماراتي (AED)</option>
-                      <option value="KWD">دينار كويتي (KWD)</option>
-                      <option value="BHD">دينار بحريني (BHD)</option>
-                      <option value="OMR">ريال عماني (OMR)</option>
-                      <option value="QAR">ريال قطري (QAR)</option>
-                      <option value="EGP">جنيه مصري (EGP)</option>
-                      <option value="USD">دولار أمريكي (USD)</option>
+                      <option value="JOD">JOD</option>
+                      <option value="SAR">SAR</option>
+                      <option value="AED">AED</option>
+                      <option value="KWD">KWD</option>
+                      <option value="BHD">BHD</option>
+                      <option value="OMR">OMR</option>
+                      <option value="QAR">QAR</option>
+                      <option value="EGP">EGP</option>
+                      <option value="USD">USD</option>
                     </Select>
                   </div>
                   <div className="space-y-2">
@@ -901,12 +901,12 @@ export default function SettingsPage() {
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">قيمة الاشتراك</span>
                             {currentPlan?.price_yearly && parseFloat(currentPlan.price_yearly) > 0 ? (
                               <>
-                                <span className="text-3xl font-black text-primary"><bdi>{currentPlan.price_yearly} {currentPlan.currency}</bdi></span>
+                                <span className="text-3xl font-black text-primary"><bdi>{formatCurrency(currentPlan.price_yearly, currentPlan.currency)}</bdi></span>
                                 <span className="text-xs font-bold text-muted-foreground block mt-1">سنوياً</span>
                               </>
                             ) : (
                               <>
-                                <span className="text-3xl font-black text-primary"><bdi>{currentPlan?.price_monthly ?? 0} {currentPlan?.currency ?? "JOD"}</bdi></span>
+                                <span className="text-3xl font-black text-primary"><bdi>{formatCurrency(currentPlan?.price_monthly ?? 0, currentPlan?.currency ?? academy.default_currency)}</bdi></span>
                                 <span className="text-xs font-bold text-muted-foreground block mt-1">شهرياً</span>
                               </>
                             )}

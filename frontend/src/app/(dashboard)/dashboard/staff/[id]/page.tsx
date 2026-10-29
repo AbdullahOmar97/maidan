@@ -602,11 +602,11 @@ export default function StaffDetailPage() {
                       onChange={(e) => setConfigForm({ ...configForm, currency: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl bg-background/50 border border-border/80 text-white text-sm font-bold focus:border-primary focus:outline-none"
                     >
-                      <option value="JOD">دينار أردني (JOD)</option>
-                      <option value="SAR">ريال سعودي (SAR)</option>
-                      <option value="AED">درهم إماراتي (AED)</option>
-                      <option value="KWD">دينار كويتي (KWD)</option>
-                      <option value="USD">دولار أمريكي (USD)</option>
+                      <option value="JOD">JOD</option>
+                      <option value="SAR">SAR</option>
+                      <option value="AED">AED</option>
+                      <option value="KWD">KWD</option>
+                      <option value="USD">USD</option>
                     </select>
                   </div>
 

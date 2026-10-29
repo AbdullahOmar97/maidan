@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { useTenant } from "@/lib/providers/tenant-provider";
 import { toast } from "sonner";
 import {
   ShoppingBag,
@@ -35,6 +36,8 @@ import {
 import type { Product, Order, ProductOption } from "@/types";
 
 export default function StorePage() {
+  const { tenant } = useTenant();
+  const tenantCurrency = tenant?.default_currency || "JOD";
   const { data: session } = useSession();
   const user = session?.user as any;
   const isStaff = user && !["parent", "student"].includes(user.role);
@@ -488,7 +491,7 @@ export default function StorePage() {
                       <td className="py-4 px-5 text-sm text-muted-foreground">{formatDate(order.created_at)}</td>
                       <td className="py-4 px-5 text-sm text-primary font-bold">{order.invoice_number || "-"}</td>
                       <td className="py-4 px-5 text-sm font-bold text-white">
-                        {formatCurrency(parseFloat(order.total_amount), "JOD")}
+                        {formatCurrency(parseFloat(order.total_amount), tenantCurrency)}
                       </td>
                       <td className="py-4 px-5">
                         <StatusBadge status={order.status} />
@@ -565,7 +568,7 @@ export default function StorePage() {
                       <td className="py-4 px-5 text-sm font-bold text-white">{order.student_name}</td>
                       <td className="py-4 px-5 text-sm text-muted-foreground">{formatDate(order.created_at)}</td>
                       <td className="py-4 px-5 text-sm font-bold text-white">
-                        {formatCurrency(parseFloat(order.total_amount), "JOD")}
+                        {formatCurrency(parseFloat(order.total_amount), tenantCurrency)}
                       </td>
                       <td className="py-4 px-5">
                         <StatusBadge status={order.status} />
@@ -800,7 +803,7 @@ export default function StorePage() {
                     <span className="text-xs text-muted-foreground font-bold">المجموع الإجمالي</span>
                     <p className="text-xs text-muted-foreground">{cart.length} منتجات في السلة</p>
                   </div>
-                  <span className="text-2xl font-black text-primary">{formatCurrency(getCartTotal(), "JOD")}</span>
+                  <span className="text-2xl font-black text-primary">{formatCurrency(getCartTotal(), tenantCurrency)}</span>
                 </div>
 
                 <button
@@ -1026,8 +1029,8 @@ export default function StorePage() {
                         )}
                       </div>
                       <div className="text-left">
-                        <p className="font-bold">{item.quantity} x {formatCurrency(parseFloat(item.unit_price), "JOD")}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">الإجمالي: {formatCurrency(parseFloat(item.total_price), "JOD")}</p>
+                        <p className="font-bold">{item.quantity} x {formatCurrency(parseFloat(item.unit_price), tenantCurrency)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">الإجمالي: {formatCurrency(parseFloat(item.total_price), tenantCurrency)}</p>
                       </div>
                     </div>
                   ))}
@@ -1036,7 +1039,7 @@ export default function StorePage() {
 
               <div className="flex justify-between items-center border-t border-white/5 pt-4">
                 <span className="text-sm font-bold text-muted-foreground">إجمالي قيمة الطلب</span>
-                <span className="text-xl font-black text-primary">{formatCurrency(parseFloat(selectedOrder.total_amount), "JOD")}</span>
+                <span className="text-xl font-black text-primary">{formatCurrency(parseFloat(selectedOrder.total_amount), tenantCurrency)}</span>
               </div>
             </>
           )}

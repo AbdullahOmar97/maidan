@@ -233,7 +233,7 @@ export default function PublicStorePage() {
     );
   }
 
-  const currency = "JOD"; // standard for Maidan
+  const currency = academy?.default_currency || "JOD";
 
   if (placedOrder) {
     return (

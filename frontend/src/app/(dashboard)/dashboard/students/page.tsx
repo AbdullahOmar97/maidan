@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import { AddStudentModal } from "@/components/dashboard/AddStudentModal";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
+import { useTenant } from "@/lib/providers/tenant-provider";
 import { toast } from "sonner";
 
 const STATUS_OPTIONS = [
@@ -30,6 +31,8 @@ const STATUS_OPTIONS = [
 ];
 
 function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: Student) => void }) {
+  const { tenant } = useTenant();
+  const currency = tenant?.default_currency || "JOD";
   const dueBadge = student.has_due_membership ? (() => {
     const balance = Number(student.outstanding_balance ?? 0);
     const endDate = student.active_membership?.end_date;
@@ -44,7 +47,7 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
           <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
           <Calendar className="w-3.5 h-3.5" />
           <span>اشتراك مستحق</span>
-          <span className="font-mono font-bold">({balance} د.أ)</span>
+          <span className="font-mono font-bold">({balance} {currency})</span>
         </span>
       );
     }

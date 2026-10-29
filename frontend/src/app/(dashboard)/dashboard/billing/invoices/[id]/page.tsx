@@ -112,7 +112,7 @@ export default function InvoiceDetailPage() {
       if (res?.data?.status === "partially_paid") {
         toast.success("تم تسجيل الدفعة الجزئية بنجاح ✓");
       } else if (Number(res?.data?.surplus_amount ?? 0) > 0 && res?.data?.surplus_action === "credit") {
-        toast.success(`تم سداد الفاتورة وإيداع فائض ${res.data.surplus_amount} د.أ بمحفظة الطالب ✓`);
+        toast.success(`تم سداد الفاتورة وإيداع فائض ${formatCurrency(res.data.surplus_amount, invoice?.currency || tenant?.default_currency || "JOD")} بمحفظة الطالب ✓`);
       } else {
         toast.success("تم تأكيد السداد بنجاح ✓");
       }

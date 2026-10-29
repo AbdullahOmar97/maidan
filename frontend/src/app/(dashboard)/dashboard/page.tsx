@@ -140,6 +140,7 @@ export default function DashboardPage() {
     queryKey: ["academy", "me"],
     queryFn:  () => api.tenants.me().then((r) => r.data),
   });
+  const tenantCurrency = academy?.default_currency || "JOD";
 
   const emptyChart = (height: string) => (
     <div
@@ -210,8 +211,8 @@ export default function DashboardPage() {
         <StatsCard
           loading={kpisLoading}
           label="إيرادات الشهر"
-          value={formatCurrency(kpis?.revenue.this_month ?? 0, kpis?.revenue.currency ?? "SAR")}
-          subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2, kpis?.revenue.currency)}`}
+          value={formatCurrency(kpis?.revenue.this_month ?? 0, kpis?.revenue.currency ?? tenantCurrency)}
+          subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2, kpis?.revenue.currency ?? tenantCurrency)}`}
           icon={CreditCard}
           color="emerald"
           trend={(kpis?.revenue.change_pct ?? 0) >= 0 ? "up" : "down"}
@@ -230,7 +231,7 @@ export default function DashboardPage() {
         <StatsCard
           loading={kpisLoading}
           label="مدفوعات متأخرة"
-          value={formatCurrency(kpis?.revenue.overdue ?? 0, kpis?.revenue.currency ?? "SAR")}
+          value={formatCurrency(kpis?.revenue.overdue ?? 0, kpis?.revenue.currency ?? tenantCurrency)}
           subtitle="تحتاج لمتابعة فورية"
           icon={AlertTriangle}
           color="amber"

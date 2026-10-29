@@ -9,6 +9,7 @@ import type { BeltRank } from "@/types";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, ErrorBanner } from "@/components/ui/form-field";
+import { useTenant } from "@/lib/providers/tenant-provider";
 
 interface BeltRankDialogProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ interface BeltRankDialogProps {
 
 export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMartialArt }: BeltRankDialogProps) {
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
+  const currency = tenant?.default_currency || "JOD";
   const isEdit = !!rankToEdit;
 
   const [martialArt, setMartialArt] = useState("BJJ");
@@ -219,7 +222,7 @@ export default function BeltRankDialog({ isOpen, onClose, rankToEdit, defaultMar
             </FormField>
           </div>
 
-          <FormField label="رسوم الترقية للحزام (دينار / عملة النادي)">
+          <FormField label={`رسوم الترقية للحزام (${currency})`}>
             <Input
               type="number"
               min="0"

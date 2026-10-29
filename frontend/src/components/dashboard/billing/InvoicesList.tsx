@@ -438,7 +438,7 @@ export function InvoicesList({
         res?.data?.surplus_action === "credit"
       ) {
         toast.success(
-          `تم سداد الفاتورة وإيداع فائض ${res.data.surplus_amount} د.أ بمحفظة الطالب ✓`
+          `تم سداد الفاتورة وإيداع فائض ${formatCurrency(res.data.surplus_amount, modalInvoice?.currency || "JOD")} بمحفظة الطالب ✓`
         );
       } else {
         toast.success("تم تأكيد السداد بنجاح ✓");

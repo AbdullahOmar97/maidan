@@ -13,3 +13,15 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   student: "طالب",
   read_only: "مراقب",
 };
+
+export const CURRENCY_OPTIONS = [
+  { value: "JOD", label: "JOD" },
+  { value: "SAR", label: "SAR" },
+  { value: "AED", label: "AED" },
+  { value: "KWD", label: "KWD" },
+  { value: "BHD", label: "BHD" },
+  { value: "OMR", label: "OMR" },
+  { value: "QAR", label: "QAR" },
+  { value: "EGP", label: "EGP" },
+  { value: "USD", label: "USD" },
+] as const;

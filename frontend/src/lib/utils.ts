@@ -21,16 +21,14 @@ export function toLatinDigits(str: string | number | null | undefined): string {
   });
 }
 
-export function formatCurrency(amount: number | string, currency = "JOD", locale = "ar-JO-u-nu-latn"): string {
+export function formatCurrency(amount: number | string, currency = "JOD", locale = "en-US"): string {
   const num = typeof amount === "string" ? parseFloat(toLatinDigits(amount)) || 0 : (amount ?? 0);
   const formatted = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    numberingSystem: "latn",
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(num);
-  return toLatinDigits(formatted);
+  const cleanCurrency = (currency || "JOD").toUpperCase().trim();
+  return `${formatted} ${cleanCurrency}`;
 }
 
 export const ARABIC_MONTH_NAMES = [
