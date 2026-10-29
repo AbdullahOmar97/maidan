@@ -206,11 +206,12 @@ class StudentListSerializer(serializers.ModelSerializer):
             "phone", "email", "whatsapp",
             "status", "source", "location", "location_id",
             "current_belt", "active_membership", "outstanding_balance",
-            "has_due_membership", "created_at",
+            "has_due_membership", "is_archived", "archived_at", "archive_reason", "created_at",
         ]
         read_only_fields = [
             "id", "student_number", "full_name", "age", "current_belt",
-            "active_membership", "outstanding_balance", "has_due_membership", "created_at"
+            "active_membership", "outstanding_balance", "has_due_membership",
+            "is_archived", "archived_at", "archive_reason", "created_at"
         ]
 
     def get_current_belt(self, obj):
@@ -323,11 +324,13 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "notes", "internal_notes",
             "initial_belt_id", "initial_membership_plan_id", "membership_start_date",
             "active_membership", "current_belt", "belt_history",
+            "is_archived", "archived_at", "archive_reason", "archived_by_id",
             "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "student_number", "age",
             "active_membership", "current_belt", "belt_history",
+            "is_archived", "archived_at", "archive_reason", "archived_by_id",
             "created_at", "updated_at",
         ]
 

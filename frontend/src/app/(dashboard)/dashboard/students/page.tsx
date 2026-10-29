@@ -9,7 +9,8 @@ import { api } from "@/lib/api/client";
 import { getStatusBadgeClass, getStatusLabel, cn } from "@/lib/utils";
 import {
   Users, Search, Plus, ChevronRight, Phone,
-  Mail, Award, Sparkles, Filter, Inbox, ArrowLeft, ArrowRight, QrCode, AlertCircle, Calendar
+  Mail, Award, Sparkles, Filter, Inbox, ArrowLeft, ArrowRight, QrCode, AlertCircle, Calendar,
+  Archive, RotateCcw
 } from "lucide-react";
 import type { PaginatedResponse, Student, Location } from "@/types";
 import Link from "next/link";
@@ -129,7 +130,14 @@ function StudentCard({ student, onQRClick }: { student: Student; onQRClick: (s: 
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <StatusBadge status={student.status} />
+                {student.is_archived ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-black shadow-lg shadow-amber-500/10">
+                    <Archive className="w-3 h-3" />
+                    <span>مؤرشف</span>
+                  </span>
+                ) : (
+                  <StatusBadge status={student.status} />
+                )}
               </div>
             </div>
 
@@ -258,6 +266,7 @@ function StudentsContent() {
   const [status, setStatus] = useState(() => searchParams.get("status") || "");
   const [dueOnly, setDueOnly] = useState(() => searchParams.get("due_membership") === "true");
   const [locationId, setLocationId] = useState(() => searchParams.get("location") || "");
+  const [isArchivedView, setIsArchivedView] = useState(() => searchParams.get("archived") === "true");
   const [page, setPage] = useState(() => {
     const p = parseInt(searchParams.get("page") || "1", 10);
     return isNaN(p) || p < 1 ? 1 : p;
@@ -276,6 +285,7 @@ function StudentsContent() {
     if (status) params.set("status", status);
     if (dueOnly) params.set("due_membership", "true");
     if (locationId) params.set("location", locationId);
+    if (isArchivedView) params.set("archived", "true");
     if (page > 1) params.set("page", page.toString());
 
     const queryString = params.toString();
@@ -284,7 +294,7 @@ function StudentsContent() {
     if (typeof window !== "undefined" && window.location.pathname + window.location.search !== newPath) {
       window.history.replaceState(null, "", newPath);
     }
-  }, [debouncedSearch, status, dueOnly, locationId, page]);
+  }, [debouncedSearch, status, dueOnly, locationId, isArchivedView, page]);
 
   const { data: locations } = useQuery<Location[]>({
     queryKey: ["locations"],
@@ -292,7 +302,7 @@ function StudentsContent() {
   });
 
   const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<Student>>({
-    queryKey: ["students", { search: debouncedSearch, status, location: locationId, due_membership: dueOnly, page }],
+    queryKey: ["students", { search: debouncedSearch, status, location: locationId, due_membership: dueOnly, is_archived: isArchivedView, page }],
     queryFn: () =>
       api.students
         .list({
@@ -300,6 +310,7 @@ function StudentsContent() {
           status: status || undefined,
           location: locationId || undefined,
           due_membership: dueOnly ? true : undefined,
+          is_archived: isArchivedView ? "true" : undefined,
           page
         })
         .then((r) => r.data),
@@ -343,9 +354,17 @@ function StudentsContent() {
           </button>
         </PageHeader>
 
-        {/* Stats Grid — 2 col on mobile, 5 on lg */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
-          <StatsCard label="إجمالي الطلاب" value={stats?.total ?? 0} icon={Users} color="primary" description="جميع المسجلين" />
+        {/* Stats Grid — 2 col on mobile, 3 on sm, 6 on lg */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          <StatsCard
+            label="إجمالي الطلاب"
+            value={stats?.total ?? 0}
+            icon={Users}
+            color="primary"
+            description="جميع المسجلين النشطين"
+            onClick={() => { setIsArchivedView(false); setDueOnly(false); setStatus(""); setPage(1); }}
+            className={cn("cursor-pointer transition-all", !isArchivedView && !dueOnly && !status && "ring-2 ring-primary shadow-lg shadow-primary/20")}
+          />
           <StatsCard label="طلاب نشطون" value={stats?.active ?? 0} icon={Sparkles} color="emerald" description="اشتراكات جارية" />
           <StatsCard
             label="اشتراكات مستحقة"
@@ -353,11 +372,57 @@ function StudentsContent() {
             icon={Calendar}
             color="red"
             description="المنتهية والمتأخرة والحديثة"
-            onClick={() => { setDueOnly(!dueOnly); setPage(1); }}
+            onClick={() => { setDueOnly(!dueOnly); setIsArchivedView(false); setPage(1); }}
             className={cn("cursor-pointer transition-all", dueOnly && "ring-2 ring-red-500 shadow-lg shadow-red-500/20")}
           />
           <StatsCard label="تجريبيون" value={stats?.trials ?? 0} icon={Award} color="blue" description="فترة تجربة" />
           <StatsCard label="محتملون" value={stats?.leads ?? 0} icon={Filter} color="amber" description="قيد المتابعة" />
+          <StatsCard
+            label="الأرشيف"
+            value={stats?.archived ?? 0}
+            icon={Archive}
+            color="amber"
+            description="الطلاب المؤرشفون"
+            onClick={() => { setIsArchivedView(!isArchivedView); setDueOnly(false); setPage(1); }}
+            className={cn("cursor-pointer transition-all", isArchivedView && "ring-2 ring-amber-500 shadow-lg shadow-amber-500/20")}
+          />
+        </div>
+
+        {/* View Tabs: Active Students vs Archive */}
+        <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+          <button
+            type="button"
+            onClick={() => { setIsArchivedView(false); setPage(1); }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all",
+              !isArchivedView
+                ? "bg-primary text-white shadow-lg shadow-primary/25"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
+            )}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>الطلاب النشطون</span>
+            <span className="ms-1 px-2 py-0.5 rounded-full bg-black/30 text-[10px]">
+              {stats?.total ?? 0}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setIsArchivedView(true); setPage(1); }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all",
+              isArchivedView
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-lg shadow-amber-500/10"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
+            )}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            <span>سجل الأرشيف</span>
+            <span className="ms-1 px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
+              {stats?.archived ?? 0}
+            </span>
+          </button>
         </div>
 
         {/* Filters & Actions */}

@@ -159,6 +159,9 @@ class Student(models.Model):
     account_credit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     # Archive / Permanent deletion
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archive_reason = models.TextField(blank=True)
     archived_by_id = models.UUIDField(null=True, blank=True)
     is_permanently_deleted = models.BooleanField(default=False)
 
@@ -174,6 +177,7 @@ class Student(models.Model):
             models.Index(fields=["student_number"]),
             models.Index(fields=["email"]),
             models.Index(fields=["full_name"]),
+            models.Index(fields=["is_archived"]),
         ]
         constraints = [
             models.UniqueConstraint(

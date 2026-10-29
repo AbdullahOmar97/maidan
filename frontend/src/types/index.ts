@@ -75,8 +75,44 @@ export interface Student {
   outstanding_balance?: number;
   has_due_membership?: boolean;
   account_credit?: number;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  archive_reason?: string;
+  archived_by_id?: string | null;
   belt_history: BeltHistoryItem[];
   created_at: string;
+}
+
+export interface ArchivePrecheckInvoice {
+  id: number;
+  invoice_number: string;
+  status: string;
+  due_date: string;
+  total_amount: number;
+  amount_paid: number;
+  due_amount: number;
+  currency: string;
+}
+
+export interface ArchivePrecheckMembership {
+  id: number;
+  plan_name: string;
+  status: string;
+  start_date: string;
+  end_date: string | null;
+}
+
+export interface ArchivePrecheckData {
+  student_id: number;
+  student_name: string;
+  is_archived: boolean;
+  total_due: number;
+  account_credit: number;
+  outstanding_invoices: ArchivePrecheckInvoice[];
+  active_memberships: ArchivePrecheckMembership[];
+  pending_exams_count: number;
+  has_user_account: boolean;
+  can_archive_cleanly: boolean;
 }
 
 export interface BeltHistoryItem {

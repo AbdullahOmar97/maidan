@@ -201,6 +201,12 @@ export const api = {
       });
     },
     delete: (id: number) => apiClient.delete(`/students/${id}/`),
+    archivePrecheck: (id: number) =>
+      apiClient.get(`/students/${id}/archive_precheck/`),
+    archive: (id: number, data: { reason: string; force_with_debt?: boolean }) =>
+      apiClient.post(`/students/${id}/archive/`, data),
+    unarchive: (id: number) =>
+      apiClient.post(`/students/${id}/unarchive/`),
     stats: (params?: Record<string, unknown>) =>
       apiClient.get("/students/stats/", { params }),
     checkin: (id: number) =>

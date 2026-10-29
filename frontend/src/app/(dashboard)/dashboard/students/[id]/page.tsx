@@ -10,7 +10,7 @@ import {
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
   Filter, Clock, QrCode, Camera, Upload,
-  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle
+  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle, Archive, RotateCcw
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -28,6 +28,7 @@ import AddNoteDialog from "@/components/dashboard/AddNoteDialog";
 import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
 import LinkFamilyDialog from "@/components/dashboard/LinkFamilyDialog";
+import ArchiveStudentModal from "@/components/dashboard/ArchiveStudentModal";
 import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
 
 const LEAD_SOURCES_MAP: Record<string, string> = {
@@ -75,7 +76,8 @@ export default function StudentDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editData, setEditData] = useState<Student | null>(null);
   const [editError, setEditError] = useState("");
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isUnarchiveModalOpen, setIsUnarchiveModalOpen] = useState(false);
 
   // Notes states
   const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
@@ -97,16 +99,17 @@ export default function StudentDetailPage() {
     queryFn: () => api.students.get(studentId).then((res: { data: Student }) => res.data),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: () => api.students.delete(studentId),
+  const unarchiveMutation = useMutation({
+    mutationFn: () => api.students.unarchive(studentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
-      toast.success("تم حذف الطالب بنجاح");
-      router.push("/dashboard/students");
+      queryClient.invalidateQueries({ queryKey: ["student", id] });
+      toast.success("تم استعادة ملف الطالب بنجاح");
+      setIsUnarchiveModalOpen(false);
     },
     onError: (err: any) => {
-      console.error("Delete student error:", err);
-      toast.error(parseApiError(err, "حدث خطأ أثناء حذف الطالب."));
+      console.error("Unarchive student error:", err);
+      toast.error(parseApiError(err, "حدث خطأ أثناء استعادة ملف الطالب."));
     },
   });
 
@@ -396,15 +399,58 @@ export default function StudentDetailPage() {
               <Edit className="w-4 h-4" />
               تعديل الملف
             </button>
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-all active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" />
-              حذف الطالب
-            </button>
+            {student.is_archived ? (
+              <button
+                onClick={() => setIsUnarchiveModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-all active:scale-95"
+              >
+                <RotateCcw className="w-4 h-4" />
+                استعادة الطالب
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsArchiveModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/20 transition-all active:scale-95"
+              >
+                <Archive className="w-4 h-4" />
+                أرشفة الطالب
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Archived Notice Banner */}
+        {student.is_archived && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-start shadow-xl">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <Archive className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-black text-amber-300">
+                    ملف هذا الطالب مؤرشف حالياً
+                  </h3>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                    محجوب من الكشوفات النشطة
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {student.archived_at && `تاريخ الأرشفة: ${new Date(student.archived_at).toLocaleDateString("ar-EG")} | `}
+                  {student.archive_reason ? `السبب: ${student.archive_reason}` : "لا يوجد سبب مسجل"}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsUnarchiveModalOpen(true)}
+              className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-black transition-all active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              استعادة الطالب من الأرشيف
+            </button>
+          </div>
+        )}
 
         {/* Profile Header Card */}
         <div className="glass-card p-8 relative overflow-hidden group">
@@ -1468,36 +1514,45 @@ export default function StudentDetailPage() {
           />
         )}
 
-        {isDeleteModalOpen && (
-          <Modal open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} size="sm">
+        {isArchiveModalOpen && (
+          <ArchiveStudentModal
+            isOpen={isArchiveModalOpen}
+            onClose={() => setIsArchiveModalOpen(false)}
+            studentId={studentId}
+            studentName={student.full_name}
+          />
+        )}
+
+        {isUnarchiveModalOpen && (
+          <Modal open={isUnarchiveModalOpen} onClose={() => setIsUnarchiveModalOpen(false)} size="sm">
             <ModalHeader
-              icon={<Trash2 className="w-5 h-5 text-red-500" />}
-              title="حذف ملف الطالب"
+              icon={<RotateCcw className="w-5 h-5 text-emerald-500" />}
+              title="استعادة ملف الطالب"
               subtitle={student.full_name}
-              onClose={() => setIsDeleteModalOpen(false)}
+              onClose={() => setIsUnarchiveModalOpen(false)}
             />
             <ModalBody className="space-y-3">
-              <p className="text-sm text-muted-foreground leading-relaxed text-start" >
-                هل أنت متأكد من رغبتك في حذف ملف الطالب؟ سيتم أرشفة بيانات الطالب والاشتراكات بشكل آمن.
+              <p className="text-sm text-muted-foreground leading-relaxed text-start">
+                هل أنت متأكد من رغبتك في إلغاء أرشفة هذا الطالب؟ سيتم إرجاع حسابه إلى قائمة الطلاب النشطين وتمكينه من تجديد الاشتراكات وتسجيل الحضور.
               </p>
             </ModalBody>
             <ModalFooter>
               <div className="flex gap-3 w-full">
                 <button
                   type="button"
-                  onClick={() => setIsDeleteModalOpen(false)}
+                  onClick={() => setIsUnarchiveModalOpen(false)}
                   className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
                 >
                   إلغاء
                 </button>
                 <button
                   type="button"
-                  disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate()}
-                  className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={unarchiveMutation.isPending}
+                  onClick={() => unarchiveMutation.mutate()}
+                  className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  تأكيد الحذف
+                  {unarchiveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  تأكيد الاستعادة
                 </button>
               </div>
             </ModalFooter>

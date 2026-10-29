@@ -2,8 +2,10 @@
 MAIDAN — Students App Views
 """
 
+from decimal import Decimal
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -48,6 +50,7 @@ class StudentFilter(django_filters.FilterSet):
     has_active_membership = django_filters.BooleanFilter(method="filter_active_membership")
     trial_expiring_days = django_filters.NumberFilter(method="filter_trial_expiring")
     due_membership = django_filters.BooleanFilter(method="filter_due_membership")
+    is_archived = django_filters.BooleanFilter(field_name="is_archived")
 
     def filter_active_membership(self, queryset, name, value):
         if value:
@@ -92,7 +95,7 @@ class StudentFilter(django_filters.FilterSet):
 
     class Meta:
         model = Student
-        fields = ["status", "location", "gender", "due_membership"]
+        fields = ["status", "location", "gender", "due_membership", "is_archived"]
 
 
 class LocationViewSet(LocationFilterMixin, viewsets.ModelViewSet):
@@ -192,7 +195,7 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         "belt_history__belt_rank", "memberships__plan"
     )
     def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
+        if self.action in ["create", "update", "partial_update", "destroy", "archive", "unarchive"]:
             return [permissions.IsAuthenticated(), CanManageStudents()]
         return [permissions.IsAuthenticated(), IsStaff()]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -227,14 +230,37 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             return StudentListSerializer
         return StudentDetailSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        """Student deletion is strictly prohibited in the system to protect financial & academic history."""
+        return Response(
+            {
+                "detail": "حذف الطلاب غير متاح في النظام لضمان سلامة السجلات المالية والتدريبية. يرجى استخدام ميزة الأرشفة بدلاً من ذلك.",
+                "code": "deletion_not_allowed",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     def get_queryset(self):
         qs = super().get_queryset().filter(deleted_at__isnull=True)
+        archived_param = self.request.query_params.get("is_archived")
+        if archived_param is not None:
+            if str(archived_param).lower() in ["true", "1"]:
+                qs = qs.filter(is_archived=True)
+            elif str(archived_param).lower() in ["false", "0"]:
+                qs = qs.filter(is_archived=False)
+        elif self.action == "list":
+            qs = qs.filter(is_archived=False)
         return self.get_location_filtered_queryset(qs)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanCheckIn])
     def quick_checkin(self, request, pk=None):
         """One-tap check-in for a student to today's appropriate session."""
         student = self.get_object()
+        if student.is_archived:
+            return Response(
+                {"error": "لا يمكن تسجيل حضور طالب مؤرشف. يرجى استعادة الملف أولاً."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         
         from django.utils import timezone
         from zoneinfo import ZoneInfo
@@ -405,6 +431,11 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
     def manual_checkin(self, request, pk=None):
         """Manually record attendance for a specific session or schedule+date."""
         student = self.get_object()
+        if student.is_archived:
+            return Response(
+                {"error": "لا يمكن تسجيل حضور طالب مؤرشف. يرجى استعادة الملف أولاً."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         session_id = request.data.get("session_id")
         schedule_id = request.data.get("schedule_id")
         date_str = request.data.get("date")
@@ -515,6 +546,11 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             leads=Count("id", filter=Q(status="lead"), distinct=True),
             due=Count("id", filter=due_condition, distinct=True),
         )
+        # Compute archived students count for the branch/tenant
+        all_students_qs = Student.objects.filter(deleted_at__isnull=True)
+        if hasattr(self, "get_location_filtered_queryset"):
+            all_students_qs = self.get_location_filtered_queryset(all_students_qs)
+        stats["archived"] = all_students_qs.filter(is_archived=True).count()
         return Response(stats)
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated, IsStaff])
@@ -526,7 +562,8 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
 
         qs = self.get_queryset().filter(
             status__in=["active", "trial"],
-            deleted_at__isnull=True
+            deleted_at__isnull=True,
+            is_archived=False,
         )
 
         from django.db.models import Q
@@ -545,6 +582,209 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         qs = qs[:10]
 
         serializer = KioskStudentSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated, IsStaff])
+    def archive_precheck(self, request, pk=None):
+        """
+        Pre-flight audit before archiving a student.
+        Gathers outstanding invoices, positive wallet credit, active memberships, and pending exams.
+        """
+        student = self.get_object()
+
+        # 1. Unpaid or partially paid invoices
+        unpaid_invoices_qs = student.invoices.filter(
+            status__in=["pending", "overdue", "partially_paid"],
+            is_archived=False,
+        ).order_by("due_date")
+
+        invoices_data = []
+        total_due = Decimal("0.00")
+        for inv in unpaid_invoices_qs:
+            due_amount = inv.total_amount - inv.amount_paid
+            if due_amount > Decimal("0.00"):
+                total_due += due_amount
+                invoices_data.append({
+                    "id": inv.id,
+                    "invoice_number": inv.invoice_number,
+                    "status": inv.status,
+                    "due_date": inv.due_date,
+                    "total_amount": float(inv.total_amount),
+                    "amount_paid": float(inv.amount_paid),
+                    "due_amount": float(due_amount),
+                    "currency": inv.currency,
+                })
+
+        # 2. Active memberships
+        active_memberships = []
+        for m in student.memberships.filter(status__in=["active", "paused", "pending", "pending_approval"]):
+            active_memberships.append({
+                "id": m.id,
+                "plan_name": m.plan.name if m.plan else "اشتراك مخصص",
+                "status": m.status,
+                "start_date": m.start_date,
+                "end_date": m.end_date,
+            })
+
+        # 3. Pending belt exam candidacies
+        pending_exams_count = student.exam_candidacies.filter(status="pending").count()
+
+        # 4. User portal account
+        has_user_account = bool(student.user_account_id)
+
+        return Response({
+            "student_id": student.id,
+            "student_name": student.full_name,
+            "is_archived": student.is_archived,
+            "total_due": float(total_due),
+            "account_credit": float(student.account_credit),
+            "outstanding_invoices": invoices_data,
+            "active_memberships": active_memberships,
+            "pending_exams_count": pending_exams_count,
+            "has_user_account": has_user_account,
+            "can_archive_cleanly": total_due <= Decimal("0.00"),
+        })
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanManageStudents])
+    def archive(self, request, pk=None):
+        """
+        Archive student profile.
+        Terminates active memberships, deactivates user portal login, and enforces dues protocol.
+        """
+        student = self.get_object()
+        if student.is_archived:
+            return Response(
+                {"detail": "هذا الطالب مؤرشف بالفعل في النظام."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reason = request.data.get("reason", "").strip()
+        force_with_debt = bool(request.data.get("force_with_debt", False))
+
+        # Check outstanding dues
+        unpaid_invoices_qs = student.invoices.filter(
+            status__in=["pending", "overdue", "partially_paid"],
+            is_archived=False,
+        )
+        total_due = Decimal("0.00")
+        for inv in unpaid_invoices_qs:
+            diff = inv.total_amount - inv.amount_paid
+            if diff > Decimal("0.00"):
+                total_due += diff
+
+        if total_due > Decimal("0.00") and not force_with_debt:
+            return Response(
+                {
+                    "detail": f"لا يمكن أرشفة الطالب لوجود مستحقات مالية غير مسددة بقيمة {total_due} د.أ. يرجى تسديد الفواتير أولاً أو تفعيل خيار إحالة المديونية للتحصيل.",
+                    "total_due": float(total_due),
+                    "code": "outstanding_dues_required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.db import transaction
+        with transaction.atomic():
+            now = timezone.now()
+
+            # 1. Update Student record
+            student.is_archived = True
+            student.archived_at = now
+            student.archive_reason = reason
+            user_id = request.user.id
+            if user_id:
+                try:
+                    import uuid
+                    if isinstance(user_id, uuid.UUID):
+                        student.archived_by_id = user_id
+                    elif isinstance(user_id, str):
+                        student.archived_by_id = uuid.UUID(user_id)
+                except Exception:
+                    pass
+
+            student.status = Student.Status.INACTIVE
+            student.save(update_fields=["is_archived", "archived_at", "archive_reason", "archived_by_id", "status", "updated_at"])
+
+            # 2. Terminate active/paused memberships
+            for m in student.memberships.filter(status__in=["active", "paused", "pending", "pending_approval"]):
+                m.status = "cancelled"
+                cancellation_note = f"\nتم إلغاء الاشتراك تلقائياً بسبب أرشفة الطالب بتاريخ {now.strftime('%Y-%m-%d %H:%M')}"
+                m.notes = (m.notes or "") + cancellation_note
+                m.save(update_fields=["status", "notes"])
+
+            # 3. Cancel pending exam candidacies
+            student.exam_candidacies.filter(status="pending").delete()
+
+            # 4. Deactivate linked User Account
+            if student.user_account:
+                student.user_account.is_active = False
+                student.user_account.save(update_fields=["is_active"])
+
+            # 5. Create audit StudentNote
+            staff_name = request.user.get_full_name() or getattr(request.user, "username", "النظام")
+            note_content = f"تمت أرشفة ملف الطالب بواسطة {staff_name}."
+            if reason:
+                note_content += f"\nسبب الأرشفة: {reason}"
+            if total_due > Decimal("0.00"):
+                note_content += f"\nتنبيه مالي: تم إقرار الأرشفة مع تعليق مديونية غير مسددة بقيمة {total_due} د.أ وإحالتها للمتابعة والتحصيل."
+
+            import uuid
+            author_id = user_id if isinstance(user_id, uuid.UUID) else uuid.uuid4()
+            try:
+                StudentNote.objects.create(
+                    student=student,
+                    author_id=author_id,
+                    note_type=StudentNote.NoteType.BILLING if total_due > Decimal("0.00") else StudentNote.NoteType.GENERAL,
+                    content=note_content,
+                    is_private=True,
+                )
+            except Exception:
+                pass
+
+        serializer = self.get_serializer(student)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanManageStudents])
+    def unarchive(self, request, pk=None):
+        """Restore an archived student back to active database."""
+        student = self.get_object()
+        if not student.is_archived:
+            return Response(
+                {"detail": "هذا الطالب غير مؤرشف في النظام."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.db import transaction
+        with transaction.atomic():
+            now = timezone.now()
+            student.is_archived = False
+            student.archived_at = None
+            student.archived_by_id = None
+            student.archive_reason = ""
+            student.status = Student.Status.INACTIVE
+            student.save(update_fields=["is_archived", "archived_at", "archived_by_id", "archive_reason", "status", "updated_at"])
+
+            # Reactivate linked user account if exists
+            if student.user_account:
+                student.user_account.is_active = True
+                student.user_account.save(update_fields=["is_active"])
+
+            # Audit note
+            staff_name = request.user.get_full_name() or getattr(request.user, "username", "النظام")
+            user_id = request.user.id
+            import uuid
+            author_id = user_id if isinstance(user_id, uuid.UUID) else uuid.uuid4()
+            try:
+                StudentNote.objects.create(
+                    student=student,
+                    author_id=author_id,
+                    note_type=StudentNote.NoteType.GENERAL,
+                    content=f"تم إلغاء أرشفة ملف الطالب واستعادته بواسطة {staff_name} بتاريخ {now.strftime('%Y-%m-%d %H:%M')}.",
+                    is_private=True,
+                )
+            except Exception:
+                pass
+
+        serializer = self.get_serializer(student)
         return Response(serializer.data)
 
 
