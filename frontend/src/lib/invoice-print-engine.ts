@@ -1020,9 +1020,20 @@ export async function buildConsolidatedStatementHtml(
         </td>
         <td class="td-date">${formatDate(inv.due_date)}</td>
         <td class="td-status">
-          <span class="status-chip ${inv.status === 'paid' ? 'chip-paid' : inv.status === 'void' ? 'chip-void' : 'chip-pending'}">
-            ${inv.status === 'paid' ? 'مدفوعة' : inv.status === 'void' ? 'ملغاة' : 'معلقة'}
-          </span>
+          ${(() => {
+            const isPaid = inv.status === 'paid' || (Number(inv.amount_due ?? 0) <= 0 && Number(inv.total_amount ?? 0) > 0);
+            const isPartial = inv.status === 'partially_paid' || (Number(inv.amount_paid ?? 0) > 0 && Number(inv.amount_due ?? 0) > 0);
+            const isOverdue = inv.status === 'overdue' || Boolean(inv.is_overdue);
+            const isVoid = inv.status === 'void';
+            const isRefunded = inv.status === 'refunded';
+
+            if (isPaid) return `<span class="status-chip chip-paid">مدفوعة</span>`;
+            if (isPartial) return `<span class="status-chip chip-partial">مدفوعة جزئياً</span>`;
+            if (isOverdue) return `<span class="status-chip chip-overdue">متأخرة</span>`;
+            if (isRefunded) return `<span class="status-chip chip-refunded">مستردة</span>`;
+            if (isVoid) return `<span class="status-chip chip-void">ملغاة</span>`;
+            return `<span class="status-chip chip-pending">معلقة</span>`;
+          })()}
         </td>
         <td class="td-price mono font-bold text-end">${formatCurrency(inv.total_amount, inv.currency)}</td>
       </tr>
@@ -1056,9 +1067,12 @@ export async function buildConsolidatedStatementHtml(
       font-size: 8px;
       font-weight: 700;
     }
-    .chip-paid { background: #d1fae5; color: #065f46; }
-    .chip-void { background: #fee2e2; color: #991b1b; }
-    .chip-pending { background: #fef3c7; color: #92400e; }
+    .chip-paid { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .chip-partial { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .chip-overdue { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .chip-void { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+    .chip-refunded { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+    .chip-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   `;
 
   return `

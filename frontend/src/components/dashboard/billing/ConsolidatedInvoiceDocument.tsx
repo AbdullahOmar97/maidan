@@ -152,9 +152,54 @@ export function ConsolidatedInvoiceDocument({
                     {formatDate(inv.due_date)}
                   </td>
                   <td className="py-2 px-3 text-center">
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-100 text-gray-700">
-                      {inv.status === "paid" ? "مدفوعة" : inv.status === "void" ? "ملغاة" : "معلقة"}
-                    </span>
+                    {(() => {
+                      const isPaid = inv.status === "paid" || (Number(inv.amount_due ?? 0) <= 0 && Number(inv.total_amount ?? 0) > 0);
+                      const isPartial = inv.status === "partially_paid" || (Number(inv.amount_paid ?? 0) > 0 && Number(inv.amount_due ?? 0) > 0);
+                      const isOverdue = inv.status === "overdue" || Boolean(inv.is_overdue);
+                      const isVoid = inv.status === "void";
+                      const isRefunded = inv.status === "refunded";
+
+                      if (isPaid) {
+                        return (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            مدفوعة
+                          </span>
+                        );
+                      }
+                      if (isPartial) {
+                        return (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            مدفوعة جزئياً
+                          </span>
+                        );
+                      }
+                      if (isOverdue) {
+                        return (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-50 text-red-700 border border-red-200">
+                            متأخرة
+                          </span>
+                        );
+                      }
+                      if (isRefunded) {
+                        return (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            مستردة
+                          </span>
+                        );
+                      }
+                      if (isVoid) {
+                        return (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                            ملغاة
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          معلقة
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-2 px-3 text-end font-mono font-bold text-gray-900">
                     {formatCurrency(inv.total_amount, inv.currency)}
