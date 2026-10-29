@@ -782,6 +782,7 @@ function getInvoiceStyles(): string {
       max-height: 46px;
       max-width: 90%;
       object-fit: contain;
+      mix-blend-mode: multiply;
     }
     .sig-line { border-bottom: 1px solid #9ca3af; width: 70%; margin: 18px auto 2px; }
     .sig-sub { font-size: 8px; color: #6b7280; }
@@ -797,6 +798,7 @@ function getInvoiceStyles(): string {
       max-width: 85px;
       object-fit: contain;
       transform: rotate(-3deg);
+      mix-blend-mode: multiply;
     }
     .stamp-placeholder {
       width: 58px;

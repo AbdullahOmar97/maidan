@@ -319,7 +319,7 @@ export function InvoiceDocument({
                   <img
                     src={club.signature}
                     alt="Authorized Signature"
-                    className="max-h-11 max-w-full object-contain"
+                    className="max-h-11 max-w-full object-contain mix-blend-multiply"
                   />
                 ) : (
                   <div className="border-b border-gray-300 w-3/4 mx-auto mt-6" />
@@ -334,7 +334,7 @@ export function InvoiceDocument({
                   <img
                     src={club.stamp}
                     alt="Official Stamp"
-                    className="max-h-12 max-w-full object-contain -rotate-3"
+                    className="max-h-12 max-w-full object-contain -rotate-3 mix-blend-multiply"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center mx-auto text-[7px] text-gray-400 font-bold">

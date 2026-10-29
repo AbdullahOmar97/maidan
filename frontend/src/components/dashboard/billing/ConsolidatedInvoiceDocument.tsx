@@ -216,7 +216,7 @@ export function ConsolidatedInvoiceDocument({
           <span className="text-[9px] font-bold text-gray-700">توقيع المسؤول المالي المعتمد</span>
           <div className="h-10 flex items-center justify-center">
             {club?.signature ? (
-              <img src={club.signature} alt="Signature" className="max-h-10 object-contain" />
+              <img src={club.signature} alt="Signature" className="max-h-10 object-contain mix-blend-multiply" />
             ) : (
               <div className="w-28 border-b border-gray-400 mt-4" />
             )}
@@ -228,7 +228,7 @@ export function ConsolidatedInvoiceDocument({
           <span className="text-[9px] font-bold text-gray-700">ختم النادي الرسمي</span>
           <div className="h-10 flex items-center justify-center">
             {club?.stamp ? (
-              <img src={club.stamp} alt="Stamp" className="max-h-10 object-contain -rotate-3" />
+              <img src={club.stamp} alt="Stamp" className="max-h-10 object-contain -rotate-3 mix-blend-multiply" />
             ) : (
               <div className="w-12 h-12 rounded-full border border-dashed border-gray-400 flex items-center justify-center text-[7px] text-gray-400">
                 ختم الإدارة

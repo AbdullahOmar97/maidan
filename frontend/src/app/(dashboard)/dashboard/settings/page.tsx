@@ -656,7 +656,7 @@ export default function SettingsPage() {
                       </div>
                     ) : branding.stampUrl ? (
                       <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:6px_6px] bg-slate-950 flex items-center justify-center border border-emerald-500/30 p-2 shadow-inner">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px] bg-white flex items-center justify-center border border-emerald-500/30 p-2 shadow-inner">
                           <img src={branding.stampUrl} alt="Club Stamp" className="max-w-full max-h-full object-contain -rotate-6" />
                         </div>
                         <span className="text-[10px] font-black text-emerald-400 flex items-center gap-1">
@@ -711,7 +711,7 @@ export default function SettingsPage() {
                       </div>
                     ) : branding.signatureUrl ? (
                       <div className="flex flex-col items-center">
-                        <div className="w-28 h-16 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:6px_6px] bg-slate-950 flex items-center justify-center border border-blue-500/30 p-2 shadow-inner">
+                        <div className="w-28 h-16 rounded-xl overflow-hidden mb-2 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px] bg-white flex items-center justify-center border border-blue-500/30 p-2 shadow-inner">
                           <img src={branding.signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
                         </div>
                         <span className="text-[10px] font-black text-blue-400 flex items-center gap-1">

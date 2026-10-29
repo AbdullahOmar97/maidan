@@ -112,15 +112,121 @@ class TenantSerializer(serializers.ModelSerializer):
             from django.core.files.uploadedfile import InMemoryUploadedFile
 
             image = Image.open(uploaded_file).convert("RGBA")
-            data = image.getdata()
+            width, height = image.size
+            total_pixels = width * height
+            raw_data = list(image.getdata())
+
+            # Check if image already has transparent areas (> 1.5% pixels transparent)
+            transparent_count = sum(1 for item in raw_data if item[3] < 128)
+            if transparent_count > total_pixels * 0.015:
+                output = io.BytesIO()
+                image.save(output, format="PNG")
+                output.seek(0)
+                name = getattr(uploaded_file, "name", "image.png")
+                if not name.lower().endswith(".png"):
+                    name = name.rsplit(".", 1)[0] + ".png"
+                return InMemoryUploadedFile(
+                    output, "ImageField", name, "image/png", output.getbuffer().nbytes, None
+                )
+
+            # Build luminance histogram via grayscale conversion
+            gray = image.convert("L")
+            hist = gray.histogram()
+            sum_total_lum = sum(i * count for i, count in enumerate(hist))
+
+            # Otsu thresholding
+            sum_b = 0
+            w_b = 0
+            max_variance = 0
+            otsu_t = 128
+
+            for t in range(256):
+                w_b += hist[t]
+                if w_b == 0:
+                    continue
+                w_f = total_pixels - w_b
+                if w_f == 0:
+                    break
+                sum_b += t * hist[t]
+                m_b = sum_b / w_b
+                m_f = (sum_total_lum - sum_b) / w_f
+                variance = w_b * w_f * ((m_b - m_f) ** 2)
+                if variance > max_variance:
+                    max_variance = variance
+                    otsu_t = t
+
+            # Compute median paper luminance & ink luminance
+            fg_count = sum(hist[:otsu_t])
+            bg_count = sum(hist[otsu_t:])
+
+            ink_lum = 35
+            acc_fg = 0
+            for t in range(otsu_t):
+                acc_fg += hist[t]
+                if acc_fg >= fg_count // 2:
+                    ink_lum = t
+                    break
+
+            paper_lum = 220
+            acc_bg = 0
+            for t in range(otsu_t, 256):
+                acc_bg += hist[t]
+                if acc_bg >= bg_count // 2:
+                    paper_lum = t
+                    break
+
+            # Estimate background paper color
+            bg_r_sum = bg_g_sum = bg_b_sum = bg_samples = 0
+            for r, g, b, a in raw_data:
+                lum = 0.299 * r + 0.587 * g + 0.114 * b
+                if abs(lum - paper_lum) < 15:
+                    bg_r_sum += r
+                    bg_g_sum += g
+                    bg_b_sum += b
+                    bg_samples += 1
+
+            bg_r = bg_r_sum / bg_samples if bg_samples else 255
+            bg_g = bg_g_sum / bg_samples if bg_samples else 255
+            bg_b = bg_b_sum / bg_samples if bg_samples else 255
+
+            t_high = max(paper_lum - 8, otsu_t + int((paper_lum - otsu_t) * 0.45))
+            t_low = min(ink_lum + 12, otsu_t - int((otsu_t - ink_lum) * 0.35))
 
             new_data = []
-            for item in data:
-                # If pixel is near-white or light paper background
-                if item[0] > 220 and item[1] > 220 and item[2] > 220:
+            for r, g, b, a in raw_data:
+                lum = 0.299 * r + 0.587 * g + 0.114 * b
+                dr = r - bg_r
+                dg = g - bg_g
+                db = b - bg_b
+                color_dist = (dr * dr + dg * dg + db * db) ** 0.5
+                max_chroma = max(abs(dr), abs(dg), abs(db))
+
+                is_colored_ink = color_dist > 38 and max_chroma > 25
+                is_paper_bg = (
+                    (lum >= t_high and not is_colored_ink)
+                    or (color_dist < 25 and lum > otsu_t - 15)
+                    or (lum > 225 and r > 220 and g > 220 and b > 220)
+                )
+
+                if is_paper_bg:
                     new_data.append((255, 255, 255, 0))
+                elif lum <= t_low or is_colored_ink:
+                    if not is_colored_ink and max_chroma < 30:
+                        scale = min(1.0, lum / max(paper_lum, 1))
+                        new_data.append((int(r * scale), int(g * scale), int(b * scale), a))
+                    else:
+                        new_data.append((r, g, b, a))
                 else:
-                    new_data.append(item)
+                    factor = (t_high - lum) / max(1, t_high - t_low)
+                    clamped = max(0.0, min(1.0, factor))
+                    smooth_factor = clamped * clamped * (3.0 - 2.0 * clamped)
+                    new_alpha = int(round(a * smooth_factor))
+
+                    if new_alpha > 0 and not is_colored_ink and max_chroma < 30:
+                        scale = min(1.0, lum / max(paper_lum, 1))
+                        new_data.append((int(r * scale), int(g * scale), int(b * scale), new_alpha))
+                    else:
+                        new_data.append((r, g, b, new_alpha))
 
             image.putdata(new_data)
             output = io.BytesIO()
