@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { Calendar, Plus, Loader2, Landmark, CheckCircle2, DollarSign, ChevronLeft, Eye, RefreshCw, Check, Trash } from "lucide-react";
+import { Calendar, Plus, Loader2, Landmark, CheckCircle2, DollarSign, ChevronLeft, Eye, RefreshCw, Check, Trash, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ARABIC_MONTHS_WITH_NUMBERS, formatMonthName } from "@/lib/utils";
+import { ARABIC_MONTHS_WITH_NUMBERS, formatMonthName, parseApiError } from "@/lib/utils";
 
 interface Payslip {
   id: number;
@@ -67,8 +67,7 @@ export function PayrollTab() {
       toast.success("تم إنشاء مسير الرواتب بنجاح");
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.month?.[0] || "تعذر إنشاء مسير الرواتب";
-      toast.error(msg);
+      toast.error(parseApiError(err, "تعذر إنشاء مسير الرواتب. قد يكون المسير منشأ مسبقاً لهذا الشهر."));
     },
   });
 
@@ -455,65 +454,100 @@ export function PayrollTab() {
       )}
 
       {/* Create Run Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="glass-card w-full max-w-md p-6 space-y-4">
-            <h3 className="font-semibold text-lg text-foreground">توليد مسير رواتب جديد</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
+      {showCreateModal && (() => {
+        const duplicateRun = runs?.find(
+          (r) => r.year === Number(newRunForm.year) && r.month === Number(newRunForm.month)
+        );
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="glass-card w-full max-w-md p-6 space-y-4">
+              <h3 className="font-semibold text-lg text-foreground">توليد مسير رواتب جديد</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">السنة</label>
+                  <input
+                    type="number"
+                    value={newRunForm.year}
+                    onChange={(e) => setNewRunForm({ ...newRunForm, year: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">الشهر</label>
+                  <select
+                    value={newRunForm.month}
+                    onChange={(e) => setNewRunForm({ ...newRunForm, month: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                  >
+                    {MONTHS_NAMES.map((name, i) => {
+                      if (i === 0) return null;
+                      const exists = runs?.some((r) => r.year === Number(newRunForm.year) && r.month === i);
+                      return (
+                        <option key={i} value={i}>
+                          {name} {exists ? "✓ (مسجل مسبقاً)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {duplicateRun && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-bold">يوجد مسير رواتب مسجل مسبقاً لهذا الشهر ({MONTHS_NAMES[duplicateRun.month]} {duplicateRun.year})</p>
+                    <p className="text-[11px] text-amber-200/80">
+                      وفقاً للمعايير المحاسبية، لا يمكن تكرار مسير رواتب لنفس الشهر والسنة. يمكنك فتح المسير القائم لتعديله أو احتسابه.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRunId(duplicateRun.id);
+                        setShowCreateModal(false);
+                      }}
+                      className="mt-1 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                    >
+                      <span>فتح المسير المسجل (#{duplicateRun.id})</span>
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground">السنة</label>
-                <input
-                  type="number"
-                  value={newRunForm.year}
-                  onChange={(e) => setNewRunForm({ ...newRunForm, year: parseInt(e.target.value) })}
+                <label className="text-xs font-bold text-muted-foreground">ملاحظات</label>
+                <textarea
+                  value={newRunForm.notes}
+                  onChange={(e) => setNewRunForm({ ...newRunForm, notes: e.target.value })}
+                  rows={3}
+                  placeholder="مثال: رواتب هذا الشهر تشمل مكافآت المدربين للموسم الرياضي"
                   className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground">الشهر</label>
-                <select
-                  value={newRunForm.month}
-                  onChange={(e) => setNewRunForm({ ...newRunForm, month: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => createMutation.mutate(newRunForm)}
+                  disabled={createMutation.isPending || !!duplicateRun}
+                  className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
-                  {MONTHS_NAMES.map((name, i) => i > 0 && (
-                    <option key={i} value={i}>{name}</option>
-                  ))}
-                </select>
+                  {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  إنشاء وتوليد
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-border/40 hover:bg-secondary/20 text-xs font-bold transition-all"
+                >
+                  إلغاء
+                </button>
               </div>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground">ملاحظات</label>
-              <textarea
-                value={newRunForm.notes}
-                onChange={(e) => setNewRunForm({ ...newRunForm, notes: e.target.value })}
-                rows={3}
-                placeholder="مثال: رواتب هذا الشهر تشمل مكافآت المدربين للموسم الرياضي"
-                className="w-full px-3 py-2 rounded-xl border border-border/40 bg-background/50 text-sm text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => createMutation.mutate(newRunForm)}
-                disabled={createMutation.isPending}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                إنشاء وتوليد
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-5 py-2.5 rounded-xl border border-border/40 hover:bg-secondary/20 text-xs font-bold transition-all"
-              >
-                إلغاء
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

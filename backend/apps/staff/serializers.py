@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from apps.accounts.serializers import UserSerializer
 from .models import (
     StaffMember, StaffSalaryConfig, PayrollRun, StaffPayslip, StaffDocument,
@@ -101,6 +102,13 @@ class PayrollRunSerializer(serializers.ModelSerializer):
             "total_amount", "payslips_count", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=PayrollRun.objects.all(),
+                fields=["year", "month"],
+                message="لقد تم إنشاء مسير رواتب بالفعل لهذا الشهر والسنة. لا يمكن تكرار مسير لنفس الشهر."
+            )
+        ]
 
     def get_total_amount(self, obj):
         from django.db.models import Sum
