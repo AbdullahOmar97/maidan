@@ -70,12 +70,27 @@ echo "[$(date)] Packaging full backup into archive..."
 tar -czf "${ARCHIVE_FILE}" -C "${BACKUP_ROOT}" "maidan_backup_${TIMESTAMP}"
 rm -rf "${BACKUP_DIR}"
 
-# 7. Retention: Keep only the latest 3 backups
-echo "[$(date)] Applying retention policy: keeping only latest 3 backups..."
+# 7. Retention: Keep only the latest 3 backups locally
+echo "[$(date)] Applying local retention policy: keeping only latest 3 backups..."
 BACKUP_COUNT=$(ls -1t "${BACKUP_ROOT}"/maidan_full_backup_*.tar.gz 2>/dev/null | wc -l)
 if [ "${BACKUP_COUNT}" -gt 3 ]; then
     ls -1t "${BACKUP_ROOT}"/maidan_full_backup_*.tar.gz | tail -n +4 | xargs -r rm -f
-    echo "[$(date)] Removed $((BACKUP_COUNT - 3)) older backup(s). Retained top 3."
+    echo "[$(date)] Removed $((BACKUP_COUNT - 3)) older local backup(s). Retained top 3."
+fi
+
+# 8. Offsite Cloud Backup: Upload to Cloudflare R2
+echo "[$(date)] Syncing backup to Cloudflare R2 offsite storage..."
+if command -v rclone &> /dev/null; then
+    if rclone copy "${ARCHIVE_FILE}" r2:maidan-backups/ ; then
+        echo "[$(date)] Cloudflare R2 offsite upload completed successfully!"
+        # Retain last 7 days of backups on Cloudflare R2
+        echo "[$(date)] Applying R2 retention policy (pruning files older than 7 days)..."
+        rclone delete --min-age 7d r2:maidan-backups/ || true
+    else
+        echo "[$(date)] WARNING: Failed to upload backup to Cloudflare R2. Local backup is intact."
+    fi
+else
+    echo "[$(date)] NOTICE: rclone not found. Backup stored locally on EC2 only."
 fi
 
 echo "[$(date)] =========================================="
