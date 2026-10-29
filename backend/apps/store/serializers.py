@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
@@ -14,7 +15,7 @@ class ProductOptionSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    options = ProductOptionSerializer(many=True, read_only=True)
+    options = ProductOptionSerializer(many=True, required=False)
 
     class Meta:
         model = Product
@@ -30,6 +31,58 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def to_internal_value(self, data):
+        # Handle options when submitted via FormData as a JSON string
+        if hasattr(data, "copy"):
+            data = data.copy()
+        if "options" in data and isinstance(data["options"], str):
+            try:
+                data["options"] = json.loads(data["options"])
+            except (ValueError, TypeError):
+                pass
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        options_data = validated_data.pop("options", None)
+        with transaction.atomic():
+            product = super().create(validated_data)
+            if options_data:
+                for opt in options_data:
+                    ProductOption.objects.create(product=product, **opt)
+            return product
+
+    def update(self, instance, validated_data):
+        options_data = validated_data.pop("options", None)
+        with transaction.atomic():
+            product = super().update(instance, validated_data)
+            if options_data is not None:
+                # Update, create, or prune options
+                existing_options = {opt.id: opt for opt in product.options.all()}
+                kept_option_ids = set()
+
+                for opt in options_data:
+                    opt_id = opt.get("id")
+                    if opt_id and opt_id in existing_options:
+                        # Update existing
+                        existing_opt = existing_options[opt_id]
+                        for attr, val in opt.items():
+                            if attr != "id":
+                                setattr(existing_opt, attr, val)
+                        existing_opt.save()
+                        kept_option_ids.add(opt_id)
+                    else:
+                        # Create new option
+                        opt_kwargs = {k: v for k, v in opt.items() if k != "id"}
+                        new_opt = ProductOption.objects.create(product=product, **opt_kwargs)
+                        kept_option_ids.add(new_opt.id)
+
+                # Delete options that were removed
+                for opt_id, existing_opt in existing_options.items():
+                    if opt_id not in kept_option_ids:
+                        existing_opt.delete()
+
+            return product
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

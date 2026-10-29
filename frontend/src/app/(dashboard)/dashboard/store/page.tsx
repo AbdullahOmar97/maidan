@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,9 @@ import {
   ExternalLink,
   Copy,
   Share2,
+  Camera,
+  Image as ImageIcon,
+  Layers,
 } from "lucide-react";
 import type { Product, Order, ProductOption } from "@/types";
 
@@ -53,7 +56,7 @@ export default function StorePage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // Product Management Modal State
+  // Product Management Modal State (Unified with Options & Image)
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState({
@@ -62,17 +65,138 @@ export default function StorePage() {
     price: "",
     is_active: true,
   });
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // Product Option Modal State
-  const [optionModalOpen, setOptionModalOpen] = useState(false);
-  const [optionProduct, setOptionProduct] = useState<Product | null>(null);
-  const [optionForm, setOptionForm] = useState({
-    name: "الحجم", // Size by default
-    value: "",
-    additional_price: "0.00",
-    stock: "10",
-    min_stock_threshold: "3",
-  });
+  // Unified Options State within Product Modal
+  interface DraftOption {
+    id?: number;
+    name: string;
+    value: string;
+    additional_price: string;
+    stock: number;
+    min_stock_threshold: number;
+  }
+  const [productOptionsList, setProductOptionsList] = useState<DraftOption[]>([]);
+
+  const handleOpenCreateProduct = () => {
+    setEditingProduct(null);
+    setProductForm({ name: "", description: "", price: "", is_active: true });
+    setProductImageFile(null);
+    setProductImagePreview(null);
+    setRemoveExistingImage(false);
+    setProductOptionsList([]);
+    setProductModalOpen(true);
+  };
+
+  const handleOpenEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductForm({
+      name: product.name,
+      description: product.description || "",
+      price: product.price,
+      is_active: product.is_active,
+    });
+    setProductImageFile(null);
+    setProductImagePreview(product.image || null);
+    setRemoveExistingImage(false);
+    setProductOptionsList(
+      (product.options || []).map((o) => ({
+        id: o.id,
+        name: o.name,
+        value: o.value,
+        additional_price: o.additional_price || "0.00",
+        stock: o.stock,
+        min_stock_threshold: o.min_stock_threshold ?? 3,
+      }))
+    );
+    setProductModalOpen(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)");
+        return;
+      }
+      setProductImageFile(file);
+      setProductImagePreview(URL.createObjectURL(file));
+      setRemoveExistingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setProductImageFile(null);
+    setProductImagePreview(null);
+    setRemoveExistingImage(true);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const addOptionDraft = () => {
+    setProductOptionsList((prev) => [
+      ...prev,
+      {
+        name: "المقاس",
+        value: "",
+        additional_price: "0.00",
+        stock: 10,
+        min_stock_threshold: 3,
+      },
+    ]);
+  };
+
+  const updateOptionDraft = (index: number, field: keyof DraftOption, value: any) => {
+    setProductOptionsList((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const removeOptionDraft = (index: number) => {
+    setProductOptionsList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveProduct = async () => {
+    if (!productForm.name.trim()) {
+      toast.error("يرجى إدخال اسم المنتج");
+      return;
+    }
+    if (!productForm.price || Number(productForm.price) < 0) {
+      toast.error("يرجى إدخال سعر أساسي صحيح للمنتج");
+      return;
+    }
+
+    // Validate draft options
+    for (const opt of productOptionsList) {
+      if (!opt.name.trim() || !opt.value.trim()) {
+        toast.error("يرجى ملء نوع وقيمة جميع الخيارات المضافة أو حذف الفارغ منها");
+        return;
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("name", productForm.name.trim());
+    formData.append("description", productForm.description.trim());
+    formData.append("price", productForm.price);
+    formData.append("is_active", String(productForm.is_active));
+    formData.append("options", JSON.stringify(productOptionsList));
+
+    if (productImageFile) {
+      formData.append("image", productImageFile);
+    } else if (removeExistingImage && editingProduct) {
+      formData.append("image", "");
+    }
+
+    if (editingProduct) {
+      updateProductMutation.mutate({ id: editingProduct.id, data: formData });
+    } else {
+      createProductMutation.mutate(formData);
+    }
+  };
 
   // Order Detail Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -124,16 +248,6 @@ export default function StorePage() {
       setProductModalOpen(false);
     },
     onError: () => toast.error("حدث خطأ أثناء تحديث المنتج."),
-  });
-
-  const addOptionMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => api.store.products.addOption(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store", "products"] });
-      toast.success("تم إضافة الخيار بنجاح.");
-      setOptionModalOpen(false);
-    },
-    onError: () => toast.error("حدث خطأ أثناء إضافة الخيار."),
   });
 
   const placeOrderMutation = useMutation({
@@ -281,11 +395,7 @@ export default function StorePage() {
 
           {isStaff && (
             <button
-              onClick={() => {
-                setEditingProduct(null);
-                setProductForm({ name: "", description: "", price: "", is_active: true });
-                setProductModalOpen(true);
-              }}
+              onClick={handleOpenCreateProduct}
               className="btn-primary py-2 px-4"
             >
               <Plus className="w-4 h-4" />
@@ -726,49 +836,52 @@ export default function StorePage() {
                 key={product.id}
                 className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-white/[0.01] border border-white/5 rounded-xl gap-4 hover:border-white/10 transition-colors"
               >
-                <div>
-                  <h4 className="font-bold text-white text-base flex items-center gap-2">
-                    {product.name}
-                    {!product.is_active && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-bold border border-red-500/20">
-                        غير نشط
-                      </span>
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="w-6 h-6 text-muted-foreground/40" />
                     )}
-                  </h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {product.description || "لا يوجد وصف."}
-                  </p>
-                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                    <span>السعر: <b className="text-primary">{formatCurrency(parseFloat(product.price), product.currency)}</b></span>
-                    <span>الخيارات المضافة: <b className="text-white">{product.options?.length || 0}</b></span>
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-white text-base flex items-center gap-2">
+                      <span className="truncate">{product.name}</span>
+                      {!product.is_active && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-bold border border-red-500/20 shrink-0">
+                          غير نشط
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                      {product.description || "لا يوجد وصف."}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                      <span>السعر: <b className="text-primary">{formatCurrency(parseFloat(product.price), product.currency)}</b></span>
+                      <span>الخيارات/المقاسات: <b className="text-white">{product.options?.length || 0}</b></span>
+                      {product.options && product.options.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {product.options.slice(0, 4).map((opt) => (
+                            <span key={opt.id} className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 border border-white/5 text-slate-300">
+                              {opt.name}: {opt.value} ({opt.stock})
+                            </span>
+                          ))}
+                          {product.options.length > 4 && (
+                            <span className="text-[10px] text-muted-foreground">+{product.options.length - 4}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2 self-stretch md:self-auto justify-end">
+                <div className="flex gap-2 self-stretch md:self-auto justify-end shrink-0">
                   <button
-                    onClick={() => {
-                      setOptionProduct(product);
-                      setOptionForm({ name: "الحجم", value: "", additional_price: "0.00", stock: "10", min_stock_threshold: "3" });
-                      setOptionModalOpen(true);
-                    }}
-                    className="btn-secondary py-1.5 px-3 text-xs"
+                    onClick={() => handleOpenEditProduct(product)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all"
                   >
-                    إضافة مقاس/خيار
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingProduct(product);
-                      setProductForm({
-                        name: product.name,
-                        description: product.description,
-                        price: product.price,
-                        is_active: product.is_active,
-                      });
-                      setProductModalOpen(true);
-                    }}
-                    className="btn-secondary p-2"
-                  >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>تعديل المنتج والخيارات</span>
                   </button>
                 </div>
               </div>
@@ -903,156 +1016,241 @@ export default function StorePage() {
         document.body
       )}
 
-      {/* PRODUCT MODAL */}
-      <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} size="sm">
+      {/* UNIFIED PRODUCT MODAL (IMAGE + BASIC INFO + OPTIONS/SIZES) */}
+      <Modal open={productModalOpen} onClose={() => setProductModalOpen(false)} size="lg">
         <ModalHeader
-          title={editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
+          title={editingProduct ? "تعديل المنتج والخيارات" : "إضافة منتج جديد"}
+          subtitle="أدخل تفاصيل المنتج، ارفع صورة العرض، وحدد المقاسات والخيارات والمخزون في نموذج واحد متكامل."
+          icon={<ShoppingBag className="w-5 h-5 text-primary" />}
           onClose={() => setProductModalOpen(false)}
         />
-        <ModalBody className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">اسم المنتج:</label>
-            <input
-              type="text"
-              value={productForm.name}
-              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
+        <ModalBody className="space-y-6">
+          {/* Section 1: Product Photo & Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Image Upload Area */}
+            <div className="md:col-span-1">
+              <label className="block text-xs font-bold text-muted-foreground mb-1.5">صورة المنتج</label>
+              <div className="relative group rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 bg-white/[0.02] transition-all aspect-square flex flex-col items-center justify-center p-3 overflow-hidden text-center">
+                {productImagePreview ? (
+                  <>
+                    <img
+                      src={productImagePreview}
+                      alt="معاينة المنتج"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors"
+                        title="تغيير الصورة"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="p-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white transition-colors"
+                        title="حذف الصورة"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    onClick={() => imageInputRef.current?.click()}
+                    className="cursor-pointer flex flex-col items-center justify-center gap-2 p-4 w-full h-full"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-bold text-white group-hover:text-primary transition-colors">
+                      رفع صورة للمنتج
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">PNG, JPG حتى 5MB</span>
+                  </div>
+                )}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+              </div>
+            </div>
+
+            {/* Basic Info Inputs */}
+            <div className="md:col-span-2 space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">
+                  اسم المنتج <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  placeholder="مثال: بدلة كاراتيه احترافية، قفازات ملاكمة..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground mb-1">
+                    السعر الأساسي ({tenantCurrency}) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex flex-col justify-end pb-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10">
+                    <input
+                      type="checkbox"
+                      checked={productForm.is_active}
+                      onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
+                      className="rounded bg-white/5 border-white/10 text-primary focus:ring-primary w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-white">المنتج متاح ومعروض للبيع</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">وصف المنتج (اختياري)</label>
+                <textarea
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder="اكتب مواصفات الخامة، الاستخدام، أو أي تفاصيل توضيحية..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:border-primary focus:outline-none min-h-[64px] resize-none"
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">الوصف:</label>
-            <textarea
-              value={productForm.description}
-              onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none min-h-[80px]"
-            />
-          </div>
+          {/* Section 2: Product Options & Variations (Integrated) */}
+          <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-black text-white">المقاسات والخيارات والمخزون</h4>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
+                  {productOptionsList.length} خيارات
+                </span>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">السعر الأساسي (JOD):</label>
-            <input
-              type="number"
-              value={productForm.price}
-              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
+              <button
+                type="button"
+                onClick={addOptionDraft}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-bold transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>إضافة خيار / مقاس</span>
+              </button>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={productForm.is_active}
-              onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
-              className="rounded bg-white/5 border-white/10 text-primary focus:ring-primary w-4 h-4"
-            />
-            <label htmlFor="is_active" className="text-xs font-bold text-white">المنتج متاح للبيع (نشط)</label>
+            {productOptionsList.length === 0 ? (
+              <div className="p-4 rounded-xl bg-white/[0.01] border border-dashed border-white/10 text-center">
+                <p className="text-xs text-muted-foreground">
+                  لم يتم إضافة مقاسات أو خيارات بعد. إذا كان المنتج بمقاس موحد (One Size) يمكنك تركه بدون خيارات، أو الضغط على <b>إضافة خيار / مقاس</b> لتحديد الأحجام والكميات.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pe-1">
+                {productOptionsList.map((opt, idx) => (
+                  <div
+                    key={opt.id ?? `draft-${idx}`}
+                    className="grid grid-cols-12 gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 items-center text-xs"
+                  >
+                    <div className="col-span-3">
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">نوع الخيار</label>
+                      <input
+                        type="text"
+                        value={opt.name}
+                        onChange={(e) => updateOptionDraft(idx, "name", e.target.value)}
+                        placeholder="المقاس، اللون..."
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-3">
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">القيمة</label>
+                      <input
+                        type="text"
+                        value={opt.value}
+                        onChange={(e) => updateOptionDraft(idx, "value", e.target.value)}
+                        placeholder="M, L, XL, أسود..."
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">سعر إضافي</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={opt.additional_price}
+                        onChange={(e) => updateOptionDraft(idx, "additional_price", e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">المخزون</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={opt.stock}
+                        onChange={(e) => updateOptionDraft(idx, "stock", Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-end gap-1 pt-3.5">
+                      <button
+                        type="button"
+                        onClick={() => removeOptionDraft(idx)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="حذف هذا الخيار"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </ModalBody>
         <ModalFooter>
           <button
+            type="button"
             onClick={() => setProductModalOpen(false)}
             className="btn-secondary"
           >
             إلغاء
           </button>
           <button
-            onClick={() => {
-              if (editingProduct) {
-                updateProductMutation.mutate({ id: editingProduct.id, data: productForm });
-              } else {
-                createProductMutation.mutate(productForm);
-              }
-            }}
+            type="button"
+            onClick={handleSaveProduct}
             disabled={createProductMutation.isPending || updateProductMutation.isPending}
             className="btn-primary"
           >
             {(createProductMutation.isPending || updateProductMutation.isPending) && (
               <Loader2 className="w-4 h-4 animate-spin" />
             )}
-            حفظ المنتج
-          </button>
-        </ModalFooter>
-      </Modal>
-
-      {/* OPTION MODAL */}
-      <Modal open={optionModalOpen && !!optionProduct} onClose={() => setOptionModalOpen(false)} size="sm">
-        <ModalHeader
-          title={`إضافة مقاس/خيار للمنتج: ${optionProduct?.name ?? ""}`}
-          onClose={() => setOptionModalOpen(false)}
-        />
-        <ModalBody className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">نوع الخيار:</label>
-            <input
-              type="text"
-              value={optionForm.name}
-              onChange={(e) => setOptionForm({ ...optionForm, name: e.target.value })}
-              placeholder="مثال: الحجم، اللون..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">قيمة الخيار:</label>
-            <input
-              type="text"
-              value={optionForm.value}
-              onChange={(e) => setOptionForm({ ...optionForm, value: e.target.value })}
-              placeholder="مثال: M, L, XL, أحمر..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">فارق السعر الإضافي (JOD):</label>
-            <input
-              type="number"
-              value={optionForm.additional_price}
-              onChange={(e) => setOptionForm({ ...optionForm, additional_price: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">كمية المخزون المتاحة:</label>
-            <input
-              type="number"
-              value={optionForm.stock}
-              onChange={(e) => setOptionForm({ ...optionForm, stock: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground mb-1">حد تنبيه انخفاض المخزون:</label>
-            <input
-              type="number"
-              value={optionForm.min_stock_threshold}
-              onChange={(e) => setOptionForm({ ...optionForm, min_stock_threshold: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <button
-            onClick={() => setOptionModalOpen(false)}
-            className="btn-secondary"
-          >
-            إلغاء
-          </button>
-          <button
-            onClick={() => {
-              if (optionProduct) {
-                addOptionMutation.mutate({ id: optionProduct.id, data: optionForm });
-              }
-            }}
-            disabled={addOptionMutation.isPending}
-            className="btn-primary"
-          >
-            {addOptionMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            حفظ الخيار
+            <span>{editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}</span>
           </button>
         </ModalFooter>
       </Modal>
