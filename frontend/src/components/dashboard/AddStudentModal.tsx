@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import type { Location, BeltRank, MembershipPlan, Family } from "@/types";
 import { parseApiError, cn } from "@/lib/utils";
+import { NATIONALITIES, BLOOD_TYPES, LEAD_SOURCES, EMERGENCY_RELATIONS } from "@/lib/constants";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -22,52 +23,6 @@ interface AddStudentModalProps {
 }
 
 type TabType = "basic" | "subscription" | "personal" | "medical" | "notes";
-
-const NATIONALITIES = [
-  { code: "SA", label: "سعودي (SA)" },
-  { code: "AE", label: "إماراتي (AE)" },
-  { code: "KW", label: "كويتي (KW)" },
-  { code: "QA", label: "قطري (QA)" },
-  { code: "BH", label: "بحريني (BH)" },
-  { code: "OM", label: "عماني (OM)" },
-  { code: "JO", label: "أردني (JO)" },
-  { code: "EG", label: "مصري (EG)" },
-  { code: "SY", label: "سوري (SY)" },
-  { code: "LB", label: "لبناني (LB)" },
-  { code: "PS", label: "فلسطيني (PS)" },
-  { code: "IQ", label: "عراقي (IQ)" },
-  { code: "YE", label: "يمني (YE)" },
-  { code: "SD", label: "سوداني (SD)" },
-  { code: "MA", label: "مغربي (MA)" },
-  { code: "DZ", label: "جزائري (DZ)" },
-  { code: "TN", label: "تونسي (TN)" },
-  { code: "LY", label: "ليبي (LY)" },
-  { code: "XX", label: "أخرى (Other)" },
-];
-
-const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-
-const LEAD_SOURCES = [
-  { value: "walk_in", label: "زيارة مباشرة للنادي (Walk-in)" },
-  { value: "referral", label: "توصية من مشترك (Referral)" },
-  { value: "social_media", label: "وسائل التواصل الاجتماعي (Social Media)" },
-  { value: "website", label: "الموقع الإلكتروني (Website)" },
-  { value: "google", label: "بحث جوجل (Google)" },
-  { value: "event", label: "فعالية / بطولة (Event)" },
-  { value: "phone", label: "استفسار هاتفي (Phone)" },
-  { value: "other", label: "أخرى (Other)" },
-];
-
-const EMERGENCY_RELATIONS = [
-  "أب",
-  "أم",
-  "ولي أمر",
-  "أخ",
-  "أخت",
-  "قريب",
-  "صديق",
-  "أخرى",
-];
 
 export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("basic");
