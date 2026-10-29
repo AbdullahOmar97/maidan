@@ -293,6 +293,19 @@ class StaffAdvanceViewSet(viewsets.ModelViewSet):
     search_fields = ["staff_member__user__first_name", "staff_member__user__last_name", "reason", "notes"]
     ordering = ["-created_at"]
 
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as exc:
+            import traceback
+            import logging
+            logger = logging.getLogger("maidan")
+            logger.error("StaffAdvance create failed: %s\n%s", exc, traceback.format_exc())
+            return Response(
+                {"error": f"تعذر إنشاء السلفة: {str(exc)}", "detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     def perform_create(self, serializer):
         serializer.save()
 

@@ -36,6 +36,20 @@ def custom_exception_handler(exc, context):
 
     response = exception_handler(exc, context)
 
+    if response is None:
+        view_name = context.get('view').__class__.__name__ if context.get('view') else 'unknown'
+        logger.error(f"Unhandled server error in {view_name}: {exc}", exc_info=True)
+        return Response(
+            {
+                "error": {
+                    "code": "server_error",
+                    "message": f"حدث خطأ في معالجة الطلب: {str(exc)}",
+                    "detail": str(exc),
+                }
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
     if response is not None:
         error_code = "error"
         message = "An error occurred."

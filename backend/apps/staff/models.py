@@ -318,14 +318,30 @@ class StaffAdvance(models.Model):
         return f"Advance #{self.id} for {self.staff_member.user.get_full_name()} ({self.amount} {self.currency})"
 
     def save(self, *args, **kwargs):
-        amt = self.amount or Decimal("0.00")
-        repaid = self.total_repaid or Decimal("0.00")
+        try:
+            amt = Decimal(str(self.amount)) if self.amount is not None else Decimal("0.00")
+        except Exception:
+            amt = Decimal("0.00")
+
+        try:
+            repaid = Decimal(str(self.total_repaid)) if self.total_repaid is not None else Decimal("0.00")
+        except Exception:
+            repaid = Decimal("0.00")
 
         # Calculate monthly installment if installments selected
         if self.repayment_type == self.RepaymentType.INSTALLMENT:
-            count = max(1, self.installments_count or 1)
-            if not self.monthly_installment or self.monthly_installment <= Decimal("0.00"):
+            count = max(1, int(self.installments_count or 1))
+            installment_val = None
+            if self.monthly_installment is not None:
+                try:
+                    installment_val = Decimal(str(self.monthly_installment))
+                except Exception:
+                    installment_val = None
+
+            if not installment_val or installment_val <= Decimal("0.00"):
                 self.monthly_installment = round(amt / Decimal(count), 2)
+            else:
+                self.monthly_installment = installment_val
         else:
             self.installments_count = 1
             self.monthly_installment = amt
