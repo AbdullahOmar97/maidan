@@ -6,10 +6,10 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { StaffMember, StaffPermissions, UserRole } from "@/types";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
-type PermissionFlag = { id: string; label: string; description: string };
-type PermissionGroup = { group: string; flags: PermissionFlag[] };
+export type PermissionFlag = { id: string; label: string; description: string };
+export type PermissionGroup = { group: string; flags: PermissionFlag[] };
 
-const PERMISSION_GROUPS: PermissionGroup[] = [
+export const PERMISSION_GROUPS: PermissionGroup[] = [
   {
     group: "الطلاب",
     flags: [

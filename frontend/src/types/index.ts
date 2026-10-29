@@ -496,6 +496,7 @@ export interface StaffPermissions {
 
 export interface StaffMember {
   id: string;
+  staff_member_id?: number | null;
   email: string;
   phone: string;
   first_name: string;
@@ -504,9 +505,24 @@ export interface StaffMember {
   role: UserRole;
   is_active: boolean;
   avatar_url: string | null;
+  language_pref?: string;
+  created_at?: string;
+  last_login?: string | null;
   branch_names: string[];
   assigned_location_ids: number[];
   permissions: StaffPermissions;
+}
+
+export interface StaffDocument {
+  id: number;
+  staff_member: string | number;
+  staff_name: string;
+  name: string;
+  file: string;
+  notes: string;
+  file_name: string;
+  file_size: number;
+  uploaded_at: string;
 }
 
 export interface NotificationLog {

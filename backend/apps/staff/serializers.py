@@ -57,6 +57,20 @@ class StaffAdvanceSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     repayment_type_display = serializers.CharField(source="get_repayment_type_display", read_only=True)
 
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, "copy") else dict(data)
+        staff_member_val = data.get("staff_member")
+        if staff_member_val:
+            try:
+                import uuid
+                uuid_obj = uuid.UUID(str(staff_member_val))
+                member = StaffMember.objects.filter(user_id=uuid_obj).first()
+                if member:
+                    data["staff_member"] = member.id
+            except (ValueError, TypeError):
+                pass
+        return super().to_internal_value(data)
+
     class Meta:
         model = StaffAdvance
         fields = [
@@ -117,6 +131,20 @@ class StaffDocumentSerializer(serializers.ModelSerializer):
     staff_name = serializers.ReadOnlyField(source="staff_member.user.get_full_name")
     file_name = serializers.SerializerMethodField()
     file_size = serializers.SerializerMethodField()
+
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, "copy") else dict(data)
+        staff_member_val = data.get("staff_member")
+        if staff_member_val:
+            try:
+                import uuid
+                uuid_obj = uuid.UUID(str(staff_member_val))
+                member = StaffMember.objects.filter(user_id=uuid_obj).first()
+                if member:
+                    data["staff_member"] = member.id
+            except (ValueError, TypeError):
+                pass
+        return super().to_internal_value(data)
 
     class Meta:
         model = StaffDocument

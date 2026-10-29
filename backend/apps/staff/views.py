@@ -48,7 +48,17 @@ class StaffSalaryConfigViewSet(viewsets.ModelViewSet):
     serializer_class = StaffSalaryConfigSerializer
     permission_classes = [CanManagePayrollPermission]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["employment_type", "currency"]
+    filterset_fields = ["employment_type", "currency", "staff_member"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user_id = self.request.query_params.get("user_id")
+        staff_member_id = self.request.query_params.get("staff_member")
+        if user_id:
+            qs = qs.filter(staff_member__user_id=user_id)
+        if staff_member_id:
+            qs = qs.filter(staff_member_id=staff_member_id)
+        return qs
 
     def list(self, request, *args, **kwargs):
         # Auto-ensure all staff members have a salary config
@@ -218,6 +228,13 @@ class StaffPayslipViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["payroll_run", "staff_member", "status"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user_id = self.request.query_params.get("user_id")
+        if user_id:
+            qs = qs.filter(staff_member__user_id=user_id)
+        return qs
+
     def update(self, request, *args, **kwargs):
         payslip = self.get_object()
         if payslip.payroll_run.status == PayrollRun.Status.PAID:
@@ -236,6 +253,13 @@ class StaffDocumentViewSet(viewsets.ModelViewSet):
     filterset_fields = ["staff_member"]
     search_fields = ["name", "notes"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user_id = self.request.query_params.get("user_id")
+        if user_id:
+            qs = qs.filter(staff_member__user_id=user_id)
+        return qs
+
     def perform_create(self, serializer):
         # Allow specifying staff_member in request data
         serializer.save()
@@ -244,6 +268,7 @@ class StaffDocumentViewSet(viewsets.ModelViewSet):
 class StaffAdvanceFilter(django_filters.FilterSet):
     status = django_filters.CharFilter(field_name="status")
     staff_member = django_filters.NumberFilter(field_name="staff_member_id")
+    user_id = django_filters.CharFilter(field_name="staff_member__user_id")
     repayment_type = django_filters.CharFilter(field_name="repayment_type")
     date_from = django_filters.DateFilter(field_name="request_date", lookup_expr="gte")
     date_to = django_filters.DateFilter(field_name="request_date", lookup_expr="lte")

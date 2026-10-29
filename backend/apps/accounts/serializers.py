@@ -15,6 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
     branch_names = serializers.SerializerMethodField()
+    staff_member_id = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -22,9 +23,9 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "email", "phone", "first_name", "last_name", "full_name",
             "role", "is_active", "avatar", "avatar_url",
             "language_pref", "assigned_location_ids", "branch_names", "permissions",
-            "gdpr_consent", "created_at", "last_login",
+            "gdpr_consent", "created_at", "last_login", "staff_member_id",
         ]
-        read_only_fields = ["id", "created_at", "last_login", "full_name", "branch_names"]
+        read_only_fields = ["id", "created_at", "last_login", "full_name", "branch_names", "staff_member_id"]
 
     def get_full_name(self, obj):
         return obj.get_full_name()
@@ -73,6 +74,14 @@ class UserSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return []
+
+    def get_staff_member_id(self, obj):
+        try:
+            from apps.staff.models import StaffMember
+            membership = StaffMember.objects.filter(user_id=obj.id).first()
+            return membership.id if membership else None
+        except Exception:
+            return None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
