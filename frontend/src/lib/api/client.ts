@@ -144,8 +144,24 @@ export const api = {
     login: (data: { email: string; password: string }) =>
       apiClient.post("/auth/login/", data),
     me: () => apiClient.get("/auth/me/"),
-    updateProfile: (data: unknown) => apiClient.patch("/auth/me/", data),
-    logout: (refresh: string) => apiClient.post("/auth/logout/", { refresh }),
+    updateProfile: (data: unknown) => {
+      const isFormData = data instanceof FormData;
+      return apiClient.patch("/auth/me/", data, {
+        headers: isFormData ? { "Content-Type": undefined } : {},
+      });
+    },
+    logout: (refresh?: string) => apiClient.post("/auth/logout/", { refresh }),
+    logoutAll: (keepCurrent = true) =>
+      apiClient.post("/auth/logout-all/", { keep_current: keepCurrent }),
+    sessions: () => apiClient.get("/auth/sessions/"),
+    revokeSession: (jti: string) => apiClient.delete(`/auth/sessions/${jti}/`),
+    securityActivity: () => apiClient.get("/auth/activity/"),
+    changePassword: (data: {
+      current_password: string;
+      new_password: string;
+      new_password_confirm: string;
+      logout_other_devices?: boolean;
+    }) => apiClient.post("/auth/password/change/", data),
     passwordSetup: (data: any) =>
       apiClient.post("/auth/password/setup/", data, { skipAuth: true }),
   },
@@ -162,7 +178,8 @@ export const api = {
         headers: isFormData ? { "Content-Type": undefined } : {},
       });
     },
-    transferOwnership: (userId: string) => apiClient.post("/academy/transfer-ownership/", { user_id: userId }),
+    transferOwnership: (userId: string, password: string) =>
+      apiClient.post("/academy/transfer-ownership/", { user_id: userId, password }),
     subscriptionRequests: {
       list: () => apiClient.get("/academy/subscription-requests/"),
       create: (data: { new_plan: number; billing_cycle?: string; reason?: string }) => apiClient.post("/academy/subscription-requests/", data),

@@ -12,6 +12,9 @@ const refreshPromises = new Map<string, Promise<JWT>>();
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
   const tenantHostname = (token.tenant as string) || null;
+  const tenantHeaders: Record<string, string> = tenantHostname
+    ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
+    : {};
 
   try {
     const response = await fetch(`${internalApiUrl}/api/v1/auth/refresh/`, {
@@ -19,28 +22,56 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       headers: {
         "Content-Type": "application/json",
         "X-Forwarded-Proto": "https",
-        ...(tenantHostname
-          ? { Host: tenantHostname, "X-Forwarded-Host": tenantHostname }
-          : {}),
+        ...tenantHeaders,
       },
       body: JSON.stringify({ refresh: token.refreshToken }),
     });
 
     if (!response.ok) {
-      // Invalidate token so NextAuth forces re-login instead of looping
       return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
     }
 
     const data = await response.json();
+    const newAccessToken = data.access;
+    const newRefreshToken = data.refresh || token.refreshToken;
+
+    // Synchronize live user profile, role, and effective permissions from backend
+    let syncedFields: Record<string, unknown> = {};
+    try {
+      const meResponse = await fetch(`${internalApiUrl}/api/v1/auth/me/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${newAccessToken}`,
+          "X-Forwarded-Proto": "https",
+          ...tenantHeaders,
+        },
+      });
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        if (meData.is_active === false) {
+          return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
+        }
+        syncedFields = {
+          role: meData.role ?? token.role,
+          permissions: meData.permissions ?? token.permissions,
+          first_name: meData.first_name ?? token.first_name,
+          last_name: meData.last_name ?? token.last_name,
+          picture: meData.avatar_url ?? token.picture,
+        };
+      }
+    } catch {
+      // Non-fatal: keep existing profile claims if /auth/me/ is unreachable
+    }
+
     return {
       ...token,
-      accessToken: data.access,
-      refreshToken: data.refresh || token.refreshToken,
+      ...syncedFields,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
       accessTokenExpiry: Date.now() + ACCESS_TOKEN_TTL_MS,
       error: undefined,
     };
-  } catch (err) {
-    console.error("Token refresh network/server error:", err);
+  } catch {
     return { ...token, accessToken: null, refreshToken: null, error: "RefreshAccessTokenError" };
   }
 }
@@ -62,72 +93,82 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        // Use tenant host headers only when a real tenant domain/subdomain exists.
         const reqHost = request?.headers?.get("host") || "localhost:3000";
         const tenantHostname = reqHost.split(":")[0];
         const tenantAwareHost = isTenantHost(tenantHostname) ? tenantHostname : null;
-        
-        // Use internal Docker URL for server-side fetches
+
         const internalApiUrl = process.env.NEXT_INTERNAL_API_URL || "http://backend:8000";
         const apiUrl = `${internalApiUrl}/api/v1/auth/login/`;
 
+        let response: Response;
         try {
-          const response = await fetch(
-            apiUrl,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Forwarded-Proto": "https",
-                ...(tenantAwareHost
-                  ? {
-                      Host: tenantAwareHost,
-                      "X-Forwarded-Host": tenantAwareHost,
-                    }
-                  : {}),
-              },
-              body: JSON.stringify({
-                email: parsed.data.email,
-                password: parsed.data.password,
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            if (response.status === 403) {
-              const errorData = await response.json();
-              if (errorData.code === "setup_required") {
-                throw new Error(`SETUP_REQUIRED:${errorData.email}`);
-              }
-              if (errorData.code === "force_password_reset") {
-                throw new Error(`FORCE_PASSWORD_RESET:${errorData.token}`);
-              }
-              if (errorData.error?.code === "tenant_inactive" || errorData.error?.code === "subscription_expired") {
-                throw new Error(`TENANT_INACTIVE:${errorData.error.message}`);
-              }
-            }
-            return null;
-          }
-
-          const data = await response.json();
-
-          return {
-            id: data.user.id,
-            email: data.user.email,
-            name: `${data.user.first_name} ${data.user.last_name}`,
-            first_name: data.user.first_name,
-            last_name: data.user.last_name,
-            image: data.user.avatar_url,
-            role: data.user.role,
-            permissions: data.user.permissions,
-            accessToken: data.access,
-            refreshToken: data.refresh,
-            tenant: tenantAwareHost,
-          };
-        } catch (error) {
-          console.error("Auth error:", error);
+          response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Forwarded-Proto": "https",
+              ...(tenantAwareHost
+                ? {
+                    Host: tenantAwareHost,
+                    "X-Forwarded-Host": tenantAwareHost,
+                  }
+                : {}),
+            },
+            body: JSON.stringify({
+              email: parsed.data.email,
+              password: parsed.data.password,
+            }),
+          });
+        } catch {
           return null;
         }
+
+        if (!response.ok) {
+          let errorData: any = {};
+          try {
+            errorData = await response.json();
+          } catch {
+            // ignore json parse error
+          }
+
+          if (response.status === 429 || errorData?.error?.code === "account_locked") {
+            throw new Error(
+              `ACCOUNT_LOCKED:${errorData?.error?.message || "تم إيقاف محاولات الدخول مؤقتاً. يرجى المحاولة بعد 15 دقيقة."}`
+            );
+          }
+
+          if (response.status === 403) {
+            if (errorData.code === "setup_required") {
+              throw new Error(`SETUP_REQUIRED:${errorData.email}`);
+            }
+            if (errorData.code === "force_password_reset") {
+              throw new Error(`FORCE_PASSWORD_RESET:${errorData.token}`);
+            }
+            if (
+              errorData.error?.code === "tenant_inactive" ||
+              errorData.error?.code === "subscription_expired"
+            ) {
+              throw new Error(`TENANT_INACTIVE:${errorData.error.message}`);
+            }
+          }
+          return null;
+        }
+
+        const data = await response.json();
+
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          name: `${data.user.first_name} ${data.user.last_name}`.trim(),
+          first_name: data.user.first_name,
+          last_name: data.user.last_name,
+          image: data.user.avatar_url || null,
+          role: data.user.role,
+          permissions: data.user.permissions,
+          accessToken: data.access,
+          refreshToken: data.refresh,
+          tenant: tenantAwareHost,
+        };
       },
     }),
   ],
@@ -141,6 +182,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.tenant = (user as any).tenant;
         token.first_name = (user as any).first_name;
         token.last_name = (user as any).last_name;
+        token.picture = (user as any).image ?? null;
         token.permissions = (user as any).permissions;
         token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
       }
@@ -148,9 +190,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && session) {
         if (session.first_name !== undefined) token.first_name = session.first_name;
         if (session.last_name !== undefined) token.last_name = session.last_name;
+        if (session.image !== undefined) token.picture = session.image;
+        if (session.role !== undefined) token.role = session.role;
+        if (session.permissions !== undefined) token.permissions = session.permissions;
+        if (session.accessToken !== undefined) {
+          token.accessToken = session.accessToken;
+          token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
+        }
+        if (session.refreshToken !== undefined) {
+          token.refreshToken = session.refreshToken;
+        }
       }
 
-      // Refresh token if expired — one in-flight refresh per refresh token (not process-global)
+      // Refresh token if expired — one in-flight refresh per refresh token
       if (token.accessTokenExpiry && Date.now() > (token.accessTokenExpiry as number)) {
         const rt = token.refreshToken as string | undefined;
         if (!rt) {
@@ -173,12 +225,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return null as any;
       }
       session.user.id = token.id as string;
+      session.user.image = (token.picture as string | null) ?? null;
       (session.user as any).first_name = token.first_name;
       (session.user as any).last_name = token.last_name;
       (session.user as any).role = token.role;
       (session.user as any).permissions = token.permissions;
       (session as any).role = token.role;
       (session as any).accessToken = token.accessToken;
+      (session as any).refreshToken = token.refreshToken;
       (session as any).tenant = token.tenant;
       (session as any).error = token.error;
       return session;

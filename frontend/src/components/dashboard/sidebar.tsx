@@ -25,6 +25,7 @@ import type { Session } from "next-auth";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { ROLE_LABELS } from "@/lib/constants";
 import { UserRole } from "@/types";
+import { hasEffectivePermission, PRIVILEGED_ROLES } from "@/lib/hooks/use-permission";
 
 // ---------------------------------------------------------------------------
 // Navigation config
@@ -45,21 +46,12 @@ const navItems = [
   { label: "الإعدادات",    labelEn: "Settings",   href: "/dashboard/settings",   icon: Settings },
 ] as const;
 
-/** Roles that bypass ALL permission checks (see backend RoleChoices). */
-const GLOBALLY_PRIVILEGED_ROLES: UserRole[] = ["platform_admin", "tenant_owner"];
-
-/**
- * Roles that are auto-granted can_view_reports access.
- * Must stay in sync with CanViewReports.AUTO_GRANTED_ROLES in shared/permissions.py.
- */
-const REPORTS_PRIVILEGED_ROLES: UserRole[] = [...GLOBALLY_PRIVILEGED_ROLES, "manager"];
-
 function isNavItemVisible(
   item: (typeof navItems)[number],
   role: UserRole,
   permissions: Record<string, boolean>
 ): boolean {
-  if (GLOBALLY_PRIVILEGED_ROLES.includes(role)) return true;
+  if (PRIVILEGED_ROLES.includes(role)) return true;
 
   const itemAny = item as any;
 
@@ -67,11 +59,7 @@ function isNavItemVisible(
   if (itemAny.roles) return itemAny.roles.includes(role);
 
   if (itemAny.permission) {
-    // Certain permissions have role-level auto-grants that mirror the backend.
-    if (itemAny.permission === "can_view_reports") {
-      return REPORTS_PRIVILEGED_ROLES.includes(role) || permissions["can_view_reports"] === true;
-    }
-    return permissions[itemAny.permission] === true;
+    return hasEffectivePermission(role, permissions, itemAny.permission);
   }
 
   return true;
@@ -179,10 +167,20 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
             className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 group hover:bg-primary/10 transition-all cursor-pointer text-start"
           >
             <div
-              className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
+              className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 transition-transform group-hover:scale-105 overflow-hidden"
               aria-hidden="true"
             >
-              {(user as any)?.first_name?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? "U"}
+              {user?.image ? (
+                <img
+                  src={user.image}
+                  alt={user?.name || "Avatar"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (user as any)?.first_name?.[0]?.toUpperCase() ??
+                user?.name?.[0]?.toUpperCase() ??
+                "U"
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-white truncate leading-none mb-1.5">

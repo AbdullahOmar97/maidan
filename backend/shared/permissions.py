@@ -1,10 +1,11 @@
 """
 MAIDAN — Shared Custom Permissions
 
-Implements a clean, role-based permission system with:
+Implements a clean, role-based and granular permission system with:
+- Centralized ROLE_DEFAULT_PERMISSIONS baseline matrix
+- Explicit per-user granular overrides via user.permissions JSONField
 - Row-level location isolation for Branch Managers
-- Tenant isolation enforced at the ORM level
-- Composable permission classes
+- Composable DRF permission classes
 """
 
 from rest_framework import permissions
@@ -37,6 +38,143 @@ class RoleChoices:
     MANAGEMENT_ROLES = [PLATFORM_ADMIN, TENANT_OWNER, MANAGER]
 
 
+ALL_PERMISSION_FLAGS = [
+    "can_manage_students",
+    "can_view_billing",
+    "can_manage_billing",
+    "can_create_invoice",
+    "can_mark_invoice_paid",
+    "can_apply_discount",
+    "can_void_invoice",
+    "can_renew_subscription",
+    "can_change_subscription",
+    "can_approve_subscription",
+    "can_manage_schedules",
+    "can_manage_locations",
+    "can_view_reports",
+    "can_manage_staff",
+    "can_manage_academy",
+    "can_manage_branding",
+    "can_manage_belts",
+    "can_manage_store",
+    "can_manage_messaging",
+]
+
+ROLE_DEFAULT_PERMISSIONS: dict[str, dict[str, bool]] = {
+    RoleChoices.PLATFORM_ADMIN: {flag: True for flag in ALL_PERMISSION_FLAGS},
+    RoleChoices.TENANT_OWNER: {flag: True for flag in ALL_PERMISSION_FLAGS},
+    RoleChoices.MANAGER: {
+        "can_manage_students": True,
+        "can_view_billing": True,
+        "can_manage_billing": True,
+        "can_create_invoice": True,
+        "can_mark_invoice_paid": True,
+        "can_apply_discount": True,
+        "can_void_invoice": True,
+        "can_renew_subscription": True,
+        "can_change_subscription": True,
+        "can_approve_subscription": True,
+        "can_manage_schedules": True,
+        "can_manage_locations": True,
+        "can_view_reports": True,
+        "can_manage_staff": True,
+        "can_manage_academy": True,
+        "can_manage_branding": True,
+        "can_manage_belts": True,
+        "can_manage_store": True,
+        "can_manage_messaging": True,
+    },
+    RoleChoices.BRANCH_MANAGER: {
+        "can_manage_students": True,
+        "can_view_billing": True,
+        "can_create_invoice": True,
+        "can_mark_invoice_paid": True,
+        "can_renew_subscription": True,
+        "can_manage_schedules": True,
+        "can_manage_locations": True,
+        "can_view_reports": True,
+        "can_manage_staff": True,
+        "can_manage_belts": True,
+        "can_manage_store": True,
+        "can_manage_messaging": True,
+    },
+    RoleChoices.FINANCE: {
+        "can_view_billing": True,
+        "can_manage_billing": True,
+        "can_create_invoice": True,
+        "can_mark_invoice_paid": True,
+        "can_apply_discount": True,
+        "can_void_invoice": True,
+        "can_renew_subscription": True,
+        "can_change_subscription": True,
+        "can_approve_subscription": True,
+        "can_view_reports": True,
+    },
+    RoleChoices.FRONT_DESK: {
+        "can_manage_students": True,
+        "can_view_billing": True,
+        "can_create_invoice": True,
+        "can_mark_invoice_paid": True,
+        "can_renew_subscription": True,
+        "can_manage_schedules": True,
+        "can_manage_store": True,
+        "can_manage_messaging": True,
+    },
+    RoleChoices.INSTRUCTOR: {
+        "can_manage_belts": True,
+    },
+    RoleChoices.STAFF: {},
+    RoleChoices.READ_ONLY: {
+        "can_view_billing": True,
+        "can_view_reports": True,
+    },
+}
+
+
+def resolve_user_permissions(user) -> dict[str, bool]:
+    """
+    Compute the effective permission map for a user by combining
+    ROLE_DEFAULT_PERMISSIONS with explicit overrides in user.permissions.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return {flag: False for flag in ALL_PERMISSION_FLAGS}
+
+    role = getattr(user, "role", "")
+    if role in [RoleChoices.PLATFORM_ADMIN, RoleChoices.TENANT_OWNER]:
+        return {flag: True for flag in ALL_PERMISSION_FLAGS}
+
+    defaults = ROLE_DEFAULT_PERMISSIONS.get(role, {})
+    explicit = getattr(user, "permissions", None)
+    if not isinstance(explicit, dict):
+        explicit = {}
+
+    effective: dict[str, bool] = {}
+    for flag in ALL_PERMISSION_FLAGS:
+        if flag in explicit and isinstance(explicit[flag], bool):
+            effective[flag] = explicit[flag]
+        else:
+            effective[flag] = bool(defaults.get(flag, False))
+
+    # Preserve any custom keys stored in explicit permissions
+    for k, v in explicit.items():
+        if k not in effective and isinstance(v, bool):
+            effective[k] = v
+
+    return effective
+
+
+def has_effective_permission(user, permission_key: str) -> bool:
+    """Check whether a user effectively holds `permission_key`."""
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if user.role in [RoleChoices.PLATFORM_ADMIN, RoleChoices.TENANT_OWNER]:
+        return True
+    explicit = getattr(user, "permissions", None)
+    if isinstance(explicit, dict) and permission_key in explicit:
+        return bool(explicit[permission_key])
+    return bool(ROLE_DEFAULT_PERMISSIONS.get(user.role, {}).get(permission_key, False))
+
+
 class IsPlatformAdmin(permissions.BasePermission):
     """Only platform-level administrators."""
 
@@ -55,7 +193,8 @@ class IsTenantOwnerOrManager(permissions.BasePermission):
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role in [
+            and request.user.role
+            in [
                 RoleChoices.PLATFORM_ADMIN,
                 RoleChoices.TENANT_OWNER,
                 RoleChoices.MANAGER,
@@ -96,7 +235,7 @@ class CanCheckIn(permissions.BasePermission):
 
 class HasGranularPermission(permissions.BasePermission):
     """
-    Check for specific permissions in user.permissions JSON field.
+    Check for specific permissions using resolve_user_permissions (explicit override -> role default).
     Tenant owners and platform admins always have full access.
     """
 
@@ -104,24 +243,7 @@ class HasGranularPermission(permissions.BasePermission):
         self.required_permission = required_permission
 
     def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-
-        # Owners and admins always have access
-        if request.user.role in [RoleChoices.PLATFORM_ADMIN, RoleChoices.TENANT_OWNER]:
-            return True
-
-        # Check for specific granular permission
-        user_perms = getattr(request.user, "permissions", {}) or {}
-        if user_perms is None:
-            user_perms = {}
-        
-        result = user_perms.get(self.required_permission, False)
-        
-        # Debug logging (visible in docker logs)
-        print(f"[AUTH DEBUG] User: {request.user.email} | Required: {self.required_permission} | UserPerms: {user_perms} | Result: {result}")
-        
-        return result
+        return has_effective_permission(request.user, self.required_permission)
 
 
 class CanManageStudents(HasGranularPermission):
@@ -202,21 +324,6 @@ class CanManageLocations(HasGranularPermission):
     def __init__(self):
         super().__init__("can_manage_locations")
 
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-
-        # Keep management roles working by default for locations CRUD.
-        if request.user.role in [
-            RoleChoices.PLATFORM_ADMIN,
-            RoleChoices.TENANT_OWNER,
-            RoleChoices.MANAGER,
-            RoleChoices.BRANCH_MANAGER,
-        ]:
-            return True
-
-        return super().has_permission(request, view)
-
 
 class CanManageAcademy(HasGranularPermission):
     def __init__(self):
@@ -228,42 +335,40 @@ class CanManageBranding(HasGranularPermission):
         super().__init__("can_manage_branding")
 
 
+class CanManageBelts(HasGranularPermission):
+    def __init__(self):
+        super().__init__("can_manage_belts")
+
+
+class CanManageStore(HasGranularPermission):
+    def __init__(self):
+        super().__init__("can_manage_store")
+
+
+class CanManageMessaging(HasGranularPermission):
+    def __init__(self):
+        super().__init__("can_manage_messaging")
+
+
 class CanUpdateTenantSettings(permissions.BasePermission):
     """
     Combined permission for PATCH /academy/me/.
-    Allows if user is Owner/Manager/Admin OR has can_manage_academy OR can_manage_branding.
+    Allows if user has can_manage_academy OR can_manage_branding.
     """
 
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
 
-        if request.user.role in [
-            RoleChoices.PLATFORM_ADMIN,
-            RoleChoices.TENANT_OWNER,
-            RoleChoices.MANAGER,
-        ]:
-            return True
-
-        user_perms = getattr(request.user, "permissions", {}) or {}
-        return user_perms.get("can_manage_academy", False) or user_perms.get(
-            "can_manage_branding", False
+        return (
+            has_effective_permission(request.user, "can_manage_academy")
+            or has_effective_permission(request.user, "can_manage_branding")
         )
 
 
 class CanViewReports(HasGranularPermission):
-    """
-    Controls access to dashboard KPIs and analytics.
+    """Controls access to dashboard KPIs and analytics."""
 
-    Auto-granted to:
-      - platform_admin, tenant_owner  (via HasGranularPermission base)
-      - manager
-
-    Configurable (toggleable) for all other staff roles via the
-    'can_view_reports' flag in user.permissions.
-    """
-
-    # Roles that always pass without needing the explicit flag.
     AUTO_GRANTED_ROLES = [
         RoleChoices.PLATFORM_ADMIN,
         RoleChoices.TENANT_OWNER,
@@ -273,16 +378,6 @@ class CanViewReports(HasGranularPermission):
     def __init__(self):
         super().__init__("can_view_reports")
 
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-
-        if request.user.role in self.AUTO_GRANTED_ROLES:
-            return True
-
-        # All other staff: honour the granular flag.
-        return super().has_permission(request, view)
-
 
 class IsOwnerOrStaff(permissions.BasePermission):
     """Allow staff to access all records, or users to access their own."""
@@ -291,11 +386,9 @@ class IsOwnerOrStaff(permissions.BasePermission):
         if not (request.user and request.user.is_authenticated):
             return False
 
-        # Staff can access all
         if request.user.role in RoleChoices.STAFF_ROLES:
             return True
 
-        # Students can access their own data
         if hasattr(obj, "user"):
             return obj.user == request.user
 
@@ -308,13 +401,6 @@ class IsOwnerOrStaff(permissions.BasePermission):
 class LocationFilterMixin:
     """
     Mixin for viewsets to scope querysets by the requesting user's assigned branch.
-
-    Rules:
-    - tenant_owner / platform_admin / manager → see ALL locations (no restriction).
-    - Any staff member with primary_location_id set → restricted to that branch only.
-    - Staff with no primary_location_id → unrestricted (e.g. a shared role not tied to one branch).
-
-    The queryset field to filter on must be specified in `location_field` (default: "location_id").
     """
 
     location_field: str = "location_id"
@@ -324,7 +410,6 @@ class LocationFilterMixin:
         user = self.request.user
         if not user or not user.is_authenticated:
             return None
-        # Admins / owners / general managers see everything
         if user.role in [
             RoleChoices.PLATFORM_ADMIN,
             RoleChoices.TENANT_OWNER,
@@ -336,7 +421,6 @@ class LocationFilterMixin:
     def get_location_filtered_queryset(self, queryset):
         location_ids = self._get_user_location_ids()
         if location_ids:
-            # If the user has assigned locations, they can only see those.
             return queryset.filter(**{f"{self.location_field}__in": location_ids})
         return queryset
 
@@ -345,7 +429,6 @@ class BranchScopedMixin(LocationFilterMixin):
     """
     Variant of LocationFilterMixin for models that reach location through a
     related Student (e.g. Invoice, Membership, AttendanceRecord).
-    Override `location_field` to point to the correct traversal path.
     """
 
     location_field: str = "student__location_id"

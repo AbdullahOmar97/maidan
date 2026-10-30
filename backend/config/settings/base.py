@@ -118,7 +118,6 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 # Middleware
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
-    "apps.accounts.middleware.DebugHostMiddleware",
     "django_tenants.middleware.main.TenantMainMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "apps.tenants.middleware.TenantStatusMiddleware",
@@ -172,6 +171,12 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
 
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -189,7 +194,7 @@ AUTHENTICATION_BACKENDS = [
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "shared.auth.TenantAwareJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -208,10 +213,14 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": "100/hour",
         "user": "1000/hour",
+        "auth_login": "10/minute",
+        "auth_password": "5/minute",
+        "auth_discover": "15/minute",
     },
     "EXCEPTION_HANDLER": "shared.exceptions.custom_exception_handler",
 }

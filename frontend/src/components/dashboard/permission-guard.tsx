@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ShieldAlert, Loader2 } from "lucide-react";
+import { hasEffectivePermission, PRIVILEGED_ROLES } from "@/lib/hooks/use-permission";
+import type { UserRole } from "@/types";
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -31,11 +33,10 @@ export function PermissionGuard({
     }
 
     const user = session.user as any;
-    const userRole = user.role;
+    const userRole = user.role as UserRole | undefined;
     const userPermissions = user.permissions || {};
 
-    // Platform Admin and Tenant Owner bypass all checks
-    if (userRole === "platform_admin" || userRole === "tenant_owner") {
+    if (userRole && PRIVILEGED_ROLES.includes(userRole)) {
       setHasAccess(true);
       return;
     }
@@ -46,11 +47,11 @@ export function PermissionGuard({
       access = false;
     }
 
-    if (roles && !roles.includes(userRole)) {
+    if (roles && (!userRole || !roles.includes(userRole))) {
       access = false;
     }
 
-    if (permission && userPermissions[permission] !== true) {
+    if (permission && !hasEffectivePermission(userRole, userPermissions, permission)) {
       access = false;
     }
 

@@ -44,6 +44,9 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     group: "التشغيل والإدارة",
     flags: [
       { id: "can_manage_schedules", label: "إدارة الجداول",    description: "تعديل المواعيد والحصص التدريبية" },
+      { id: "can_manage_belts",     label: "إدارة الأحزمة والاختبارات", description: "إدارة رتب الأحزمة، الترقيات، واختبارات الترقية" },
+      { id: "can_manage_store",     label: "إدارة المتجر",      description: "إدارة المنتجات والطلبات في متجر النادي" },
+      { id: "can_manage_messaging", label: "إدارة الرسائل",     description: "إرسال الرسائل والحملات الإعلانية للطلاب" },
       { id: "can_manage_locations", label: "إدارة الفروع",      description: "إضافة وتعديل وحذف بيانات الفروع" },
       { id: "can_view_reports",     label: "عرض التقارير",      description: "الاطلاع على تقارير الأداء والنمو" },
       { id: "can_manage_staff",     label: "إدارة فريق العمل", description: "تعديل بيانات وصلاحيات الموظفين" },

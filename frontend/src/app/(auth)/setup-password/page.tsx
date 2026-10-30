@@ -1,19 +1,51 @@
 "use client";
 
-import { useState, FormEvent, Suspense } from "react";
+import { useState, FormEvent, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Shield, Eye, EyeOff, Sparkles, CheckCircle2, Phone, Mail, Lock, ArrowRight } from "lucide-react";
+import {
+  Loader2,
+  Shield,
+  Eye,
+  EyeOff,
+  Sparkles,
+  CheckCircle2,
+  Mail,
+  Lock,
+  ArrowRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
 import { ErrorAlert } from "@/components/ErrorAlert";
 
+function evaluatePasswordStrength(pw: string) {
+  let score = 0;
+  if (pw.length >= 8) score += 1;
+  if (pw.length >= 12) score += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
+
+  const labels = ["ضعيفة جداً", "ضعيفة", "متوسطة", "قوية", "قوية جداً"];
+  const colors = [
+    "bg-destructive",
+    "bg-destructive",
+    "bg-amber-500",
+    "bg-emerald-500",
+    "bg-emerald-400",
+  ];
+  return {
+    score,
+    label: labels[score] || labels[0],
+    color: colors[score] || colors[0],
+  };
+}
+
 function SetupPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") || "");
+  const token = searchParams.get("token") || "";
 
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,26 +54,33 @@ function SetupPasswordContent() {
   const [error, setError] = useState<string>("");
   const [errorTitle, setErrorTitle] = useState<string>("فشل العملية");
 
+  const strength = useMemo(() => evaluatePasswordStrength(password), [password]);
+
   const onSetupPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setErrorTitle("فشل العملية");
 
+    if (password.length < 8) {
+      setError("كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.");
+      return;
+    }
+
     if (password !== passwordConfirm) {
-      setError("كلمات المرور غير متطابقة");
+      setError("كلمات المرور غير متطابقة.");
       return;
     }
 
     setIsSubmitting(true);
     try {
       await api.auth.passwordSetup({
-        email,
-        phone,
+        email: email.trim().toLowerCase(),
+        ...(token ? { token } : {}),
         new_password: password,
         new_password_confirm: passwordConfirm,
       });
       setIsSuccess(true);
-      toast.success("تم ضبط كلمة المرور بنجاح");
+      toast.success("تم ضبط كلمة المرور وتفعيل الحساب بنجاح");
       setTimeout(() => {
         router.push(`/login?email=${encodeURIComponent(email)}`);
       }, 3000);
@@ -50,13 +89,12 @@ function SetupPasswordContent() {
       let errorMsg = "حدث خطأ أثناء ضبط كلمة المرور";
 
       if (data) {
-        if (typeof data === 'string') {
+        if (typeof data === "string") {
           errorMsg = data;
-        } else if (typeof data === 'object') {
-          // Handle DRF style errors: {"detail": "..."} or {"field": ["error"]}
-          if (data.detail && typeof data.detail === 'string') {
+        } else if (typeof data === "object") {
+          if (data.detail && typeof data.detail === "string") {
             errorMsg = data.detail;
-          } else if (data.message && typeof data.message === 'string') {
+          } else if (data.message && typeof data.message === "string") {
             errorMsg = data.message;
           } else {
             const values = Object.values(data);
@@ -64,7 +102,7 @@ function SetupPasswordContent() {
               const first = values[0];
               if (Array.isArray(first)) {
                 errorMsg = first[0];
-              } else if (typeof first === 'string') {
+              } else if (typeof first === "string") {
                 errorMsg = first;
               }
             }
@@ -105,70 +143,67 @@ function SetupPasswordContent() {
       <div className="relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-black text-white tracking-tight mb-2">تفعيل الحساب</h2>
-          <p className="text-sm text-muted-foreground">مرحباً بك في ميدان! يرجى ضبط كلمة المرور الخاصة بك للبدء</p>
+          <p className="text-sm text-muted-foreground">
+            مرحباً بك في ميدان! يرجى ضبط كلمة المرور الخاصة بك للبدء
+          </p>
         </div>
 
         <form onSubmit={onSetupPassword} className="space-y-6">
-          {/* Email (Readonly) */}
+          {/* Email */}
           <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">البريد الإلكتروني</label>
+            <label
+              htmlFor="setup-email"
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1"
+            >
+              البريد الإلكتروني
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                 <Mail className="w-4 h-4" />
               </div>
               <input
+                id="setup-email"
                 required
                 type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                 placeholder="name@example.com"
-
               />
             </div>
-          </div>
-
-          {/* Phone Verification */}
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">رقم الهاتف للتحقق</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
-                <Phone className="w-4 h-4" />
-              </div>
-              <input
-                required
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full ps-12 pe-5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
-                placeholder="05xxxxxxxx"
-
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 me-1 mt-1 italic">أدخل رقم الهاتف الذي قام المدير بتسجيله لك</p>
           </div>
 
           {/* New Password */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">كلمة المرور الجديدة</label>
+              <label
+                htmlFor="setup-new-password"
+                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1"
+              >
+                كلمة المرور الجديدة
+              </label>
               <div className="relative group/pass">
                 <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
+                  id="setup-new-password"
                   required
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete="new-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
-
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 start-4 flex items-center text-muted-foreground hover:text-white transition-colors"
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -176,31 +211,58 @@ function SetupPasswordContent() {
             </div>
 
             <div className="space-y-2.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1">تأكيد كلمة المرور</label>
+              <label
+                htmlFor="setup-confirm-password"
+                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ms-1"
+              >
+                تأكيد كلمة المرور
+              </label>
               <div className="relative group/pass">
                 <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
+                  id="setup-confirm-password"
                   required
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete="new-password"
                   type={showPassword ? "text" : "password"}
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
                   className="w-full ps-12 pe-12 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                   placeholder="••••••••"
-
                 />
               </div>
             </div>
           </div>
 
+          {/* Password Strength Indicator */}
+          {password.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">قوة كلمة المرور</span>
+                <span className="font-bold text-white">{strength.label}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 h-1.5">
+                {[1, 2, 3, 4].map((bar) => (
+                  <div
+                    key={bar}
+                    className={cn(
+                      "rounded-full transition-all duration-300",
+                      strength.score >= bar ? strength.color : "bg-white/10"
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                استخدم 8 أحرف على الأقل (يُنصح بـ 12 حرفاً أو أكثر مع أرقام ورموز).
+              </p>
+            </div>
+          )}
+
           {/* Error Message */}
-          <ErrorAlert
-            error={error}
-            title={errorTitle}
-            variant="compact"
-            className="mb-4"
-          />
+          <ErrorAlert error={error} title={errorTitle} variant="compact" className="mb-4" />
 
           {/* Submit Button */}
           <button
@@ -246,17 +308,21 @@ export default function SetupPasswordPage() {
           <h1 className="text-3xl font-black text-white tracking-tighter mb-2">MAIDAN</h1>
         </div>
 
-        <Suspense fallback={
-          <div className="glass-card p-12 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground font-bold">جاري التحميل...</p>
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="glass-card p-12 flex flex-col items-center justify-center gap-4">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground font-bold">جاري التحميل...</p>
+            </div>
+          }
+        >
           <SetupPasswordContent />
         </Suspense>
 
         <div className="mt-10 text-center opacity-30">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white">MAIDAN PLATFORM</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white">
+            MAIDAN PLATFORM
+          </p>
         </div>
       </div>
     </div>

@@ -9,13 +9,34 @@ import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from shared.validators import avatar_upload_path
+
+
+def default_notification_preferences():
+    return {
+        "in_app": {
+            "enabled": True,
+            "billing": True,
+            "attendance": True,
+            "promotions": True,
+            "security": True,
+        }
+    }
+
+
+def default_ui_preferences():
+    return {
+        "theme": "dark",
+        "compact_tables": False,
+        "default_dashboard_period": "month",
+    }
 
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
-        email = self.normalize_email(email)
+        email = self.normalize_email(email).lower()
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -25,13 +46,14 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("role", User.Role.PLATFORM_ADMIN)
+        extra_fields.setdefault("is_initial_password_set", True)
         return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
     """
     Custom User model — central identity for MAIDAN.
-    A user can belong to multiple tenants (via UserTenantMembership).
+    A user can belong to multiple tenants (via StaffMember).
     """
 
     class Role(models.TextChoices):
@@ -64,22 +86,31 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
-    # Profile
-    avatar = models.ImageField(upload_to="avatars/%Y/%m/", null=True, blank=True)
+    # Profile & Preferences
+    avatar = models.ImageField(upload_to=avatar_upload_path, null=True, blank=True)
     language_pref = models.CharField(max_length=5, choices=Language.choices, default=Language.ARABIC)
+    notification_preferences = models.JSONField(default=default_notification_preferences, blank=True)
+    ui_preferences = models.JSONField(default=default_ui_preferences, blank=True)
 
     # Location scoping (multi-select)
     assigned_location_ids = models.JSONField(default=list, blank=True)
 
-    # Audit
+    # Audit & Security State
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    password_changed_at = models.DateTimeField(null=True, blank=True)
+    token_version = models.PositiveIntegerField(
+        default=1,
+        help_text="Incremented on password change, reset, or global session revocation.",
+    )
+    # TODO(security): Add WebAuthn Passkeys / TOTP MFA model and mfa_enabled flag in future phase.
+    # TODO(security): Add OAuth2/OIDC provider bindings for federated SSO when enabled.
 
-    # Permissions (Granular control for staff)
+    # Permissions (Granular control overrides for staff)
     permissions = models.JSONField(default=dict, blank=True)
 
-    # Consent
+    # Consent & Lifecycle
     gdpr_consent = models.BooleanField(default=False)
     gdpr_consent_at = models.DateTimeField(null=True, blank=True)
     is_initial_password_set = models.BooleanField(default=False)
@@ -103,7 +134,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
-
 
     @property
     def is_management(self):

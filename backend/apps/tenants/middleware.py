@@ -13,9 +13,6 @@ class TenantStatusMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        host = request.get_host()
-        print(f"DEBUG: django-tenants is seeing host: '{host}'")
-        
         if request.path.startswith('/admin/'):
             return self.get_response(request)
             

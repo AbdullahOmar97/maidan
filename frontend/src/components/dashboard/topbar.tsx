@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, getSession } from "next-auth/react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import {
   Bell, LogOut, Moon, Sun, Search, Shield, Menu, X, Check, Inbox
@@ -100,6 +100,14 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
   }, [pathname]);
 
   const handleLogout = async () => {
+    try {
+      const currentSession = (await getSession()) as any;
+      if (currentSession?.refreshToken) {
+        await api.auth.logout(currentSession.refreshToken);
+      }
+    } catch {
+      // Ignore logout network failure and proceed with local session cleanup
+    }
     if (typeof window !== "undefined") {
       const themePref = localStorage.getItem("theme");
       localStorage.clear();
@@ -364,10 +372,20 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
             {/* Avatar */}
             <div
-              className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300"
+              className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300 overflow-hidden"
               aria-hidden="true"
             >
-              {(user as any)?.first_name?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? "U"}
+              {user?.image ? (
+                <img
+                  src={user.image}
+                  alt={user?.name || "Avatar"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (user as any)?.first_name?.[0]?.toUpperCase() ??
+                user?.name?.[0]?.toUpperCase() ??
+                "U"
+              )}
             </div>
           </Link>
 

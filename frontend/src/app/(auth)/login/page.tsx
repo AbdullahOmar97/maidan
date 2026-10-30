@@ -157,13 +157,21 @@ function LoginContent() {
 
     if (result?.error) {
       if (result.error.includes("SETUP_REQUIRED")) {
-        const email = result.error.split(":")[1];
-        router.push(`/setup-password?email=${encodeURIComponent(email)}`);
+        const targetEmail = result.error.split("SETUP_REQUIRED:")[1] || normalizedEmail;
+        router.push(`/setup-password?email=${encodeURIComponent(targetEmail)}`);
       } else if (result.error.includes("FORCE_PASSWORD_RESET")) {
-        const token = result.error.split(":")[1];
+        const token = result.error.split("FORCE_PASSWORD_RESET:")[1];
         router.push(`/reset-password?token=${encodeURIComponent(token)}`);
+      } else if (result.error.includes("ACCOUNT_LOCKED")) {
+        const message = result.error.split("ACCOUNT_LOCKED:")[1];
+        setIsLocked(true);
+        setErrorTitle("تم قفل الدخول مؤقتاً");
+        setError(
+          message ||
+            "تم إيقاف محاولات الدخول مؤقتاً بسبب محاولات فاشلة متكررة. يرجى الانتظار 15 دقيقة."
+        );
       } else if (result.error.includes("TENANT_INACTIVE")) {
-        const message = result.error.split(":")[1];
+        const message = result.error.split("TENANT_INACTIVE:")[1];
         setError(message || "هذا النادي غير نشط حالياً. يرجى التواصل مع الإدارة.");
         setErrorTitle("النادي غير مفعل");
       } else {

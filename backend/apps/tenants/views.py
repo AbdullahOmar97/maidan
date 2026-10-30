@@ -154,9 +154,17 @@ class TenantViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        password = request.data.get("password")
+        if not password or not current_user.check_password(password):
+            return Response(
+                {"error": "كلمة المرور الحالية غير صحيحة. يرجى إدخال كلمة المرور لتأكيد نقل الملكية."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             from apps.accounts.models import User
             from apps.staff.models import StaffMember
+            from shared.auth import revoke_all_user_tokens
             
             # 2. Get target user
             new_owner = User.objects.get(id=new_owner_id)
@@ -177,6 +185,9 @@ class TenantViewSet(viewsets.ModelViewSet):
                 # New user becomes owner
                 new_owner.role = RoleChoices.TENANT_OWNER
                 new_owner.save(update_fields=["role"])
+
+                revoke_all_user_tokens(current_user)
+                revoke_all_user_tokens(new_owner)
 
             from apps.audit.utils import log_action
             log_action(
