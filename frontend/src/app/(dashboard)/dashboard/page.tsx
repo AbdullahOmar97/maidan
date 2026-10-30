@@ -2,7 +2,9 @@
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   Users,
   TrendingUp,
@@ -118,20 +120,42 @@ function ChartCard({
   );
 }
 
+const PERIOD_LABELS: Record<"today" | "week" | "month" | "year", { title: string; revenueLabel: string; newSuffix: string }> = {
+  today: { title: "اليوم", revenueLabel: "إيرادات اليوم", newSuffix: "جديد اليوم" },
+  week:  { title: "هذا الأسبوع", revenueLabel: "إيرادات الأسبوع", newSuffix: "جديد هذا الأسبوع" },
+  month: { title: "هذا الشهر", revenueLabel: "إيرادات الشهر", newSuffix: "جديد هذا الشهر" },
+  year:  { title: "هذه السنة", revenueLabel: "إيرادات السنة", newSuffix: "جديد هذه السنة" },
+};
+
 // ---------------------------------------------------------------------------
 // Main Dashboard Page
 // ---------------------------------------------------------------------------
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const { canViewReports }   = useReportingPermissions();
+  const savedPeriod = ((session?.user as any)?.ui_preferences?.default_dashboard_period || "month") as
+    | "today"
+    | "week"
+    | "month"
+    | "year";
+  const [period, setPeriod] = useState<"today" | "week" | "month" | "year">(savedPeriod);
+
+  useEffect(() => {
+    if (savedPeriod && ["today", "week", "month", "year"].includes(savedPeriod)) {
+      setPeriod(savedPeriod);
+    }
+  }, [savedPeriod]);
+
+  const revenueMonths = period === "year" ? 12 : 6;
 
   const { data: kpis, isLoading: kpisLoading, refetch } = useQuery<DashboardKPIs>({
-    queryKey: ["dashboard", "kpi"],
-    queryFn:  () => api.dashboard.kpi().then((r) => r.data),
+    queryKey: ["dashboard", "kpi", period],
+    queryFn:  () => api.dashboard.kpi(period).then((r) => r.data),
     staleTime: 30_000,
     enabled: canViewReports,
   });
 
-  const { data: revenueData }    = useQuery({ queryKey: ["dashboard", "revenue"],    queryFn: () => api.dashboard.revenue(6).then((r) => r.data), enabled: canViewReports });
+  const { data: revenueData }    = useQuery({ queryKey: ["dashboard", "revenue", revenueMonths], queryFn: () => api.dashboard.revenue(revenueMonths).then((r) => r.data), enabled: canViewReports });
   const { data: beltData }       = useQuery({ queryKey: ["dashboard", "belts"],      queryFn: () => api.dashboard.belts().then((r) => r.data), enabled: canViewReports });
   const { data: attendanceData } = useQuery({ queryKey: ["dashboard", "attendance"], queryFn: () => api.dashboard.attendance("weekly").then((r) => r.data), enabled: canViewReports });
   const { data: retentionData }  = useQuery({ queryKey: ["dashboard", "retention"],  queryFn: () => api.dashboard.retention().then((r) => r.data), enabled: canViewReports });
@@ -141,6 +165,7 @@ export default function DashboardPage() {
     queryFn:  () => api.tenants.me().then((r) => r.data),
   });
   const tenantCurrency = academy?.default_currency || "JOD";
+  const activePeriodMeta = PERIOD_LABELS[period] || PERIOD_LABELS.month;
 
   const emptyChart = (height: string) => (
     <div
@@ -158,14 +183,34 @@ export default function DashboardPage() {
         description={`نظام ميدان متصل — ${formatDate(new Date().toISOString())}`}
         icon={Sparkles}
       >
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-primary/40 text-sm font-bold text-muted-foreground hover:text-white transition-all group active:scale-95"
-          aria-label="تحديث البيانات"
-        >
-          <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" aria-hidden="true" />
-          <span className="hidden xs:inline">تحديث البيانات</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {canViewReports && (
+            <div className="flex items-center p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+              {(["today", "week", "month", "year"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    period === p
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
+                  {PERIOD_LABELS[p].title}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-primary/40 text-sm font-bold text-muted-foreground hover:text-white transition-all group active:scale-95"
+            aria-label="تحديث البيانات"
+          >
+            <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" aria-hidden="true" />
+            <span className="hidden xs:inline">تحديث البيانات</span>
+          </button>
+        </div>
       </PageHeader>
 
       {academy && (academy.status === "trial" || academy.on_trial) && (
@@ -201,16 +246,16 @@ export default function DashboardPage() {
           loading={kpisLoading}
           label="الطلاب النشطون"
           value={kpis?.students.active ?? 0}
-          subtitle={`${kpis?.students.trial ?? 0} تجريبي هذا الشهر`}
+          subtitle={`${kpis?.students.trial ?? 0} تجريبي نشط`}
           icon={Users}
           color="primary"
           trend={kpis?.students.new_this_month ? "up" : "neutral"}
-          trendValue={`+${kpis?.students.new_this_month ?? 0} جديد`}
+          trendValue={`+${kpis?.students.new_this_month ?? 0} ${activePeriodMeta.newSuffix}`}
           href="/dashboard/students"
         />
         <StatsCard
           loading={kpisLoading}
-          label="إيرادات الشهر"
+          label={activePeriodMeta.revenueLabel}
           value={formatCurrency(kpis?.revenue.this_month ?? 0, kpis?.revenue.currency ?? tenantCurrency)}
           subtitle={`مستهدف: ${formatCurrency((kpis?.revenue.this_month ?? 0) * 1.2, kpis?.revenue.currency ?? tenantCurrency)}`}
           icon={CreditCard}

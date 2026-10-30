@@ -236,7 +236,8 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
             create_in_app_notification(
                 subject="محاولة دخول مرفوضة",
                 content=f"حاول الطالب معلق الحساب {student.full_name} تسجيل الحضور لحصة اليوم وتم حظره.",
-                student=student
+                student=student,
+                topic="attendance",
             )
             return Response(
                 {"error": "عذراً، هذا الحساب معلق بسبب مستحقات مالية غير مدفوعة. يرجى مراجعة الإدارة."},

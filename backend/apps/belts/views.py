@@ -157,7 +157,8 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                 create_in_app_notification(
                     subject="ترقية حزام جديدة",
                     content=f"تهانينا! تمت ترقيتك إلى حزام {belt.name}.",
-                    student=student
+                    student=student,
+                    topic="promotions",
                 )
             except Exception as e:
                 import logging

@@ -691,6 +691,16 @@ class PasswordChangeView(APIView):
         fresh_refresh = create_tokens_for_user(user, tenant=tenant)
 
         log_action(user, "password_change", "user", str(user.id), request=request)
+        try:
+            if tenant and getattr(tenant, "schema_name", "public") != "public":
+                from apps.messaging.utils import create_in_app_notification
+                create_in_app_notification(
+                    subject="تنبيه أمان — تغيير كلمة المرور",
+                    content=f"تم تحديث كلمة المرور لحساب {user.get_full_name() or user.email}.",
+                    topic="security",
+                )
+        except Exception:
+            pass
 
         return Response(
             {
@@ -785,6 +795,17 @@ class PasswordResetConfirmView(APIView):
 
         revoke_all_user_tokens(user)
         log_action(user, "password_change", "user", str(user.id), request=request)
+        try:
+            tenant = getattr(request, "tenant", None)
+            if tenant and getattr(tenant, "schema_name", "public") != "public":
+                from apps.messaging.utils import create_in_app_notification
+                create_in_app_notification(
+                    subject="تنبيه أمان — تغيير كلمة المرور",
+                    content=f"تم تحديث كلمة المرور لحساب {user.get_full_name() or user.email}.",
+                    topic="security",
+                )
+        except Exception:
+            pass
 
         return Response({"message": "تمت إعادة تعيين كلمة المرور بنجاح."})
 
@@ -926,6 +947,15 @@ class StaffViewSet(viewsets.ModelViewSet):
                 changes={"old": target_user.permissions, "new": new_permissions},
                 request=self.request,
             )
+            try:
+                from apps.messaging.utils import create_in_app_notification
+                create_in_app_notification(
+                    subject="تنبيه أمان — تحديث صلاحيات موظف",
+                    content=f"تم تحديث الصلاحيات الخاصة بالموظف {target_user.get_full_name() or target_user.email}.",
+                    topic="security",
+                )
+            except Exception:
+                pass
 
         user = serializer.save()
         self._sync_location_managers(user)

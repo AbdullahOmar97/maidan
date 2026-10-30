@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { signOut, getSession } from "next-auth/react";
+import { signOut, getSession, useSession } from "next-auth/react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import {
   Bell, LogOut, Moon, Sun, Search, Shield, Menu, X, Check, Inbox
@@ -24,17 +24,38 @@ interface TopBarProps {
 
 export function TopBar({ user, onMenuToggle }: TopBarProps) {
   const pathname = usePathname();
+  const { update: updateSession } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const queryClient = useQueryClient();
   const role = (user as any)?.role as UserRole;
+  const userNotifPrefs = (user as any)?.notification_preferences;
+  const inAppNotificationsEnabled = userNotifPrefs?.in_app?.enabled !== false;
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  const handleThemeToggle = async () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    try {
+      const currentUiPrefs = (user as any)?.ui_preferences || {
+        theme: "dark",
+        compact_tables: false,
+        default_dashboard_period: "month",
+      };
+      const updatedUiPrefs = { ...currentUiPrefs, theme: nextTheme };
+      await api.auth.updateProfile({ ui_preferences: updatedUiPrefs });
+      await updateSession({ ui_preferences: updatedUiPrefs });
+      clearCachedSession();
+    } catch {
+      // Non-fatal if background persistence fails
+    }
+  };
+
   // Fetch in-app notifications
   const { data: notificationsData } = useQuery<PaginatedResponse<NotificationLog>>({
-    queryKey: ["notifications", "in_app"],
+    queryKey: ["notifications", "in_app", userNotifPrefs],
     queryFn: () =>
       api.messaging
         .logs({ channel: "in_app", ordering: "-created_at" })
@@ -220,7 +241,7 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
           {/* Theme Toggle */}
           <button
             id="theme-toggle"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={handleThemeToggle}
             className="touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all active:scale-90"
             aria-label={mounted ? (theme === "dark" ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن") : "تبديل وضع العرض"}
           >
@@ -294,6 +315,18 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
                   </div>
 
                   {/* Notification List */}
+                  {!inAppNotificationsEnabled && (
+                    <div className="mt-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-2 text-[11px] text-amber-300">
+                      <span>الإشعارات العامة متوقفة (تنبيهات الأمان مفعلة فقط)</span>
+                      <Link
+                        href="/dashboard/settings?tab=notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="font-black underline shrink-0"
+                      >
+                        تعديل
+                      </Link>
+                    </div>
+                  )}
                   <div className="max-h-[60vh] sm:max-h-72 overflow-y-auto py-2 space-y-2 divide-y divide-white/[0.03] overscroll-contain">
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">

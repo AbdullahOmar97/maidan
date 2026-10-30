@@ -41,13 +41,14 @@ import {
 } from "lucide-react";
 
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
-import { api } from "@/lib/api/client";
+import { api, clearCachedSession } from "@/lib/api/client";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { useSettingsPermissions } from "@/lib/hooks/use-permission";
 import { toast } from "sonner";
 import { ROLE_LABELS } from "@/lib/constants";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { useQueryClient } from "@tanstack/react-query";
 import { removeImageBackground } from "@/lib/image-processing";
 import type {
   NotificationPreferences,
@@ -139,6 +140,7 @@ export default function SettingsPage() {
   const { update: updateSession } = useSession();
   const { theme: currentTheme, setTheme } = useTheme();
   const { refreshTenant } = useTenant();
+  const queryClient = useQueryClient();
   const perms = useSettingsPermissions();
 
   const [activeTab, setActiveTab] = useState("profile");
@@ -503,6 +505,8 @@ export default function SettingsPage() {
         last_name: updatedUser.last_name,
         image: newAvatarUrl || null,
       });
+      clearCachedSession();
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
 
       const syncedProfile = {
         first_name: updatedUser.first_name || profile.first_name.trim(),
@@ -552,6 +556,7 @@ export default function SettingsPage() {
           accessToken: res.data.access,
           refreshToken: res.data.refresh,
         });
+        clearCachedSession();
       }
       if (res.data?.password_changed_at) {
         setUserMeta((prev) => ({
@@ -604,6 +609,7 @@ export default function SettingsPage() {
           accessToken: res.data.access,
           refreshToken: res.data.refresh,
         });
+        clearCachedSession();
       }
       toast.success("تم تسجيل الخروج من جميع الأجهزة الأخرى بنجاح ✓");
       fetchSecurityData();
@@ -623,6 +629,11 @@ export default function SettingsPage() {
       const updated = res.data?.notification_preferences || notifications;
       setNotifications(updated);
       setInitialNotifications(updated);
+      await updateSession({
+        notification_preferences: updated,
+      });
+      clearCachedSession();
+      queryClient.invalidateQueries({ queryKey: ["notifications", "in_app"] });
       setSaveStatus((prev) => ({ ...prev, notifications: "success" }));
       toast.success("تم حفظ تفضيلات الإشعارات بنجاح ✓");
       setTimeout(
@@ -642,13 +653,27 @@ export default function SettingsPage() {
         language_pref: preferences.language_pref,
         ui_preferences: preferences.ui_preferences,
       });
-      setTheme(preferences.ui_preferences.theme);
       const synced = {
         language_pref: (res.data?.language_pref || preferences.language_pref) as "ar" | "en",
         ui_preferences: res.data?.ui_preferences || preferences.ui_preferences,
       };
+      setTheme(synced.ui_preferences.theme);
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle(
+          "compact-tables",
+          Boolean(synced.ui_preferences.compact_tables)
+        );
+        document.documentElement.lang = synced.language_pref;
+      }
       setPreferences(synced);
       setInitialPreferences(synced);
+      await updateSession({
+        language_pref: synced.language_pref,
+        ui_preferences: synced.ui_preferences,
+      });
+      clearCachedSession();
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["reporting"] });
       setSaveStatus((prev) => ({ ...prev, preferences: "success" }));
       toast.success("تم حفظ التفضيلات بنجاح ✓");
       setTimeout(
@@ -679,6 +704,10 @@ export default function SettingsPage() {
       });
       setInitialAcademy({ ...academy });
       await refreshTenant();
+      queryClient.invalidateQueries({ queryKey: ["academy"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["reporting"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setSaveStatus((prev) => ({ ...prev, academy: "success" }));
       toast.success("تم تحديث إعدادات الأكاديمية بنجاح");
       setTimeout(() => setSaveStatus((prev) => ({ ...prev, academy: "idle" })), 3000);
@@ -771,6 +800,8 @@ export default function SettingsPage() {
       }
 
       await refreshTenant();
+      queryClient.invalidateQueries({ queryKey: ["academy"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setSaveStatus((prev) => ({ ...prev, branding: "success" }));
       toast.success("تم تحديث الهوية البصرية والختم والتوقيع بنجاح ✓");
       setTimeout(() => setSaveStatus((prev) => ({ ...prev, branding: "idle" })), 3000);

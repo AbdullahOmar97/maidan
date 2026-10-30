@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar, MobileSidebarContent } from "@/components/dashboard/sidebar";
 import { TopBar } from "@/components/dashboard/topbar";
 import { DashboardFooter } from "@/components/dashboard/footer";
 import { Drawer } from "@/components/ui/drawer";
 import { useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import type { Session } from "next-auth";
 
 interface DashboardShellProps {
@@ -21,6 +22,8 @@ interface DashboardShellProps {
 export function DashboardShell({ session, children }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: clientSession, status } = useSession();
+  const { setTheme } = useTheme();
+  const initialThemeSyncedRef = useRef(false);
 
   useEffect(() => {
     const error = (clientSession as any)?.error;
@@ -32,6 +35,23 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
   }, [status, clientSession]);
 
   const user = clientSession?.user || session.user;
+  const uiPrefs = (user as any)?.ui_preferences;
+  const langPref = (user as any)?.language_pref;
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const isCompact = Boolean(uiPrefs?.compact_tables);
+    document.documentElement.classList.toggle("compact-tables", isCompact);
+
+    if (langPref === "en" || langPref === "ar") {
+      document.documentElement.lang = langPref;
+    }
+
+    if (!initialThemeSyncedRef.current && uiPrefs?.theme) {
+      initialThemeSyncedRef.current = true;
+      setTheme(uiPrefs.theme);
+    }
+  }, [uiPrefs?.compact_tables, uiPrefs?.theme, langPref, setTheme]);
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden relative">

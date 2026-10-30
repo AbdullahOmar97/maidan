@@ -32,27 +32,45 @@ def _rpt_cache_key(*parts: str) -> str:
     return "maidan:rpt:" + ":".join([schema] + list(parts))
 
 
-def _compute_dashboard_kpi(tenant=None):
+def _compute_dashboard_kpi(tenant=None, period: str = "month"):
     today = timezone.now().date()
     start_of_month = today.replace(day=1)
     last_month_start = (start_of_month - timedelta(days=1)).replace(day=1)
     last_month_end = start_of_month - timedelta(days=1)
 
+    if period == "today":
+        period_start = today
+        prev_start = today - timedelta(days=1)
+        prev_end = prev_start
+    elif period == "week":
+        period_start = today - timedelta(days=7)
+        prev_start = today - timedelta(days=14)
+        prev_end = period_start - timedelta(days=1)
+    elif period == "year":
+        period_start = today.replace(month=1, day=1)
+        prev_end = period_start - timedelta(days=1)
+        prev_start = prev_end.replace(month=1, day=1)
+    else:
+        period = "month"
+        period_start = start_of_month
+        prev_start = last_month_start
+        prev_end = last_month_end
+
     students = Student.objects.filter(deleted_at__isnull=True)
     active_students = students.filter(status="active").count()
     trial_students = students.filter(status="trial").count()
-    new_this_month = students.filter(created_at__gte=start_of_month).count()
+    new_this_month = students.filter(created_at__date__gte=period_start).count()
 
     invoices = Invoice.objects.all()
     revenue_this_month = invoices.filter(
         status="paid",
-        paid_at__gte=start_of_month,
+        paid_at__date__gte=period_start,
     ).aggregate(total=Sum("total_amount"))["total"] or 0
 
     revenue_last_month = invoices.filter(
         status="paid",
-        paid_at__date__gte=last_month_start,
-        paid_at__date__lte=last_month_end,
+        paid_at__date__gte=prev_start,
+        paid_at__date__lte=prev_end,
     ).aggregate(total=Sum("total_amount"))["total"] or 0
 
     overdue_amount = invoices.filter(
@@ -72,7 +90,7 @@ def _compute_dashboard_kpi(tenant=None):
     from apps.belts.models import StudentBelt
 
     promotions_this_month = StudentBelt.objects.filter(
-        promoted_at__gte=start_of_month,
+        promoted_at__gte=period_start,
     ).count()
 
     revenue_change = 0
@@ -80,6 +98,7 @@ def _compute_dashboard_kpi(tenant=None):
         revenue_change = ((revenue_this_month - revenue_last_month) / revenue_last_month) * 100
 
     return {
+        "period": period,
         "students": {
             "active": active_students,
             "trial": trial_students,
@@ -108,10 +127,20 @@ class DashboardKPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, CanViewReports]
 
     def get(self, request):
-        cache_key = _rpt_cache_key("dashboard_kpi", timezone.now().date().isoformat())
+        user_ui_prefs = getattr(request.user, "ui_preferences", None) or {}
+        default_period = (
+            user_ui_prefs.get("default_dashboard_period", "month")
+            if isinstance(user_ui_prefs, dict)
+            else "month"
+        )
+        period = request.query_params.get("period") or default_period
+        if period not in ("today", "week", "month", "year"):
+            period = "month"
+
+        cache_key = _rpt_cache_key("dashboard_kpi", period, timezone.now().date().isoformat())
         data = cache.get(cache_key)
         if data is None:
-            data = _compute_dashboard_kpi(tenant=request.tenant)
+            data = _compute_dashboard_kpi(tenant=request.tenant, period=period)
             cache.set(cache_key, data, TTL_DASHBOARD_KPI)
         return Response(data)
 

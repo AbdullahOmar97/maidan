@@ -56,7 +56,11 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
           permissions: meData.permissions ?? token.permissions,
           first_name: meData.first_name ?? token.first_name,
           last_name: meData.last_name ?? token.last_name,
+          name: `${meData.first_name ?? token.first_name ?? ""} ${meData.last_name ?? token.last_name ?? ""}`.trim(),
           picture: meData.avatar_url ?? token.picture,
+          language_pref: meData.language_pref ?? token.language_pref,
+          notification_preferences: meData.notification_preferences ?? token.notification_preferences,
+          ui_preferences: meData.ui_preferences ?? token.ui_preferences,
         };
       }
     } catch {
@@ -165,6 +169,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           image: data.user.avatar_url || null,
           role: data.user.role,
           permissions: data.user.permissions,
+          language_pref: data.user.language_pref,
+          notification_preferences: data.user.notification_preferences,
+          ui_preferences: data.user.ui_preferences,
           accessToken: data.access,
           refreshToken: data.refresh,
           tenant: tenantAwareHost,
@@ -182,17 +189,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.tenant = (user as any).tenant;
         token.first_name = (user as any).first_name;
         token.last_name = (user as any).last_name;
+        token.name = user.name;
         token.picture = (user as any).image ?? null;
         token.permissions = (user as any).permissions;
+        token.language_pref = (user as any).language_pref;
+        token.notification_preferences = (user as any).notification_preferences;
+        token.ui_preferences = (user as any).ui_preferences;
         token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
       }
 
       if (trigger === "update" && session) {
         if (session.first_name !== undefined) token.first_name = session.first_name;
         if (session.last_name !== undefined) token.last_name = session.last_name;
+        if (session.first_name !== undefined || session.last_name !== undefined) {
+          token.name = `${token.first_name ?? ""} ${token.last_name ?? ""}`.trim();
+        }
         if (session.image !== undefined) token.picture = session.image;
         if (session.role !== undefined) token.role = session.role;
         if (session.permissions !== undefined) token.permissions = session.permissions;
+        if (session.language_pref !== undefined) token.language_pref = session.language_pref;
+        if (session.notification_preferences !== undefined) {
+          token.notification_preferences = session.notification_preferences;
+        }
+        if (session.ui_preferences !== undefined) {
+          token.ui_preferences = session.ui_preferences;
+        }
         if (session.accessToken !== undefined) {
           token.accessToken = session.accessToken;
           token.accessTokenExpiry = Date.now() + ACCESS_TOKEN_TTL_MS;
@@ -225,11 +246,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return null as any;
       }
       session.user.id = token.id as string;
+      session.user.name = (token.name as string) ?? session.user.name;
       session.user.image = (token.picture as string | null) ?? null;
       (session.user as any).first_name = token.first_name;
       (session.user as any).last_name = token.last_name;
       (session.user as any).role = token.role;
       (session.user as any).permissions = token.permissions;
+      (session.user as any).language_pref = token.language_pref;
+      (session.user as any).notification_preferences = token.notification_preferences;
+      (session.user as any).ui_preferences = token.ui_preferences;
       (session as any).role = token.role;
       (session as any).accessToken = token.accessToken;
       (session as any).refreshToken = token.refreshToken;

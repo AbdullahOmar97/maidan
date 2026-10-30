@@ -181,16 +181,25 @@ class AuthAndSecurityTestCase(TestCase):
                 "/api/v1/auth/me/",
                 {
                     "notification_preferences": {
-                        "in_app_enabled": True,
-                        "topics": {"billing": False, "attendance": True, "promotions": True, "security": True},
+                        "in_app": {
+                            "enabled": True,
+                            "billing": False,
+                            "attendance": True,
+                            "promotions": True,
+                            "security": False,
+                        }
                     },
                     "ui_preferences": {
+                        "theme": "light",
                         "compact_tables": True,
-                        "default_landing_page": "/dashboard/attendance",
+                        "default_dashboard_period": "week",
                     },
                 },
                 format="json",
             )
             self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
             self.assertTrue(patch_resp.data["ui_preferences"]["compact_tables"])
-            self.assertTrue(patch_resp.data["notification_preferences"]["topics"]["security"])
+            self.assertEqual(patch_resp.data["ui_preferences"]["default_dashboard_period"], "week")
+            # Security notifications are always enforced True on the backend
+            self.assertTrue(patch_resp.data["notification_preferences"]["in_app"]["security"])
+            self.assertFalse(patch_resp.data["notification_preferences"]["in_app"]["billing"])

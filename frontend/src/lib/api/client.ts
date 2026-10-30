@@ -189,7 +189,8 @@ export const api = {
 
   // Dashboard
   dashboard: {
-    kpi: () => apiClient.get("/reporting/dashboard/"),
+    kpi: (period?: string) =>
+      apiClient.get("/reporting/dashboard/", { params: period ? { period } : undefined }),
     revenue: (months?: number) =>
       apiClient.get("/reporting/revenue/", { params: { months } }),
     attendance: (period?: string) =>

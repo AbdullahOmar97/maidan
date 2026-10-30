@@ -196,7 +196,8 @@ class ExamCandidate(models.Model):
                 create_in_app_notification(
                     subject="ترقية حزام ناجحة",
                     content=f"تمت ترقية الطالب {self.student.full_name} تلقائياً إلى حزام {final_belt.name} بعد اجتياز الاختبار بنجاح.",
-                    student=self.student
+                    student=self.student,
+                    topic="promotions",
                 )
 
 
