@@ -12,8 +12,8 @@ import { printInvoices } from "@/lib/invoice-print-engine";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import {
-  Receipt, CheckCircle, ChevronRight, Loader2,
-  Printer, Download, Eye, X, CheckSquare, Square, Archive,
+  Receipt, ChevronRight, Loader2,
+  Printer, Download, Eye, X, CheckSquare, Square, Archive, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Invoice } from "@/types";
@@ -44,21 +44,21 @@ function MarkPaidButton({
     <button
       onClick={() => onMarkPaid(invoice)}
       disabled={isMarkingPaid}
-      title="تأكيد استلام المبلغ يدوياً"
+      title="تسجيل سداد الفاتورة"
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 touch-target",
         "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400",
         "hover:bg-emerald-500 hover:text-white hover:border-emerald-500",
         "disabled:opacity-50 disabled:cursor-not-allowed"
       )}
-      aria-label={`تأكيد سداد الفاتورة ${invoice.invoice_number}`}
+      aria-label={`تسجيل سداد الفاتورة ${invoice.invoice_number}`}
     >
       {isMarkingPaid ? (
         <Loader2 className="w-3 h-3 animate-spin" />
       ) : (
-        <CheckCircle className="w-3 h-3" aria-hidden="true" />
+        <CreditCard className="w-3 h-3" aria-hidden="true" />
       )}
-      تم السداد
+      تسجيل سداد
     </button>
   );
 }
@@ -402,6 +402,8 @@ export function InvoicesList({
       signature: tenant.signature || null,
       currency: tenant.default_currency || "JOD",
       country: tenant.country || "JO",
+      tax_number: tenant.tax_number || "",
+      show_tax_number: tenant.show_tax_number ?? true,
     };
   }, [tenant]);
 

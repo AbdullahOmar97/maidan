@@ -16,7 +16,7 @@ interface ConsolidatedInvoiceDocumentProps {
 export function ConsolidatedInvoiceDocument({
   invoices,
   clubInfo,
-  taxNumber = "300000000000003",
+  taxNumber,
   crNumber = "",
   clubAddress,
 }: ConsolidatedInvoiceDocumentProps) {
@@ -30,6 +30,10 @@ export function ConsolidatedInvoiceDocument({
   const email = club?.email || "";
   const currency = invoices[0]?.currency || "JOD";
 
+  const showTaxNumber = club?.show_tax_number ?? true;
+  const rawTaxNumber = taxNumber !== undefined ? taxNumber : (club?.tax_number || "");
+  const effectiveTaxNumber = showTaxNumber ? rawTaxNumber : "";
+
   const totalAmount = invoices.reduce((acc, inv) => acc + Number(inv.total_amount || 0), 0);
   const totalSubtotal = invoices.reduce((acc, inv) => acc + Number(inv.subtotal || inv.total_amount || 0), 0);
   const totalTax = invoices.reduce((acc, inv) => acc + Number(inv.tax_amount || 0), 0);
@@ -39,7 +43,7 @@ export function ConsolidatedInvoiceDocument({
   useEffect(() => {
     const payload = [
       `Seller: ${clubName}`,
-      taxNumber ? `VAT: ${taxNumber}` : "",
+      effectiveTaxNumber ? `VAT: ${effectiveTaxNumber}` : "",
       `Date: ${new Date().toISOString().split("T")[0]}`,
       `Consolidated Statement: ${invoices.length} invoices`,
       `Total: ${totalAmount} ${currency}`,
@@ -54,7 +58,7 @@ export function ConsolidatedInvoiceDocument({
     })
       .then(setQrDataUrl)
       .catch((e: unknown) => console.error("Error generating statement QR:", e));
-  }, [clubName, taxNumber, invoices.length, totalAmount, totalTax, currency]);
+  }, [clubName, effectiveTaxNumber, invoices.length, totalAmount, totalTax, currency]);
 
   return (
     <div className="relative bg-white text-gray-900 font-sans p-6 sm:p-8 rounded-xl border border-gray-200 shadow-sm max-w-4xl mx-auto text-xs leading-relaxed select-text print:border-none print:shadow-none print:p-0">
@@ -72,7 +76,7 @@ export function ConsolidatedInvoiceDocument({
             <h1 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">{clubName}</h1>
             <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">{clubBusinessName}</p>
             <div className="text-[10px] text-gray-500 space-y-0.5 mt-1 font-medium">
-              {taxNumber && <div>الرقم الضريبي / VAT: <strong>{taxNumber}</strong></div>}
+              {effectiveTaxNumber && <div>الرقم الضريبي / VAT: <strong>{effectiveTaxNumber}</strong></div>}
               {crNumber && <div>السجل التجاري / CR: <strong>{crNumber}</strong></div>}
               {address && <div>العنوان: {address}</div>}
               {(phone || email) && <div>{phone && `هاتف: ${phone}`} {email && `• بريد: ${email}`}</div>}

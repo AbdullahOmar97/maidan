@@ -315,6 +315,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
                 "signature": tenant.signature.url if getattr(tenant, "signature", None) else None,
                 "currency": getattr(tenant, "default_currency", "JOD"),
                 "country": getattr(tenant, "country", "JO"),
+                "tax_number": getattr(tenant, "tax_number", ""),
+                "show_tax_number": getattr(tenant, "show_tax_number", True),
             }
         return None
 

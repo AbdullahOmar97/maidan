@@ -140,7 +140,8 @@ class TenantAdmin(admin.ModelAdmin):
         ("Tenant Identity", {"fields": ("name", "business_name", "slug", "schema_name")}),
         ("Contact", {"fields": ("email", "phone")}),
         ("Subscription", {"fields": ("plan", "status", "is_active", "subscription_end_date", "on_trial")}),
-        ("Branding", {"fields": ("logo",)}),
+        ("Branding", {"fields": ("logo", "stamp", "signature")}),
+        ("Tax & Invoicing", {"fields": ("tax_number", "show_tax_number")}),
         (
             "Locale",
             {"fields": ("default_language", "default_currency", "timezone", "country")},

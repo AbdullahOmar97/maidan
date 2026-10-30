@@ -16,7 +16,7 @@ interface InvoiceDocumentProps {
 export function InvoiceDocument({
   invoice,
   clubInfo,
-  taxNumber = "300000000000003",
+  taxNumber,
   crNumber = "",
   clubAddress,
 }: InvoiceDocumentProps) {
@@ -29,10 +29,14 @@ export function InvoiceDocument({
   const phone = club?.phone || "";
   const email = club?.email || "";
 
+  const showTaxNumber = club?.show_tax_number ?? true;
+  const rawTaxNumber = taxNumber !== undefined ? taxNumber : (club?.tax_number || "");
+  const effectiveTaxNumber = showTaxNumber ? rawTaxNumber : "";
+
   useEffect(() => {
     const payload = [
       `Seller: ${clubName}`,
-      taxNumber ? `VAT: ${taxNumber}` : "",
+      effectiveTaxNumber ? `VAT: ${effectiveTaxNumber}` : "",
       `Date: ${invoice.created_at || invoice.due_date}`,
       `Invoice: ${invoice.invoice_number}`,
       `Total: ${invoice.total_amount} ${invoice.currency}`,
@@ -47,7 +51,7 @@ export function InvoiceDocument({
     })
       .then(setQrDataUrl)
       .catch((e: unknown) => console.error("Error generating QR:", e));
-  }, [invoice, clubName, taxNumber]);
+  }, [invoice, clubName, effectiveTaxNumber]);
 
   const isPaid = invoice.status === "paid" || (Number(invoice.amount_due ?? 0) <= 0 && Number(invoice.total_amount ?? 0) > 0);
   const isPartiallyPaid = invoice.status === "partially_paid" || (Number(invoice.amount_paid ?? 0) > 0 && Number(invoice.amount_due ?? 0) > 0);
@@ -115,7 +119,7 @@ export function InvoiceDocument({
             <h1 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">{clubName}</h1>
             <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">{clubBusinessName}</p>
             <div className="text-[10px] text-gray-500 space-y-0.5 mt-1 font-medium">
-              {taxNumber && <div>الرقم الضريبي / VAT: <strong>{taxNumber}</strong></div>}
+              {effectiveTaxNumber && <div>الرقم الضريبي / VAT: <strong>{effectiveTaxNumber}</strong></div>}
               {crNumber && <div>السجل التجاري / CR: <strong>{crNumber}</strong></div>}
               {address && <div>العنوان: {address}</div>}
               {(phone || email) && <div>{phone && `هاتف: ${phone}`} {email && `• بريد: ${email}`}</div>}

@@ -15,6 +15,41 @@ export type UserRole =
   | "student"
   | "read_only";
 
+export interface InAppNotificationPreferences {
+  enabled: boolean;
+  billing: boolean;
+  attendance: boolean;
+  promotions: boolean;
+  security: boolean;
+}
+
+export interface NotificationPreferences {
+  in_app: InAppNotificationPreferences;
+}
+
+export interface UIPreferences {
+  theme: "dark" | "light" | "system";
+  compact_tables: boolean;
+  default_dashboard_period: "today" | "week" | "month" | "year";
+}
+
+export interface UserSessionItem {
+  jti: string;
+  created_at: string;
+  expires_at: string;
+  is_latest: boolean;
+}
+
+export interface SecurityActivityItem {
+  id: number;
+  action: string;
+  resource_type: string;
+  ip_address: string | null;
+  user_agent: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -27,10 +62,17 @@ export interface User {
   avatar: string | null;
   avatar_url: string | null;
   language_pref: "ar" | "en";
+  notification_preferences?: NotificationPreferences;
+  ui_preferences?: UIPreferences;
   assigned_location_ids: number[];
   branch_names: string[];
+  permissions?: StaffPermissions;
   created_at: string;
-  last_login: string;
+  last_login: string | null;
+  last_login_ip?: string | null;
+  password_changed_at?: string | null;
+  is_initial_password_set?: boolean;
+  force_password_reset?: boolean;
 }
 
 export type StudentStatus = "active" | "inactive" | "trial" | "lead" | "suspended" | "graduated";
@@ -316,6 +358,7 @@ export interface InvoiceClubInfo {
   currency?: string;
   country?: string;
   tax_number?: string;
+  show_tax_number?: boolean;
   cr_number?: string;
   address?: string;
 }
@@ -491,6 +534,11 @@ export interface StaffPermissions {
   can_manage_locations?: boolean;
   can_view_reports?: boolean;
   can_manage_staff?: boolean;
+  can_manage_academy?: boolean;
+  can_manage_branding?: boolean;
+  can_manage_belts?: boolean;
+  can_manage_store?: boolean;
+  can_manage_messaging?: boolean;
   [key: string]: boolean | undefined;
 }
 

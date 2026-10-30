@@ -51,6 +51,8 @@ export default function InvoiceDetailPage() {
     signature: tenant.signature || null,
     currency: tenant.default_currency || "JOD",
     country: tenant.country || "JO",
+    tax_number: tenant.tax_number || "",
+    show_tax_number: tenant.show_tax_number ?? true,
   } : null;
 
   const { data: invoice, isLoading, error } = useQuery<Invoice>({

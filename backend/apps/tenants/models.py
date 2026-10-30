@@ -100,6 +100,10 @@ class Tenant(TenantMixin):
     stamp = models.ImageField(upload_to="tenant_stamps/", null=True, blank=True)
     signature = models.ImageField(upload_to="tenant_signatures/", null=True, blank=True)
 
+    # Tax settings
+    tax_number = models.CharField(max_length=50, blank=True, default="", verbose_name="الرقم الضريبي")
+    show_tax_number = models.BooleanField(default=True, verbose_name="إظهار الرقم الضريبي في الفاتورة")
+
     # Locale settings
     default_language = models.CharField(max_length=5, default="ar")
     default_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="JOD")

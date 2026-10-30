@@ -44,7 +44,9 @@ async function renderSingleInvoiceHtml(
   const club = invoice.club_info || options.clubInfo;
   const clubName = club?.name || "نادي ميدان الرياضي";
   const clubBusinessName = club?.business_name || "MAIDAN SPORTS CLUB";
-  const taxNumber = options.taxNumber || club?.tax_number || "300000000000003";
+  const showTaxNumber = club?.show_tax_number ?? true;
+  const rawTaxNumber = options.taxNumber !== undefined ? options.taxNumber : (club?.tax_number || "");
+  const taxNumber = showTaxNumber ? rawTaxNumber : "";
   const crNumber = options.crNumber || club?.cr_number || "";
   const phone = club?.phone || "";
   const email = club?.email || "";
@@ -970,7 +972,9 @@ export async function buildConsolidatedStatementHtml(
   const club = invoices[0]?.club_info || options.clubInfo;
   const clubName = club?.name || "نادي ميدان الرياضي";
   const clubBusinessName = club?.business_name || "MAIDAN SPORTS CLUB";
-  const taxNumber = options.taxNumber || club?.tax_number || "300000000000003";
+  const showTaxNumber = club?.show_tax_number ?? true;
+  const rawTaxNumber = options.taxNumber !== undefined ? options.taxNumber : (club?.tax_number || "");
+  const taxNumber = showTaxNumber ? rawTaxNumber : "";
   const crNumber = options.crNumber || club?.cr_number || "";
   const phone = club?.phone || "";
   const email = club?.email || "";

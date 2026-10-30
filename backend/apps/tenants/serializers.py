@@ -31,7 +31,7 @@ class TenantSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "business_name", "slug", "schema_name", "email", "phone", 
             "is_active", "status", "plan", "subscription_end_date", "on_trial", "trial_ends_at", "trial_days_remaining",
-            "logo", "stamp", "signature", "default_language",
+            "logo", "stamp", "signature", "tax_number", "show_tax_number", "default_language",
             "default_currency", "timezone", "country", "created_at",
             "domains", "domain_input",
             "active_students_count", "active_locations_count", "active_staff_count"
@@ -95,6 +95,24 @@ class TenantSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return data
+
+    def validate_logo(self, value):
+        if value:
+            from shared.validators import validate_secure_image_upload
+            validate_secure_image_upload(value, max_size_mb=5)
+        return value
+
+    def validate_stamp(self, value):
+        if value:
+            from shared.validators import validate_secure_image_upload
+            validate_secure_image_upload(value, max_size_mb=5)
+        return value
+
+    def validate_signature(self, value):
+        if value:
+            from shared.validators import validate_secure_image_upload
+            validate_secure_image_upload(value, max_size_mb=5)
+        return value
 
     def update(self, instance, validated_data):
         for field in ["stamp", "signature"]:
@@ -289,6 +307,10 @@ class TenantRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("This slug is reserved.")
         return value
 
+    def validate_password(self, value):
+        from apps.accounts.serializers import validate_strong_password
+        return validate_strong_password(value)
+
     def create(self, validated_data):
         email = validated_data["email"]
         password = validated_data["password"]
@@ -305,7 +327,8 @@ class TenantRegistrationSerializer(serializers.Serializer):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                role="tenant_owner"
+                role="tenant_owner",
+                is_initial_password_set=True,
             )
 
             # 2. Create Tenant
