@@ -180,3 +180,65 @@ def process_all_dunning_suspensions():
     """Periodic task: automatic account suspension is disabled."""
     logger.info("Automatic dunning suspension periodic task is disabled.")
     return {"dispatched": 0, "status": "disabled"}
+
+
+@shared_task(queue="billing", max_retries=3)
+def check_expired_memberships(schema_name: str):
+    """
+    Scan active memberships that have passed their end_date.
+    1. Mark them as EXPIRED.
+    2. For memberships with auto_renew=True, create a pending renewal membership (which
+       auto-generates the renewal invoice) if no future/pending membership already exists.
+    """
+    from apps.billing.models import Membership
+
+    with schema_context(schema_name):
+        today = timezone.now().date()
+        expired_qs = Membership.objects.filter(
+            status=Membership.Status.ACTIVE,
+            end_date__lt=today,
+        ).select_related("student", "plan")
+
+        expired_memberships = list(expired_qs)
+        count = len(expired_memberships)
+
+        for m in expired_memberships:
+            m.status = Membership.Status.EXPIRED
+            m.save(update_fields=["status", "updated_at"])
+
+            if m.auto_renew:
+                # Check if a future or pending membership already exists
+                has_subsequent = Membership.objects.filter(
+                    student=m.student,
+                    status__in=[
+                        Membership.Status.ACTIVE,
+                        Membership.Status.PENDING,
+                        Membership.Status.PENDING_APPROVAL,
+                    ],
+                    end_date__gte=today,
+                ).exists()
+
+                if not has_subsequent:
+                    new_start = m.end_date or today
+                    new_end = Membership.compute_end_date(new_start, m.plan.billing_cycle)
+                    Membership.objects.create(
+                        student=m.student,
+                        plan=m.plan,
+                        start_date=new_start,
+                        end_date=new_end,
+                        status=Membership.Status.PENDING,
+                        auto_renew=True,
+                    )
+
+        logger.info(f"[{schema_name}] Processed {count} expired memberships")
+    return {"schema": schema_name, "expired_count": count}
+
+
+@shared_task(queue="billing")
+def check_all_expired_memberships():
+    """Periodic task: enqueue expired memberships scan per tenant."""
+    dispatched = 0
+    for schema_name in active_tenant_schema_names():
+        check_expired_memberships.delay(schema_name)
+        dispatched += 1
+    return {"dispatched": dispatched}

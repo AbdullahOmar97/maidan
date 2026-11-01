@@ -29,10 +29,9 @@ class StudentArchivingSystemTestCase(TenantTestCase):
 
         # 1. Staff Admin User
         self.user = User.objects.create_user(
-            username="admin_user",
             email="admin@test.com",
             password="password123",
-            role="owner",
+            role=User.Role.TENANT_OWNER,
             is_staff=True,
         )
         self.client.force_authenticate(user=self.user)
@@ -72,12 +71,14 @@ class StudentArchivingSystemTestCase(TenantTestCase):
             price=Decimal("50.00"),
             billing_cycle="monthly",
         )
-        self.membership = Membership.objects.create(
+        self.membership = Membership(
             student=self.student_with_dues,
             plan=self.plan,
             start_date=timezone.now().date(),
             status=Membership.Status.ACTIVE,
         )
+        self.membership._skip_invoice = True
+        self.membership.save()
 
         # Unpaid invoice for student_with_dues
         self.invoice = Invoice.objects.create(

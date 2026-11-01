@@ -23,6 +23,11 @@ app.conf.beat_schedule = {
         "task": "apps.billing.tasks.check_all_overdue_invoices",
         "schedule": crontab(hour=8, minute=0),
     },
+    # Billing: Check expired memberships & prepare renewal dues daily at 8:05am
+    "check-expired-memberships": {
+        "task": "apps.billing.tasks.check_all_expired_memberships",
+        "schedule": crontab(hour=8, minute=5),
+    },
     # Billing: Send renewal reminders 7 days before expiry
     "send-renewal-reminders": {
         "task": "apps.billing.tasks.send_all_renewal_reminders",

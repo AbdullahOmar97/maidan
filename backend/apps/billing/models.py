@@ -240,8 +240,8 @@ class Invoice(models.Model):
     def amount_due(self):
         if self.status in [self.Status.VOID, self.Status.REFUNDED]:
             return Decimal("0.00")
-        total = self.total_amount or Decimal("0.00")
-        paid = self.amount_paid or Decimal("0.00")
+        total = Decimal(str(self.total_amount or "0.00"))
+        paid = Decimal(str(self.amount_paid or "0.00"))
         return max(Decimal("0.00"), total - paid)
 
 
@@ -474,16 +474,16 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
     if instance.status == Membership.Status.PENDING_APPROVAL:
         return
 
-    # Guard: skip if an invoice already exists (e.g. fixtures / data migration)
-    if instance.invoices.exists():
+    # Guard: skip if _skip_invoice flag set or invoice already exists
+    if getattr(instance, "_skip_invoice", False) or instance.invoices.exists():
         return
 
     backbill_mode = getattr(instance, "_backbill_mode", "single")
     cycles = getattr(instance, "_backbill_cycles", [])
 
     plan = instance.plan
-    subtotal = plan.price
-    tax_rate = plan.tax_rate
+    subtotal = Decimal(str(plan.price))
+    tax_rate = Decimal(str(plan.tax_rate or 0))
 
     # Multi-cycle retroactive billing (unpaid or paid)
     if backbill_mode in ["unpaid", "paid"] and len(cycles) > 1:
@@ -492,7 +492,7 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
             cycle_end = cycle["end"]
             is_past = cycle["is_past"]
 
-            fee = plan.setup_fee if idx == 0 else Decimal("0.00")
+            fee = Decimal(str(plan.setup_fee or 0)) if idx == 0 else Decimal("0.00")
             cycle_subtotal = subtotal + fee
             tax_amount = cycle_subtotal * (tax_rate / Decimal("100"))
             total_amount = cycle_subtotal + tax_amount
@@ -533,8 +533,10 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
         return
 
     # Default / legacy path: single invoice
-    subtotal = plan.price + plan.setup_fee
-    tax_amount = subtotal * (plan.tax_rate / Decimal("100"))
+    setup_fee = Decimal(str(plan.setup_fee or 0))
+    subtotal = Decimal(str(plan.price)) + setup_fee
+    tax_rate = Decimal(str(plan.tax_rate or 0))
+    tax_amount = subtotal * (tax_rate / Decimal("100"))
     total_amount = subtotal + tax_amount
     due_date = instance.start_date or tz.now().date()
 
@@ -543,7 +545,7 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
         membership=instance,
         subtotal=subtotal,
         discount_amount=Decimal("0.00"),
-        tax_rate=plan.tax_rate,
+        tax_rate=tax_rate,
         tax_amount=tax_amount,
         total_amount=total_amount,
         amount_paid=Decimal("0.00"),
@@ -558,20 +560,141 @@ def auto_create_invoice_for_membership(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Invoice)
 def reactivate_student_on_invoice_payment(sender, instance, **kwargs):
     """
-    Check if a student whose status is SUSPENDED has paid off all overdue invoices.
-    If so, automatically restore their status to ACTIVE.
+    Handle student reactivation and membership automatic renewal upon invoice payment (سداد المستحقات).
+    1. If student is SUSPENDED and has cleared overdue invoices older than 7 days, restore ACTIVE.
+    2. If invoice is linked to a PENDING membership, activate it and ensure student is ACTIVE.
+       If membership's end_date is in the past, adjust dates from today.
+    3. If student has an EXPIRED membership (or active with end_date < today) and no active future
+       membership, and all overdue invoices are settled:
+       Automatically renew their subscription.
     """
+    if instance.status != Invoice.Status.PAID:
+        return
+
     student = instance.student
+    today = tz.now().date()
+
+    # 1. Check if a suspended student has paid off overdue invoices older than 7 days
     if student.status == Student.Status.SUSPENDED:
-        # Check if they have any remaining overdue invoices older than 7 days
         from datetime import timedelta
-        seven_days_ago = tz.now().date() - timedelta(days=7)
-        has_overdue = Invoice.objects.filter(
+        seven_days_ago = today - timedelta(days=7)
+        has_overdue_7d = Invoice.objects.filter(
             student=student,
             status="overdue",
-            due_date__lte=seven_days_ago
+            due_date__lte=seven_days_ago,
         ).exists()
-        
-        if not has_overdue:
+
+        if not has_overdue_7d:
+            student.status = Student.Status.ACTIVE
+            student.save(update_fields=["status"])
+
+    # 2. Check if invoice is linked to a PENDING membership
+    if instance.membership_id:
+        membership = instance.membership
+        if membership.status == Membership.Status.PENDING:
+            update_fields = ["status", "updated_at"]
+            if membership.end_date and membership.end_date <= today:
+                membership.start_date = today
+                membership.end_date = Membership.compute_end_date(today, membership.plan.billing_cycle)
+                update_fields.extend(["start_date", "end_date"])
+            membership.status = Membership.Status.ACTIVE
+            membership.save(update_fields=update_fields)
+
+            if student.status in [
+                Student.Status.SUSPENDED,
+                Student.Status.INACTIVE,
+                Student.Status.LEAD,
+                Student.Status.TRIAL,
+            ]:
+                student.status = Student.Status.ACTIVE
+                student.save(update_fields=["status"])
+            return
+
+    # 3. Check if student still has any remaining overdue or past-due unpaid invoices
+    has_other_overdue = Invoice.objects.filter(
+        student=student,
+        status__in=[Invoice.Status.OVERDUE, Invoice.Status.PENDING],
+        due_date__lte=today,
+    ).exclude(pk=instance.pk).exists()
+
+    if has_other_overdue:
+        return
+
+    # Check if student already has an active ongoing/future membership
+    has_active_future = student.memberships.filter(
+        status=Membership.Status.ACTIVE,
+        end_date__gte=today,
+    ).exists()
+
+    if has_active_future:
+        return
+
+    # Check if student has a pending membership that can be activated
+    pending_m = student.memberships.filter(
+        status=Membership.Status.PENDING
+    ).order_by("-created_at").first()
+
+    if pending_m:
+        update_fields = ["status", "updated_at"]
+        if pending_m.end_date and pending_m.end_date <= today:
+            pending_m.start_date = today
+            pending_m.end_date = Membership.compute_end_date(today, pending_m.plan.billing_cycle)
+            update_fields.extend(["start_date", "end_date"])
+        pending_m.status = Membership.Status.ACTIVE
+        pending_m.save(update_fields=update_fields)
+
+        if not instance.membership_id:
+            instance.membership = pending_m
+            instance.save(update_fields=["membership", "updated_at"])
+
+        if student.status in [
+            Student.Status.SUSPENDED,
+            Student.Status.INACTIVE,
+            Student.Status.LEAD,
+            Student.Status.TRIAL,
+        ]:
+            student.status = Student.Status.ACTIVE
+            student.save(update_fields=["status"])
+        return
+
+    # Find latest expired membership to renew
+    last_expired = (
+        student.memberships.filter(
+            models.Q(status=Membership.Status.EXPIRED) |
+            (models.Q(status=Membership.Status.ACTIVE) & models.Q(end_date__lt=today))
+        )
+        .exclude(status=Membership.Status.CANCELLED)
+        .order_by("-end_date", "-created_at")
+        .first()
+    )
+
+    if last_expired and last_expired.auto_renew:
+        new_start = today
+        new_end = Membership.compute_end_date(new_start, last_expired.plan.billing_cycle)
+        is_standalone = not instance.membership_id
+
+        new_m = Membership(
+            student=student,
+            plan=last_expired.plan,
+            start_date=new_start,
+            end_date=new_end,
+            status=Membership.Status.ACTIVE,
+            auto_renew=True,
+            created_by_id=instance.paid_by_id or instance.created_by_id,
+        )
+        if is_standalone:
+            new_m._skip_invoice = True
+        new_m.save()
+
+        if is_standalone:
+            instance.membership = new_m
+            instance.save(update_fields=["membership", "updated_at"])
+
+        if student.status in [
+            Student.Status.SUSPENDED,
+            Student.Status.INACTIVE,
+            Student.Status.LEAD,
+            Student.Status.TRIAL,
+        ]:
             student.status = Student.Status.ACTIVE
             student.save(update_fields=["status"])

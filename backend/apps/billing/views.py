@@ -959,11 +959,27 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                 request=request,
             )
 
+        invoice.refresh_from_db()
         serializer = self.get_serializer(invoice)
         data = serializer.data
         data["surplus_amount"] = float(surplus_amount)
         data["surplus_action"] = surplus_action
+        student.refresh_from_db()
         data["student_account_credit"] = float(student.account_credit)
+
+        active_mem = student.memberships.filter(
+            status=Membership.Status.ACTIVE,
+            end_date__gte=timezone.now().date(),
+        ).first()
+        data["membership_renewed"] = bool(active_mem and invoice.status == Invoice.Status.PAID)
+        if active_mem:
+            data["active_membership"] = {
+                "id": active_mem.id,
+                "plan_name": active_mem.plan.name,
+                "start_date": str(active_mem.start_date),
+                "end_date": str(active_mem.end_date),
+                "status": active_mem.status,
+            }
         return Response(data)
 
     @action(detail=False, methods=["get"])
@@ -1067,7 +1083,8 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             return Response({"detail": "هذه الفاتورة مؤرشفة بالفعل."}, status=status.HTTP_400_BAD_REQUEST)
 
         reason = request.data.get("reason", "").strip()
-        force_with_debt = bool(request.data.get("force_with_debt", False))
+        force_raw = request.data.get("force_with_debt", False)
+        force_with_debt = force_raw is True or str(force_raw).lower() in ["true", "1"]
 
         amount_due = invoice.total_amount - invoice.amount_paid
         if amount_due > Decimal("0.00") and invoice.status not in [Invoice.Status.VOID, Invoice.Status.REFUNDED] and not force_with_debt:
@@ -1081,7 +1098,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             )
 
         now = timezone.now()
-        staff_name = request.user.get_full_name() or request.user.username
+        staff_name = request.user.get_full_name() or request.user.email
         audit_note = f"[مؤرشفة بواسطة {staff_name} في {now.date()}: {reason or 'أرشفة نظامية'}]"
 
         with transaction.atomic():
@@ -1112,7 +1129,7 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             return Response({"detail": "هذه الفاتورة غير مؤرشفة."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
-        staff_name = request.user.get_full_name() or request.user.username
+        staff_name = request.user.get_full_name() or request.user.email
         audit_note = f"[تمت استعادة الفاتورة من الأرشيف بواسطة {staff_name} في {now.date()}]"
 
         with transaction.atomic():
@@ -1134,13 +1151,14 @@ class InvoiceViewSet(BranchScopedMixin, viewsets.ModelViewSet):
             return Response({"error": "يجب تحديد قائمة معرفات الفواتير المراد أرشفتها."}, status=status.HTTP_400_BAD_REQUEST)
 
         reason = request.data.get("reason", "أرشفة جماعية للفواتير").strip()
-        force_with_debt = bool(request.data.get("force_with_debt", False))
+        force_raw = request.data.get("force_with_debt", False)
+        force_with_debt = force_raw is True or str(force_raw).lower() in ["true", "1"]
 
         invoices = Invoice.objects.filter(id__in=invoice_ids, is_archived=False)
         archived_count = 0
         skipped_count = 0
         now = timezone.now()
-        staff_name = request.user.get_full_name() or request.user.username
+        staff_name = request.user.get_full_name() or request.user.email
 
         with transaction.atomic():
             for inv in invoices:

@@ -442,6 +442,8 @@ export function InvoicesList({
         toast.success(
           `تم سداد الفاتورة وإيداع فائض ${formatCurrency(res.data.surplus_amount, modalInvoice?.currency || "JOD")} بمحفظة الطالب ✓`
         );
+      } else if (res?.data?.membership_renewed) {
+        toast.success("تم تأكيد السداد وتجديد اشتراك الطالب تلقائياً بنجاح ✓");
       } else {
         toast.success("تم تأكيد السداد بنجاح ✓");
       }

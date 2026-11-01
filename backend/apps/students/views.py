@@ -659,7 +659,8 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             )
 
         reason = request.data.get("reason", "").strip()
-        force_with_debt = bool(request.data.get("force_with_debt", False))
+        force_raw = request.data.get("force_with_debt", False)
+        force_with_debt = force_raw is True or str(force_raw).lower() in ["true", "1"]
 
         # Check outstanding dues
         unpaid_invoices_qs = student.invoices.filter(
