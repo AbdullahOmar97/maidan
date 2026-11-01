@@ -190,7 +190,7 @@ def check_expired_memberships(schema_name: str):
     2. For memberships with auto_renew=True, create a pending renewal membership (which
        auto-generates the renewal invoice) if no future/pending membership already exists.
     """
-    from apps.billing.models import Membership
+    from apps.billing.models import Membership, MembershipPlan, Invoice
 
     with schema_context(schema_name):
         today = timezone.now().date()
@@ -206,7 +206,24 @@ def check_expired_memberships(schema_name: str):
             m.status = Membership.Status.EXPIRED
             m.save(update_fields=["status", "updated_at"])
 
-            if m.auto_renew:
+            # Automatic renewal condition: recurring billing cycle, auto_renew=True, and ALL dues settled
+            if m.auto_renew and m.plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME:
+                has_unpaid_dues = Invoice.objects.filter(
+                    student=m.student,
+                    status__in=[
+                        Invoice.Status.PENDING,
+                        Invoice.Status.OVERDUE,
+                        Invoice.Status.PARTIALLY_PAID,
+                    ],
+                    is_archived=False,
+                ).exclude(status__in=[Invoice.Status.VOID, Invoice.Status.REFUNDED]).exists()
+
+                if has_unpaid_dues:
+                    logger.info(
+                        f"[{schema_name}] Student {m.student_id} has unpaid dues; skipping automatic renewal."
+                    )
+                    continue
+
                 # Check if a future or pending membership already exists
                 has_subsequent = Membership.objects.filter(
                     student=m.student,
@@ -219,14 +236,14 @@ def check_expired_memberships(schema_name: str):
                 ).exists()
 
                 if not has_subsequent:
-                    new_start = m.end_date or today
+                    new_start = m.end_date if (m.end_date and m.end_date >= today) else today
                     new_end = Membership.compute_end_date(new_start, m.plan.billing_cycle)
                     Membership.objects.create(
                         student=m.student,
                         plan=m.plan,
                         start_date=new_start,
                         end_date=new_end,
-                        status=Membership.Status.PENDING,
+                        status=Membership.Status.ACTIVE,
                         auto_renew=True,
                     )
 

@@ -447,7 +447,7 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def renew(self, request, pk=None):
-        """Renew an existing membership by creating a new Membership starting after the current end_date."""
+        """Renew an existing membership by creating a new Membership starting after the current end_date or today."""
         membership = self.get_object()
         if membership.status not in [Membership.Status.ACTIVE, Membership.Status.EXPIRED]:
             return Response(
@@ -455,21 +455,45 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        new_start = membership.end_date or timezone.now().date()
+        today = timezone.now().date()
+        new_start = membership.end_date if (membership.end_date and membership.end_date >= today) else today
         plan = membership.plan
         new_end = Membership.compute_end_date(new_start, plan.billing_cycle)
 
-        new_membership = Membership.objects.create(
-            student=membership.student,
-            plan=plan,
-            start_date=new_start,
-            end_date=new_end,
-            status=Membership.Status.PENDING,
-            auto_renew=membership.auto_renew,
-            created_by_id=request.user.id,
-        )
+        with transaction.atomic():
+            new_membership = Membership.objects.create(
+                student=membership.student,
+                plan=plan,
+                start_date=new_start,
+                end_date=new_end,
+                status=Membership.Status.ACTIVE,
+                auto_renew=membership.auto_renew,
+                created_by_id=request.user.id,
+            )
+
+            # Ensure student is marked active
+            student = membership.student
+            if student.status in [
+                Student.Status.SUSPENDED,
+                Student.Status.INACTIVE,
+                Student.Status.LEAD,
+                Student.Status.TRIAL,
+            ]:
+                student.status = Student.Status.ACTIVE
+                student.save(update_fields=["status"])
+
         serializer = self.get_serializer(new_membership)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        data = serializer.data
+        renewal_invoice = new_membership.invoices.first()
+        if renewal_invoice:
+            data["invoice"] = {
+                "id": renewal_invoice.id,
+                "invoice_number": renewal_invoice.invoice_number,
+                "total_amount": float(renewal_invoice.total_amount),
+                "status": renewal_invoice.status,
+                "due_date": str(renewal_invoice.due_date),
+            }
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):

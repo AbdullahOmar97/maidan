@@ -376,10 +376,41 @@ class DunningSuspensionTestCase(TestCase):
             pending_m.refresh_from_db()
             self.assertEqual(pending_m.status, Membership.Status.ACTIVE)
 
-    def test_check_expired_memberships_task(self):
-        """Periodic task marks past-due active memberships as EXPIRED and creates pending auto-renewals."""
+    def test_check_expired_memberships_task_skipped_when_unpaid_dues_exist(self):
+        """Periodic task marks past-due active memberships as EXPIRED and skips auto-renew when unpaid dues exist."""
         from apps.billing.tasks import check_expired_memberships
         with schema_context(self.tenant.schema_name):
+            plan = MembershipPlan.objects.create(name="Karate Plan", price=45.00, billing_cycle="monthly")
+            old_membership = Membership.objects.create(
+                student=self.student,
+                plan=plan,
+                start_date=timezone.now().date() - timedelta(days=40),
+                end_date=timezone.now().date() - timedelta(days=10),
+                status=Membership.Status.ACTIVE,
+                auto_renew=True,
+            )
+
+        # Run task (student has self.overdue_invoice)
+        res = check_expired_memberships(self.tenant.schema_name)
+        self.assertGreaterEqual(res["expired_count"], 1)
+
+        with schema_context(self.tenant.schema_name):
+            old_membership.refresh_from_db()
+            self.assertEqual(old_membership.status, Membership.Status.EXPIRED)
+
+            # Auto-renewal was blocked due to unpaid dues
+            renewal = self.student.memberships.exclude(pk=old_membership.pk).first()
+            self.assertIsNone(renewal)
+
+    def test_check_expired_memberships_task_auto_renews_when_all_dues_paid(self):
+        """Periodic task marks past-due active memberships as EXPIRED and auto-renews when all dues are paid."""
+        from apps.billing.tasks import check_expired_memberships
+        with schema_context(self.tenant.schema_name):
+            # Pay off overdue invoice
+            self.overdue_invoice.status = Invoice.Status.PAID
+            self.overdue_invoice.amount_paid = self.overdue_invoice.total_amount
+            self.overdue_invoice.save()
+
             plan = MembershipPlan.objects.create(name="Karate Plan", price=45.00, billing_cycle="monthly")
             old_membership = Membership.objects.create(
                 student=self.student,
@@ -398,12 +429,54 @@ class DunningSuspensionTestCase(TestCase):
             old_membership.refresh_from_db()
             self.assertEqual(old_membership.status, Membership.Status.EXPIRED)
 
-            # Pending renewal membership created
-            renewal = self.student.memberships.filter(status=Membership.Status.PENDING).first()
+            # Renewal membership created in ACTIVE status
+            renewal = self.student.memberships.filter(status=Membership.Status.ACTIVE).first()
             self.assertIsNotNone(renewal)
             self.assertEqual(renewal.plan, plan)
-            # It also created an invoice
+            # Renewal invoice created in PENDING status
             self.assertTrue(renewal.invoices.filter(status=Invoice.Status.PENDING).exists())
+
+    def test_admin_manual_renew_when_student_has_unpaid_dues(self):
+        """Admin can manually renew a student's membership even if they have unpaid dues, generating the renewal invoice."""
+        from apps.accounts.models import User
+        with schema_context(self.tenant.schema_name):
+            admin_user = User.objects.create(
+                email="admin@maidan.test",
+                role="manager",
+                permissions={"can_renew_subscription": True},
+            )
+            plan = MembershipPlan.objects.create(name="Judo Plan", price=50.00, billing_cycle="monthly")
+            expired_membership = Membership.objects.create(
+                student=self.student,
+                plan=plan,
+                start_date=timezone.now().date() - timedelta(days=35),
+                end_date=timezone.now().date() - timedelta(days=5),
+                status=Membership.Status.EXPIRED,
+                auto_renew=True,
+            )
+
+        # Student still has self.overdue_invoice (unpaid dues)
+        from rest_framework.test import APIRequestFactory, force_authenticate
+        from apps.billing.views import MembershipViewSet
+
+        factory = APIRequestFactory()
+        view = MembershipViewSet.as_view({"post": "renew"})
+
+        request = factory.post(f"/billing/memberships/{expired_membership.id}/renew/")
+        force_authenticate(request, user=admin_user)
+
+        with schema_context(self.tenant.schema_name):
+            response = view(request, pk=expired_membership.id)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+            # A new active membership was created
+            new_m = self.student.memberships.filter(status=Membership.Status.ACTIVE).first()
+            self.assertIsNotNone(new_m)
+            self.assertEqual(new_m.plan, plan)
+
+            # Renewal invoice was generated
+            self.assertTrue(new_m.invoices.filter(status=Invoice.Status.PENDING).exists())
+            self.assertEqual(self.student.status, Student.Status.ACTIVE)
 
     def tearDown(self):
         with schema_context("public"):

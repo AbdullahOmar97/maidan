@@ -235,6 +235,8 @@ export const api = {
       apiClient.get(`/students/${id}/potential_sessions/`, { params: { date } }),
     manualCheckin: (id: number, data: { session_id?: number; schedule_id?: number; date?: string }) =>
       apiClient.post(`/students/${id}/manual_checkin/`, data),
+    renewSubscription: (id: number) =>
+      apiClient.post(`/students/${id}/renew_subscription/`),
     notes: {
       list: (studentId: number) =>
         apiClient.get(`/students/${studentId}/notes/`),
@@ -340,6 +342,8 @@ export const api = {
       create: (data: unknown) => apiClient.post("/billing/memberships/", data),
       cancel: (id: number, reason: string) =>
         apiClient.post(`/billing/memberships/${id}/cancel/`, { reason }),
+      renew: (id: number) =>
+        apiClient.post(`/billing/memberships/${id}/renew/`),
     },
     invoices: {
       list: (params?: Record<string, unknown>) =>

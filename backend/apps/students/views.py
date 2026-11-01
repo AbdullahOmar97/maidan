@@ -17,7 +17,8 @@ from shared.permissions import (
     IsTenantOwnerOrManager, 
     LocationFilterMixin,
     CanManageLocations,
-    CanManageStudents
+    CanManageStudents,
+    CanRenewSubscription,
 )
 from .models import Family, Location, Student, StudentDocument, StudentNote
 from .serializers import (
@@ -508,6 +509,80 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
             for r in records
         ]
         return Response(data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, CanRenewSubscription])
+    def renew_subscription(self, request, pk=None):
+        """
+        Manually renew a student's active or expired membership.
+        Creates a new ACTIVE membership and generates the renewal invoice onto the student.
+        """
+        student = self.get_object()
+        from apps.billing.models import Membership
+        from django.utils import timezone
+        from django.db import transaction
+
+        # Find the active or latest expired membership
+        membership = (
+            student.memberships.select_related("plan")
+            .filter(status__in=[Membership.Status.ACTIVE, Membership.Status.EXPIRED])
+            .order_by("-end_date", "-created_at")
+            .first()
+        )
+
+        if not membership:
+            return Response(
+                {"error": "لا يوجد اشتراك نشط أو منتهٍ سابق لهذا الطالب ليتم تجديده. يرجى إضافة باقة جديدة."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        today = timezone.now().date()
+        new_start = membership.end_date if (membership.end_date and membership.end_date >= today) else today
+        plan = membership.plan
+        new_end = Membership.compute_end_date(new_start, plan.billing_cycle)
+
+        with transaction.atomic():
+            new_membership = Membership.objects.create(
+                student=student,
+                plan=plan,
+                start_date=new_start,
+                end_date=new_end,
+                status=Membership.Status.ACTIVE,
+                auto_renew=membership.auto_renew,
+                created_by_id=request.user.id,
+            )
+
+            if student.status in [
+                Student.Status.SUSPENDED,
+                Student.Status.INACTIVE,
+                Student.Status.LEAD,
+                Student.Status.TRIAL,
+            ]:
+                student.status = Student.Status.ACTIVE
+                student.save(update_fields=["status"])
+
+        renewal_invoice = new_membership.invoices.first()
+        inv_data = None
+        if renewal_invoice:
+            inv_data = {
+                "id": renewal_invoice.id,
+                "invoice_number": renewal_invoice.invoice_number,
+                "total_amount": float(renewal_invoice.total_amount),
+                "status": renewal_invoice.status,
+                "due_date": str(renewal_invoice.due_date),
+            }
+
+        return Response(
+            {
+                "message": "تم تجديد اشتراك الطالب وإصدار فاتورة التجديد بنجاح.",
+                "membership_id": new_membership.id,
+                "plan_name": plan.name,
+                "start_date": str(new_membership.start_date),
+                "end_date": str(new_membership.end_date) if new_membership.end_date else None,
+                "status": new_membership.status,
+                "invoice": inv_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=False, methods=["get"])
     def stats(self, request):

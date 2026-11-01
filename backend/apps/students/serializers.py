@@ -194,6 +194,7 @@ class StudentListSerializer(serializers.ModelSerializer):
     age = serializers.ReadOnlyField()
     current_belt = serializers.SerializerMethodField()
     active_membership = serializers.SerializerMethodField()
+    latest_membership = serializers.SerializerMethodField()
     outstanding_balance = serializers.SerializerMethodField()
     has_due_membership = serializers.SerializerMethodField()
     photo_url = serializers.SerializerMethodField()
@@ -205,12 +206,12 @@ class StudentListSerializer(serializers.ModelSerializer):
             "photo", "photo_url", "age", "gender",
             "phone", "email", "whatsapp",
             "status", "source", "location", "location_id",
-            "current_belt", "active_membership", "outstanding_balance",
+            "current_belt", "active_membership", "latest_membership", "outstanding_balance",
             "has_due_membership", "is_archived", "archived_at", "archive_reason", "created_at",
         ]
         read_only_fields = [
             "id", "student_number", "full_name", "age", "current_belt",
-            "active_membership", "outstanding_balance", "has_due_membership",
+            "active_membership", "latest_membership", "outstanding_balance", "has_due_membership",
             "is_archived", "archived_at", "archive_reason", "created_at"
         ]
 
@@ -233,6 +234,23 @@ class StudentListSerializer(serializers.ModelSerializer):
                 "start_date": membership.start_date,
                 "end_date": membership.end_date,
                 "status": membership.status,
+            }
+        return None
+
+    def get_latest_membership(self, obj):
+        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-end_date", "-created_at").first()
+        if latest and latest.plan:
+            return {
+                "id": latest.id,
+                "plan_id": latest.plan.id,
+                "plan_name": latest.plan.name,
+                "billing_cycle": latest.plan.billing_cycle,
+                "price": float(latest.plan.price),
+                "currency": latest.plan.currency,
+                "start_date": str(latest.start_date),
+                "end_date": str(latest.end_date) if latest.end_date else None,
+                "status": latest.status,
+                "auto_renew": latest.auto_renew,
             }
         return None
 
@@ -300,6 +318,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     )
     photo_url = serializers.SerializerMethodField()
     active_membership = serializers.SerializerMethodField()
+    latest_membership = serializers.SerializerMethodField()
     current_belt = serializers.SerializerMethodField()
     belt_history = serializers.SerializerMethodField()
     initial_belt_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
@@ -324,13 +343,13 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "waiver_signed", "waiver_signed_at", "photo_consent",
             "notes", "internal_notes",
             "initial_belt_id", "initial_membership_plan_id", "membership_start_date", "initial_products",
-            "active_membership", "current_belt", "belt_history",
+            "active_membership", "latest_membership", "current_belt", "belt_history",
             "is_archived", "archived_at", "archive_reason", "archived_by_id",
             "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "student_number", "age",
-            "active_membership", "current_belt", "belt_history",
+            "active_membership", "latest_membership", "current_belt", "belt_history",
             "is_archived", "archived_at", "archive_reason", "archived_by_id",
             "created_at", "updated_at",
         ]
@@ -471,6 +490,23 @@ class StudentDetailSerializer(serializers.ModelSerializer):
                 "start_date": membership.start_date,
                 "end_date": membership.end_date,
                 "status": membership.status,
+            }
+        return None
+
+    def get_latest_membership(self, obj):
+        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-end_date", "-created_at").first()
+        if latest and latest.plan:
+            return {
+                "id": latest.id,
+                "plan_id": latest.plan.id,
+                "plan_name": latest.plan.name,
+                "billing_cycle": latest.plan.billing_cycle,
+                "price": float(latest.plan.price),
+                "currency": latest.plan.currency,
+                "start_date": str(latest.start_date),
+                "end_date": str(latest.end_date) if latest.end_date else None,
+                "status": latest.status,
+                "auto_renew": latest.auto_renew,
             }
         return None
 

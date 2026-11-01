@@ -114,6 +114,7 @@ export interface Student {
   notes: string;
   current_belt: BeltSummary | null;
   active_membership: MembershipSummary | null;
+  latest_membership?: MembershipSummary | null;
   outstanding_balance?: number;
   has_due_membership?: boolean;
   account_credit?: number;
@@ -264,10 +265,15 @@ export interface BeltRank {
 
 export interface MembershipSummary {
   id: number;
+  plan_id?: number;
   plan_name: string;
+  billing_cycle?: string;
+  price?: number;
+  currency?: string;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   status: string;
+  auto_renew?: boolean;
 }
 
 export interface MembershipPlan {

@@ -613,9 +613,9 @@ def reactivate_student_on_invoice_payment(sender, instance, **kwargs):
     # 3. Check if student still has any remaining overdue or past-due unpaid invoices
     has_other_overdue = Invoice.objects.filter(
         student=student,
-        status__in=[Invoice.Status.OVERDUE, Invoice.Status.PENDING],
-        due_date__lte=today,
-    ).exclude(pk=instance.pk).exists()
+        status__in=[Invoice.Status.OVERDUE, Invoice.Status.PENDING, Invoice.Status.PARTIALLY_PAID],
+        is_archived=False,
+    ).exclude(pk=instance.pk).exclude(status__in=[Invoice.Status.VOID, Invoice.Status.REFUNDED]).exists()
 
     if has_other_overdue:
         return
@@ -668,7 +668,7 @@ def reactivate_student_on_invoice_payment(sender, instance, **kwargs):
         .first()
     )
 
-    if last_expired and last_expired.auto_renew:
+    if last_expired and last_expired.auto_renew and last_expired.plan.billing_cycle != MembershipPlan.BillingCycle.ONE_TIME:
         new_start = today
         new_end = Membership.compute_end_date(new_start, last_expired.plan.billing_cycle)
         is_standalone = not instance.membership_id

@@ -10,7 +10,7 @@ import {
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
   Filter, Clock, QrCode, Camera, Upload,
-  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle, Archive, RotateCcw
+  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle, Archive, RotateCcw, RefreshCw
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
@@ -29,7 +29,9 @@ import UploadDocumentDialog from "@/components/dashboard/UploadDocumentDialog";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
 import LinkFamilyDialog from "@/components/dashboard/LinkFamilyDialog";
 import ArchiveStudentModal from "@/components/dashboard/ArchiveStudentModal";
+import RenewSubscriptionModal from "@/components/dashboard/RenewSubscriptionModal";
 import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
+import { useBillingPermissions } from "@/lib/hooks/use-permission";
 
 const LEAD_SOURCES_MAP: Record<string, string> = {
   walk_in: "زيارة مباشرة للنادي (Walk-in)",
@@ -78,6 +80,8 @@ export default function StudentDetailPage() {
   const [editError, setEditError] = useState("");
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isUnarchiveModalOpen, setIsUnarchiveModalOpen] = useState(false);
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const { canRenewSubscription } = useBillingPermissions();
 
   // Notes states
   const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
@@ -265,6 +269,8 @@ export default function StudentDetailPage() {
     ?.filter((inv: Invoice) => inv.status === "paid" && inv.paid_at)
     .sort((a: Invoice, b: Invoice) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime())[0];
 
+  const targetMembershipForRenew = student?.active_membership || student?.latest_membership || null;
+
 
   if (isLoading) {
     return (
@@ -392,6 +398,15 @@ export default function StudentDetailPage() {
             >
               <MessageSquare className="w-4 h-4" />
             </Link>
+            {canRenewSubscription && targetMembershipForRenew && (
+              <button
+                onClick={() => setIsRenewModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95"
+              >
+                <RefreshCw className="w-4 h-4" />
+                تجديد الاشتراك
+              </button>
+            )}
             <button
               onClick={handleEditClick}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-all active:scale-95"
@@ -1055,14 +1070,93 @@ export default function StudentDetailPage() {
                           <MembershipInfo label="تاريخ البدء" value={formatDate(student.active_membership.start_date)} />
                           <MembershipInfo label="تاريخ الانتهاء" value={formatDate(student.active_membership.end_date)} />
                         </div>
-                        <div className="space-y-6">
+                        <div className="space-y-4 flex flex-col justify-end">
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            {canRenewSubscription && (
+                              <button
+                                onClick={() => setIsRenewModalOpen(true)}
+                                className="flex-1 py-4 px-4 rounded-2xl gradient-brand text-white text-xs font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                تجديد الاشتراك
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setIsMembershipDialogOpen(true)}
+                              className="py-4 px-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all text-center"
+                            >
+                              تغيير الباقة
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : student.latest_membership ? (
+                    <div className="glass-card overflow-hidden group border border-red-500/20">
+                      <div className="p-8 bg-gradient-to-br from-red-500/15 via-red-500/5 to-transparent relative overflow-hidden">
+                        <div className="flex justify-between items-start relative z-10">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">اشتراك منتهٍ</p>
+                            </div>
+                            <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-white">{student.latest_membership.plan_name}</h3>
+                          </div>
+                          <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                            منتهي الصلاحية
+                          </div>
+                        </div>
+                      </div>
 
-                          <button
-                            onClick={() => setIsMembershipDialogOpen(true)}
-                            className="w-full py-4 rounded-2xl gradient-brand text-white text-sm font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform"
-                          >
-                            تجديد أو تغيير الاشتراك
-                          </button>
+                      <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-8 bg-white/[0.01]">
+                        <div className="space-y-4">
+                          <MembershipInfo label="تاريخ البدء السابق" value={formatDate(student.latest_membership.start_date)} />
+                          <MembershipInfo label="تاريخ الانتهاء" value={formatDate(student.latest_membership.end_date)} />
+                          {student.latest_membership.price !== undefined && (
+                            <MembershipInfo label="قيمة الباقة" value={formatCurrency(student.latest_membership.price, student.latest_membership.currency || currency)} />
+                          )}
+                        </div>
+
+                        <div className="flex flex-col justify-between gap-4">
+                          {outstandingBalance > 0 ? (
+                            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1 text-start">
+                              <p className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                تنبيه: مستحقات مالية غير مسددة ({formatCurrency(outstandingBalance, currency)})
+                              </p>
+                              <p className="text-[11px] text-amber-200/80 font-medium leading-relaxed">
+                                لم يتم التجديد التلقائي لوجود مستحقات سابقة. بصفتك مسؤولاً، يمكنك تجديد الاشتراك يدوياً وتنزيل فاتورة التجديد على حساب الطالب.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1 text-start">
+                              <p className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                تم سداد كافة المستحقات السابقة
+                              </p>
+                              <p className="text-[11px] text-emerald-200/80 font-medium">
+                                يمكنك تجديد باقة الطالب مباشرة لتفعيل الدورة الجديدة.
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            {canRenewSubscription && (
+                              <button
+                                onClick={() => setIsRenewModalOpen(true)}
+                                className="flex-1 py-3.5 px-6 rounded-2xl gradient-brand text-white text-xs font-black shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-transform flex items-center justify-center gap-2"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                تجديد الاشتراك
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setIsMembershipDialogOpen(true)}
+                              className="py-3.5 px-6 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all text-center"
+                            >
+                              اختيار باقة جديدة
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1499,6 +1593,18 @@ export default function StudentDetailPage() {
             onClose={() => setIsMembershipDialogOpen(false)}
             studentId={studentId}
             studentName={student.full_name}
+          />
+        )}
+
+        {isRenewModalOpen && targetMembershipForRenew && (
+          <RenewSubscriptionModal
+            isOpen={isRenewModalOpen}
+            onClose={() => setIsRenewModalOpen(false)}
+            studentId={studentId}
+            studentName={student.full_name}
+            membership={targetMembershipForRenew}
+            outstandingBalance={outstandingBalance}
+            currency={currency}
           />
         )}
 
