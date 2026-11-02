@@ -164,49 +164,55 @@ export default function StudentQRCard({
     if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>بطاقة ${studentName}</title>
-          <style>
-            body { 
-              margin: 0; 
-              padding: 0; 
-              background: #ffffff !important; 
-              color: #000000 !important; 
-              display: flex; 
-              justify-content: center; 
-              align-items: center; 
-              min-height: 100vh; 
-              font-family: system-ui, sans-serif;
-              direction: rtl;
-            }
-            .card { 
-              width: 320px; 
-              padding: 24px;
-              border: 1px solid #e2e8f0;
-              border-radius: 16px;
-              text-align: center;
-              background: #ffffff !important;
-              color: #000000 !important;
-              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            }
-            /* Overrides to make all text dark on printed paper */
-            .card p, .card span, .card div {
-              color: #000000 !important;
-            }
-            .text-white { color: #000000 !important; }
-            .text-muted-foreground { color: #475569 !important; }
-            .bg-black\\/20 { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; }
-          </style>
-        </head>
-        <body>
-          <div class="card">${printRef.current.innerHTML}</div>
-          <script>window.onload = () => { window.print(); window.close(); }<\/script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+
+    const doc = printWindow.document;
+    doc.title = `بطاقة ${studentName}`;
+
+    const style = doc.createElement("style");
+    style.textContent = `
+      body { 
+        margin: 0; 
+        padding: 0; 
+        background: #ffffff !important; 
+        color: #000000 !important; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        min-height: 100vh; 
+        font-family: system-ui, sans-serif;
+        direction: rtl;
+      }
+      .card { 
+        width: 320px; 
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        text-align: center;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      }
+      .card p, .card span, .card div {
+        color: #000000 !important;
+      }
+      .text-white { color: #000000 !important; }
+      .text-muted-foreground { color: #475569 !important; }
+      .bg-black\\/20 { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; }
+    `;
+    doc.head.appendChild(style);
+
+    const cardContainer = doc.createElement("div");
+    cardContainer.className = "card";
+    Array.from(printRef.current.childNodes).forEach((child) => {
+      cardContainer.appendChild(child.cloneNode(true));
+    });
+    doc.body.replaceChildren(cardContainer);
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 150);
   };
 
 

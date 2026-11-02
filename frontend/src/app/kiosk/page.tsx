@@ -172,7 +172,7 @@ export default function KioskPage() {
 
       const container = document.getElementById("kiosk-qr-reader");
       if (!container) return;
-      container.innerHTML = "";
+      container.replaceChildren();
 
       try {
         const mod = await import("html5-qrcode");
