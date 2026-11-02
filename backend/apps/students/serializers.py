@@ -256,7 +256,7 @@ class StudentListSerializer(serializers.ModelSerializer):
 
     def get_outstanding_balance(self, obj):
         from django.db.models import Sum, F
-        invoices = obj.invoices.filter(status__in=["pending", "overdue"])
+        invoices = obj.invoices.filter(status__in=["pending", "overdue"], is_archived=False)
         agg = invoices.aggregate(total=Sum(F("total_amount") - F("amount_paid")))
         return float(agg["total"] or 0)
 
@@ -266,11 +266,12 @@ class StudentListSerializer(serializers.ModelSerializer):
         today = timezone.now().date()
         cutoff = today + datetime.timedelta(days=7)
 
-        # 1. Overdue or past-due unpaid invoices
+        # 1. Overdue or past-due unpaid invoices (excluding archived)
         has_overdue_invoice = obj.invoices.filter(
             status__in=["overdue", "pending", "partially_paid"],
-            due_date__lte=today
-        ).exists() or obj.invoices.filter(status="overdue").exists()
+            due_date__lte=today,
+            is_archived=False,
+        ).exists() or obj.invoices.filter(status="overdue", is_archived=False).exists()
         if has_overdue_invoice:
             return True
 

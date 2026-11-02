@@ -66,27 +66,38 @@ class StudentFilter(django_filters.FilterSet):
 
     def filter_due_membership(self, queryset, name, value):
         from django.utils import timezone
-        from django.db.models import Q
+        from django.db.models import Q, Exists, OuterRef
+        from apps.billing.models import Membership
         import datetime
         today = timezone.now().date()
         cutoff = today + datetime.timedelta(days=7)
 
-        # Invoices overdue or past-due pending (financial dues - old and new)
+        # Invoices overdue or past-due pending (financial dues - old and new, excluding archived)
         has_invoice_due = (
-            Q(invoices__status="overdue") |
-            (Q(invoices__status__in=["pending", "partially_paid"]) & Q(invoices__due_date__lte=today))
+            Q(invoices__status="overdue", invoices__is_archived=False) |
+            (Q(invoices__status__in=["pending", "partially_paid"], invoices__due_date__lte=today, invoices__is_archived=False))
         )
 
         # Pending memberships awaiting payment or approval
         has_pending_membership = Q(memberships__status__in=["pending", "pending_approval"])
 
-        # Active memberships expiring soon or today (حديث)
-        has_expiring_membership = Q(memberships__status="active", memberships__end_date__lte=cutoff)
+        # Future active membership beyond cutoff subquery
+        future_active = Membership.objects.filter(
+            student_id=OuterRef("pk"),
+            status=Membership.Status.ACTIVE,
+            end_date__gt=cutoff,
+        )
+
+        # Active memberships expiring soon or today (حديث) without a future active membership
+        has_expiring_membership = (
+            Q(memberships__status="active", memberships__end_date__lte=cutoff) &
+            ~Exists(future_active)
+        )
 
         # Expired memberships in the past without a future active membership (القديم)
         has_expired_membership = (
             (Q(memberships__status="expired") | Q(memberships__end_date__lt=today)) &
-            ~Q(memberships__status="active", memberships__end_date__gt=cutoff)
+            ~Exists(future_active)
         )
 
         due_condition = has_invoice_due | has_pending_membership | has_expiring_membership | has_expired_membership
@@ -602,15 +613,28 @@ class StudentViewSet(SoftDeleteMixin, AuditMixin, LocationFilterMixin, viewsets.
         today = timezone.now().date()
         cutoff = today + datetime.timedelta(days=7)
 
+        from apps.billing.models import Membership
+        from django.db.models import Exists, OuterRef
+
         has_invoice_due = (
-            Q(invoices__status="overdue") |
-            (Q(invoices__status__in=["pending", "partially_paid"]) & Q(invoices__due_date__lte=today))
+            Q(invoices__status="overdue", invoices__is_archived=False) |
+            (Q(invoices__status__in=["pending", "partially_paid"], invoices__due_date__lte=today, invoices__is_archived=False))
         )
         has_pending_membership = Q(memberships__status__in=["pending", "pending_approval"])
-        has_expiring_membership = Q(memberships__status="active", memberships__end_date__lte=cutoff)
+
+        future_active = Membership.objects.filter(
+            student_id=OuterRef("pk"),
+            status=Membership.Status.ACTIVE,
+            end_date__gt=cutoff,
+        )
+
+        has_expiring_membership = (
+            Q(memberships__status="active", memberships__end_date__lte=cutoff) &
+            ~Exists(future_active)
+        )
         has_expired_membership = (
             (Q(memberships__status="expired") | Q(memberships__end_date__lt=today)) &
-            ~Q(memberships__status="active", memberships__end_date__gt=cutoff)
+            ~Exists(future_active)
         )
         due_condition = has_invoice_due | has_pending_membership | has_expiring_membership | has_expired_membership
 
