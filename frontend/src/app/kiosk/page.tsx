@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Student, ClassSession, Location } from "@/types";
+import { VoiceSearchButton } from "@/components/ui/voice-search-button";
 
 const PRIVILEGED_ROLES = ["platform_admin", "tenant_owner"];
 
@@ -590,16 +591,25 @@ export default function KioskPage() {
                       ابحث عن اسمك في النظام ثم اضغط عليه لتسجيل الحضور
                     </p>
                     
-                    <div className="relative">
-                      <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <div className="relative flex items-center">
+                      <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" aria-hidden="true" />
                       <input
-                        type="text"
+                        id="kiosk-search-input"
+                        type="search"
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
                         placeholder="ابحث بالاسم هنا..."
-                        className="w-full pe-12 ps-4 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none text-center"
+                        aria-label="ابحث عن اسم الطالب"
+                        className="w-full pe-12 ps-12 py-4 text-lg rounded-xl bg-secondary/50 border border-border focus:border-primary/50 focus:outline-none text-center"
                         autoComplete="off"
                       />
+                      <div className="absolute start-3 top-1/2 -translate-y-1/2">
+                        <VoiceSearchButton
+                          onTranscript={(text) => setSearchValue(text)}
+                          inputName="بحث الحضور في الكشك"
+                          className="w-9 h-9 rounded-xl"
+                        />
+                      </div>
                     </div>
 
                     {/* Results dropdown */}

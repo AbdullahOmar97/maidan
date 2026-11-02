@@ -14,6 +14,7 @@ import Link from "next/link";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import FamilyFormDialog from "@/components/dashboard/FamilyFormDialog";
+import { VoiceSearchButton } from "@/components/ui/voice-search-button";
 
 function FamilyCard({ family, onEditClick }: { family: Family; onEditClick: (f: Family) => void }) {
   return (
@@ -150,15 +151,24 @@ export default function FamiliesPage() {
 
         {/* Search */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 group">
-            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all" />
+          <div className="relative flex-1 group flex items-center">
+            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all pointer-events-none" aria-hidden="true" />
             <input
-              type="text"
+              id="family-search-input"
+              type="search"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="ابحث باسم العائلة، جهة الاتصال، أو رقم الهاتف..."
-              className="filter-input pe-12"
+              aria-label="ابحث باسم العائلة، جهة الاتصال، أو رقم الهاتف"
+              className="filter-input ps-12 pe-12"
             />
+            <div className="absolute start-2 top-1/2 -translate-y-1/2">
+              <VoiceSearchButton
+                onTranscript={(text) => { setSearch(text); setPage(1); }}
+                inputName="بحث العائلات"
+                className="w-8 h-8 rounded-xl"
+              />
+            </div>
           </div>
         </div>
 

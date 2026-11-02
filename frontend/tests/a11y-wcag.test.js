@@ -112,6 +112,16 @@ test("WCAG 2.2 AA — Dialog & Drawer Semantics & Focus Trapping (SC 2.1.2 No Ke
     /aria-modal="true"/,
     "Drawer must have aria-modal='true'"
   );
+  assert.match(
+    drawerContent,
+    /e\.key === "Tab"/,
+    "Drawer must trap Tab / Shift+Tab keyboard focus"
+  );
+  assert.match(
+    drawerContent,
+    /e\.key === "Escape"/,
+    "Drawer must support Escape key dismissal"
+  );
 });
 
 test("WCAG 2.2 AA — Table Column Headers Accessibility (SC 1.3.1 Info and Relationships)", () => {
