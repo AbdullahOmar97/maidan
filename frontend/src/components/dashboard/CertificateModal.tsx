@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import {
   Award,
-  Download,
   Printer,
   Copy,
   ExternalLink,
   ShieldCheck,
-  Calendar,
-  Lock,
-  QrCode as QrIcon,
   CheckCircle2,
   Loader2,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { api } from "@/lib/api/client";
+import type { PublicCertificateVerification } from "@/types";
+import CertificateDocument from "./CertificateDocument";
 
 interface CertificateModalProps {
   open?: boolean;
@@ -41,15 +39,17 @@ export default function CertificateModal({
   onClose,
   certificateUuid,
   certificateNumber,
-  studentName,
-  beltName,
+  studentName = "",
+  beltName = "",
   beltColor = "#ffffff",
-  martialArt = "BJJ",
+  martialArt = "Martial Arts",
   examName,
   issueDate,
   technicalGrade,
   clubName = "MAIDAN",
 }: CertificateModalProps) {
+  const [certData, setCertData] = useState<PublicCertificateVerification | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
 
@@ -61,8 +61,34 @@ export default function CertificateModal({
       ? `${window.location.origin}/verify/certificate/${certificateUuid}`
       : `/verify/certificate/${certificateUuid}`;
 
+  // Fetch full official certificate details from API for signatures, stamps, fingerprints & logo
   useEffect(() => {
-    if (!certificateUuid || !isOpen) return;
+    if (!certificateUuid || !isModalOpen) return;
+
+    let isMounted = true;
+    setIsLoading(true);
+
+    api
+      .verifyCertificate(certificateUuid)
+      .then((res: any) => {
+        if (!isMounted) return;
+        setCertData(res.data);
+      })
+      .catch((err: any) => {
+        console.error("Failed to load full certificate data, using fallback props:", err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [certificateUuid, isModalOpen]);
+
+  // Generate QR code data URL pointing to the live URL
+  useEffect(() => {
+    if (!certificateUuid || !isModalOpen) return;
 
     QRCode.toDataURL(publicUrl, {
       width: 250,
@@ -75,7 +101,7 @@ export default function CertificateModal({
     })
       .then((url) => setQrDataUrl(url))
       .catch((e) => console.error("QR Code generation error:", e));
-  }, [certificateUuid, isOpen, publicUrl]);
+  }, [certificateUuid, isModalOpen, publicUrl]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -89,101 +115,104 @@ export default function CertificateModal({
   };
 
   const handlePrint = () => {
-    // Open the dedicated public certificate page and trigger print, or open in new window
-    const printWindow = window.open(publicUrl, "_blank");
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    }
+    // Open the dedicated single-page print endpoint which auto-triggers the print dialog
+    window.open(`${publicUrl}?print=true`, "_blank");
+  };
+
+  // Build a resolved certificate object, merging fetched data with fallback props
+  const resolvedData: PublicCertificateVerification = {
+    uuid: certificateUuid,
+    certificate_number: certData?.certificate_number || certificateNumber || `CERT-${certificateUuid.slice(0, 8)}`,
+    student_name: certData?.student_name || studentName || "الطالب الرياضي",
+    belt_name: certData?.belt_name || beltName,
+    belt_name_ar: certData?.belt_name_ar,
+    belt_color: certData?.belt_color || beltColor,
+    martial_art: certData?.martial_art || martialArt,
+    exam_name: certData?.exam_name || examName,
+    issue_date: certData?.issue_date || issueDate || new Date().toISOString().split("T")[0],
+    technical_grade: certData?.technical_grade || technicalGrade,
+    signed_by_name: certData?.signed_by_name || "المدرب الفني المعتمد",
+    signed_by_title: certData?.signed_by_title || "المدير الفني العام / Head Coach",
+    digital_fingerprint: certData?.digital_fingerprint || "SHA256-PENDING-VERIFICATION",
+    status: certData?.status || "active",
+    is_valid: certData?.is_valid ?? true,
+    is_tampered: certData?.is_tampered,
+    tenant_info: {
+      name: certData?.tenant_info?.name || clubName,
+      business_name: certData?.tenant_info?.business_name,
+      logo_url: certData?.tenant_info?.logo_url,
+      stamp_url: certData?.tenant_info?.stamp_url,
+      signature_url: certData?.tenant_info?.signature_url,
+    },
   };
 
   return (
-    <Modal open={isModalOpen} onClose={onClose} size="2xl">
+    <Modal open={isModalOpen} onClose={onClose} size="2xl" className="max-w-5xl">
       <ModalHeader
         title="شهادة الترقية والاعتماد الإلكترونية"
-        subtitle="عرض الشهادة الموثقة مع رمز الاستجابة السريعة (QR) ورابط التحقق العلني"
+        subtitle="عرض الشهادة الرسمية الموثقة مع رمز الاستجابة السريعة (QR) والختم والتوقيع المعتمد"
         icon={<Award className="w-5 h-5 text-amber-400" />}
         onClose={onClose}
       />
-      <ModalBody>
-        <div className="space-y-6 text-right" dir="rtl">
-          {/* Status badge & serial */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>شهادة رسمية موثقة ومؤمنة بتشفير SHA-256</span>
-            </div>
-            {certificateNumber && (
-              <div className="text-[11px] font-mono text-slate-300">
-                الرقم المرجعي: <span className="font-bold text-white">{certificateNumber}</span>
+      <ModalBody className="p-4 sm:p-6">
+        <div className="space-y-5 text-right" dir="rtl">
+          {/* Status bar & Quick Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>شهادة رسمية موثقة ومعتمدة</span>
               </div>
-            )}
-          </div>
-
-          {/* Certificate Miniature Diploma Card */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-amber-500/40 relative overflow-hidden shadow-xl text-center space-y-4">
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-amber-400 font-black">{clubName}</p>
-              <h3 className="text-xl font-black text-white mt-0.5">شهادة اجتياز فحص وترقية حزام</h3>
-            </div>
-
-            <p className="text-xs text-muted-foreground">تمنح هذه الشهادة رسمياً إلى الطالب:</p>
-            <h4 className="text-2xl font-black text-amber-300 tracking-wide">{studentName}</h4>
-
-            {/* Belt Rank badge */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 mx-auto">
-              <div
-                className="w-3.5 h-3.5 rounded-full border border-white/40 shrink-0"
-                style={{ backgroundColor: beltColor }}
-              />
-              <span className="text-sm font-bold text-white">{beltName}</span>
-              <span className="text-[10px] text-muted-foreground">({martialArt})</span>
-            </div>
-
-            {/* Details */}
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400 pt-1">
-              {examName && <span>الحدث: <strong className="text-slate-200">{examName}</strong></span>}
-              {issueDate && <span>التاريخ: <strong className="text-slate-200">{issueDate}</strong></span>}
-              {technicalGrade && (
-                <span>النتيجة: <strong className="text-emerald-400">{technicalGrade}</strong></span>
-              )}
-            </div>
-
-            {/* QR Code Section */}
-            <div className="pt-3 flex flex-col items-center justify-center">
-              {qrDataUrl ? (
-                <div className="p-2 bg-white rounded-xl shadow-md inline-block">
-                  <img src={qrDataUrl} alt="QR Code" className="w-24 h-24" />
-                </div>
-              ) : (
-                <div className="w-24 h-24 bg-white/10 rounded-xl flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              {isLoading && (
+                <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  <span>مزامنة الأختام والتوقيعات...</span>
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-                امسح الرمز أو شارك الرابط للتحقق الفوري من صحة الشهادة
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95"
+              >
+                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? "تم النسخ" : "نسخ الرابط"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenPublicPage}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>صفحة التحقق</span>
+              </button>
             </div>
           </div>
 
-          {/* Copyable Public Link */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">رابط التحقق العلني المباشر:</label>
+          {/* Master Certificate Diploma Canvas */}
+          <div className="w-full flex justify-center">
+            <CertificateDocument data={resolvedData} qrDataUrl={qrDataUrl} />
+          </div>
+
+          {/* Direct Public Link Input */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-bold text-slate-400">رابط التحقق العلني المباشر للشهادة:</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={publicUrl}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs text-slate-300 font-mono text-left focus:outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs text-slate-300 font-mono text-left focus:outline-none select-all"
               />
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 active:scale-95"
               >
                 {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? "تم النسخ" : "نسخ"}</span>
+                <span>{copied ? "تم النسخ" : "نسخ الرابط"}</span>
               </button>
             </div>
           </div>
@@ -210,10 +239,10 @@ export default function CertificateModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all shadow-md"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all shadow-md active:scale-95"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>طباعة / حفظ كـ PDF</span>
+              <span>طباعة / حفظ كـ PDF (صفحة واحدة)</span>
             </button>
           </div>
         </div>
