@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mic, MicOff, Loader2 } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/lib/speech/use-speech-recognition";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

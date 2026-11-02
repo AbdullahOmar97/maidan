@@ -1,6 +1,6 @@
 "use client";
 
-import { Volume2, VolumeX, Pause, Play } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { useTextToSpeech } from "@/lib/speech/use-text-to-speech";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ export function SpeechReaderButton({
   className,
   lang,
 }: SpeechReaderButtonProps) {
-  const { isSpeaking, isPaused, isSupported, speak, pause, resume, stop } =
+  const { isSpeaking, isPaused, isSupported, speak, resume, stop } =
     useTextToSpeech();
 
   if (!isSupported || !text) {
