@@ -99,6 +99,16 @@ export function formatMonthYear(val?: string | Date | null): string {
 
 export function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "غير محدد";
+  if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const [yStr, mStr, dStr] = dateStr.split("T")[0].split("-");
+    const year = parseInt(yStr, 10);
+    const month = parseInt(mStr, 10);
+    const day = parseInt(dStr, 10);
+    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+      const monthWithNum = ARABIC_MONTHS_WITH_NUMBERS[month] || String(month);
+      return toLatinDigits(`${day} ${monthWithNum} ${year}`);
+    }
+  }
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "غير محدد";
   const day = d.getDate();

@@ -118,7 +118,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
         return None
 
     def get_active_membership(self, obj):
-        membership = obj.memberships.filter(status="active").first()
+        membership = obj.memberships.filter(status="active").order_by("-created_at", "-id").first()
         if membership:
             return {
                 "id": membership.id,
@@ -228,7 +228,7 @@ class StudentListSerializer(serializers.ModelSerializer):
         return None
 
     def get_active_membership(self, obj):
-        membership = obj.memberships.filter(status="active").first()
+        membership = obj.memberships.filter(status="active").order_by("-created_at", "-id").first()
         if membership:
             return {
                 "id": membership.id,
@@ -240,7 +240,7 @@ class StudentListSerializer(serializers.ModelSerializer):
         return None
 
     def get_latest_membership(self, obj):
-        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-end_date", "-created_at").first()
+        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-created_at", "-id").first()
         if latest and latest.plan:
             return {
                 "id": latest.id,
@@ -485,7 +485,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_active_membership(self, obj):
-        membership = obj.memberships.filter(status="active").first()
+        membership = obj.memberships.filter(status="active").order_by("-created_at", "-id").first()
         if membership:
             return {
                 "id": membership.id,
@@ -497,7 +497,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_latest_membership(self, obj):
-        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-end_date", "-created_at").first()
+        latest = obj.memberships.select_related("plan").exclude(status="cancelled").order_by("-created_at", "-id").first()
         if latest and latest.plan:
             return {
                 "id": latest.id,

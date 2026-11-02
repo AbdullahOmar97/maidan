@@ -684,10 +684,10 @@ export default function StudentDetailPage() {
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
-              <div className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-4 text-center min-w-[120px]">
+            <div className="grid grid-cols-2 sm:flex sm:items-stretch gap-3 w-full md:w-auto">
+              <div className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-4 text-center min-w-[110px] sm:min-w-[120px] flex flex-col justify-center items-center">
                 <p className="text-2xl font-black text-white">{attendanceHistory?.length ?? 0}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">حصة حضور</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 whitespace-nowrap">حصة حضور</p>
               </div>
               <div
                 onClick={() => {
@@ -698,18 +698,18 @@ export default function StudentDetailPage() {
                     setActiveTab("belts");
                   }
                 }}
-                className="bg-white/[0.03] border border-white/[0.05] hover:border-amber-500/30 hover:bg-white/5 rounded-3xl p-4 text-center min-w-[130px] cursor-pointer transition-all group/beltstat"
+                className="bg-white/[0.03] border border-white/[0.05] hover:border-amber-500/30 hover:bg-white/5 rounded-3xl p-4 px-5 text-center min-w-[130px] sm:min-w-[160px] cursor-pointer transition-all group/beltstat flex flex-col justify-center items-center"
                 title="عرض وتوثيق شهادة الحزام الحالي"
               >
                 <div className="flex items-center justify-center gap-1.5">
-                  <p className="text-xl sm:text-2xl font-black text-primary truncate max-w-[140px]">
+                  <p className="text-base sm:text-xl font-black text-primary leading-tight text-center">
                     {student.current_belt
                       ? getArabicBeltName(student.current_belt.name, (student.current_belt as any).name_ar)
                       : "—"}
                   </p>
                   <Award className="w-4 h-4 text-amber-400 group-hover/beltstat:scale-125 transition-transform shrink-0" />
                 </div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 whitespace-nowrap">
                   الحزام الحالي • الشهادة
                 </p>
               </div>
@@ -802,7 +802,9 @@ export default function StudentDetailPage() {
                     <Award className="w-8 h-8 z-10" style={{ color: student.current_belt.color }} />
                   </div>
                   <div>
-                    <p className="text-xl font-black text-white">{student.current_belt.name}</p>
+                    <p className="text-xl font-black text-white">
+                      {getArabicBeltName(student.current_belt.name, (student.current_belt as any).name_ar)}
+                    </p>
                     <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
                       منذ: {formatDate(student.current_belt.promoted_at)}
                     </p>

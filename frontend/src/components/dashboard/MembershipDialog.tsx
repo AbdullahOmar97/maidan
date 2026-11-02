@@ -21,6 +21,14 @@ interface MembershipDialogProps {
 
 type BackbillMode = "unpaid" | "paid" | "single";
 
+const getLocalDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function MembershipDialog({
   isOpen,
   onClose,
@@ -29,8 +37,9 @@ export default function MembershipDialog({
 }: MembershipDialogProps) {
   const queryClient = useQueryClient();
   const [selectedPlanId, setSelectedPlanId] = useState<number | "">("");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(getLocalDateString());
   const [endDate, setEndDate] = useState("");
+  const [isManualEndDate, setIsManualEndDate] = useState(false);
   const [notes, setNotes] = useState("");
   const [backbillMode, setBackbillMode] = useState<BackbillMode>("unpaid");
 
@@ -110,9 +119,12 @@ export default function MembershipDialog({
     : { count: 1, pastCount: 0, currentEnd: "" };
   const isBackdated = cycleInfo.pastCount > 0 && selectedPlan?.billing_cycle !== "one_time";
 
-  const updateEndDate = (start: string, plan: MembershipPlan | undefined, mode: BackbillMode) => {
+  const updateEndDate = (start: string, plan: MembershipPlan | undefined, mode: BackbillMode, force = false) => {
     if (!plan || !start) {
       setEndDate("");
+      return;
+    }
+    if (isManualEndDate && !force) {
       return;
     }
     const info = getElapsedCycles(start, plan.billing_cycle);
@@ -125,18 +137,19 @@ export default function MembershipDialog({
 
   const handlePlanChange = (planId: number | "") => {
     setSelectedPlanId(planId);
+    setIsManualEndDate(false);
     const plan = plans.find((p) => p.id === Number(planId));
-    updateEndDate(startDate, plan, backbillMode);
+    updateEndDate(startDate, plan, backbillMode, true);
   };
 
   const handleStartDateChange = (newStart: string) => {
     setStartDate(newStart);
-    updateEndDate(newStart, selectedPlan, backbillMode);
+    updateEndDate(newStart, selectedPlan, backbillMode, false);
   };
 
   const handleBackbillModeChange = (mode: BackbillMode) => {
     setBackbillMode(mode);
-    updateEndDate(startDate, selectedPlan, mode);
+    updateEndDate(startDate, selectedPlan, mode, false);
   };
 
   const membershipMutation = useMutation({
@@ -246,13 +259,33 @@ export default function MembershipDialog({
             </FormField>
 
             {selectedPlan?.billing_cycle !== "one_time" && (
-              <FormField label="تاريخ الانتهاء (تلقائي حسب الباقة)">
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  disabled={membershipMutation.isPending || !selectedPlanId}
-                />
+              <FormField
+                label="تاريخ الانتهاء"
+                hint={isManualEndDate ? "محدد يدوياً" : "تلقائي حسب الباقة"}
+              >
+                <div>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setIsManualEndDate(true);
+                    }}
+                    disabled={membershipMutation.isPending || !selectedPlanId}
+                  />
+                  {isManualEndDate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsManualEndDate(false);
+                        updateEndDate(startDate, selectedPlan, backbillMode, true);
+                      }}
+                      className="text-[11px] text-primary hover:underline mt-1 font-bold block"
+                    >
+                      إعادة الضبط للحساب التلقائي
+                    </button>
+                  )}
+                </div>
               </FormField>
             )}
           </div>

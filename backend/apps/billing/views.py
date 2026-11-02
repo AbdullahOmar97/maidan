@@ -93,6 +93,7 @@ class MembershipSerializer(serializers.ModelSerializer):
         backbill_mode = validated_data.pop("backbill_mode", "single")
         plan = validated_data.get("plan")
         start_date = validated_data.get("start_date")
+        user_specified_end_date = validated_data.get("end_date")
         today = timezone.now().date()
 
         cycles = []
@@ -117,7 +118,11 @@ class MembershipSerializer(serializers.ModelSerializer):
                 cur_start = cur_end
 
             if cycles:
-                validated_data["end_date"] = cycles[-1]["end"]
+                if user_specified_end_date:
+                    validated_data["end_date"] = user_specified_end_date
+                    cycles[-1]["end"] = user_specified_end_date
+                else:
+                    validated_data["end_date"] = cycles[-1]["end"]
 
         membership = Membership(**validated_data)
         membership._backbill_mode = backbill_mode
@@ -393,12 +398,19 @@ class MembershipViewSet(BranchScopedMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         membership = serializer.save(created_by_id=self.request.user.id)
-        if membership.status == Membership.Status.ACTIVE and membership.student.status in [
-            Student.Status.LEAD,
-            Student.Status.TRIAL,
-        ]:
-            membership.student.status = Student.Status.ACTIVE
-            membership.student.save(update_fields=["status"])
+        if membership.status == Membership.Status.ACTIVE:
+            # Supersede any previous active memberships for this student
+            Membership.objects.filter(
+                student=membership.student,
+                status=Membership.Status.ACTIVE,
+            ).exclude(pk=membership.pk).update(status=Membership.Status.CANCELLED)
+
+            if membership.student.status in [
+                Student.Status.LEAD,
+                Student.Status.TRIAL,
+            ]:
+                membership.student.status = Student.Status.ACTIVE
+                membership.student.save(update_fields=["status"])
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

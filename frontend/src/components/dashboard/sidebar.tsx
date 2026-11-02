@@ -23,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { Session } from "next-auth";
 import { useTenant } from "@/lib/providers/tenant-provider";
-import { ROLE_LABELS } from "@/lib/constants";
 import { UserRole } from "@/types";
 import { hasEffectivePermission, PRIVILEGED_ROLES } from "@/lib/hooks/use-permission";
 
@@ -122,18 +121,13 @@ function NavList({ user, onLinkClick }: NavListProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom section (kiosk + user profile)
+// Bottom section (kiosk)
 // ---------------------------------------------------------------------------
 interface BottomSectionProps {
-  user?: Session["user"];
   onLinkClick?: () => void;
 }
 
-function BottomSection({ user, onLinkClick }: BottomSectionProps) {
-  const pathname = usePathname();
-  const role = (user as any)?.role as UserRole;
-  const { tenant } = useTenant();
-
+function BottomSection({ onLinkClick }: BottomSectionProps) {
   return (
     <div className="mt-auto relative z-10 space-y-2 p-4 pb-safe mb-12">
       <Link
@@ -149,52 +143,6 @@ function BottomSection({ user, onLinkClick }: BottomSectionProps) {
         <span className="flex-1">وضع الكشك</span>
         <ChevronRight className="w-4 h-4 rtl-flip opacity-30 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" aria-hidden="true" />
       </Link>
-
-      {user && (
-        <div className="pt-2">
-          <Link
-            href="/dashboard/settings?tab=profile"
-            scroll={false}
-            onClick={(e) => {
-              if (pathname === "/dashboard/settings") {
-                const search = typeof window !== "undefined" ? window.location.search : "";
-                if (search.includes("tab=profile") || !search.includes("tab=")) {
-                  e.preventDefault();
-                }
-              }
-              onLinkClick?.();
-            }}
-            className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3 group hover:bg-primary/10 transition-all cursor-pointer text-start"
-          >
-            <div
-              className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center text-white text-sm font-black shadow-lg shadow-primary/20 transition-transform group-hover:scale-105 overflow-hidden"
-              aria-hidden="true"
-            >
-              {user?.image ? (
-                <img
-                  src={user.image}
-                  alt={user?.name || "Avatar"}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                (user as any)?.first_name?.[0]?.toUpperCase() ??
-                user?.name?.[0]?.toUpperCase() ??
-                "U"
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-white truncate leading-none mb-1.5">
-                {(user as any)?.first_name && (user as any)?.last_name
-                  ? `${(user as any).first_name} ${(user as any).last_name}`
-                  : (user?.name ?? "المستخدم")}
-              </p>
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
-                {ROLE_LABELS[role] ?? role}
-              </p>
-            </div>
-          </Link>
-        </div>
-      )}
     </div>
   );
 }
@@ -253,7 +201,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       <LogoHeader />
       <NavList user={user} />
-      <BottomSection user={user} />
+      <BottomSection />
     </aside>
   );
 }
@@ -275,7 +223,7 @@ export function MobileSidebarContent({
       <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 blur-[60px] -me-16 -mt-16 pointer-events-none" aria-hidden="true" />
       <LogoHeader />
       <NavList user={user} onLinkClick={onClose} />
-      <BottomSection user={user} onLinkClick={onClose} />
+      <BottomSection onLinkClick={onClose} />
     </div>
   );
 }
