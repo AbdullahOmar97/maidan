@@ -60,7 +60,7 @@
     --secondary: 210 40% 95%;
     --secondary-foreground: 215 25% 27%;
     --muted: 210 40% 95%;
-    --muted-foreground: 215 20% 50%;
+    --muted-foreground: 215 25% 40%;
     --accent: 210 40% 95%;
     --accent-foreground: 222 47% 11%;
     --destructive: 342 75% 50%;
@@ -126,6 +126,12 @@
     textarea {
       font-size: 16px !important;
     }
+  }
+
+  /* Accessible focus indicators — WCAG 2.4.7 & WCAG 2.4.11 Focus Appearance */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary)) !important;
+    outline-offset: 2px !important;
   }
 
   body {
@@ -544,4 +550,27 @@ select option {
   .chart-sm { height: 200px; }
   .chart-md { height: 240px; }
   .chart-lg { height: 300px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Print media styles
+───────────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: transparent !important;
+    color: #000000 !important;
+  }
+  aside,
+  header,
+  footer,
+  [role="banner"],
+  [role="navigation"],
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
 }

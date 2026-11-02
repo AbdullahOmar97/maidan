@@ -117,6 +117,7 @@ export function MobileCardList<T extends Record<string, any>>({
                   {columns.map((col) => (
                     <th
                       key={col.key}
+                      scope="col"
                       className={cn(
                         "py-5 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground",
                         col.thClass
@@ -125,7 +126,11 @@ export function MobileCardList<T extends Record<string, any>>({
                       {col.label}
                     </th>
                   ))}
-                  {renderActions && <th className="py-5 px-6" />}
+                  {renderActions && (
+                    <th scope="col" className="py-5 px-6">
+                      <span className="sr-only">الإجراءات</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -183,6 +188,7 @@ export function MobileCardList<T extends Record<string, any>>({
                 {columns.map((col) => (
                   <th
                     key={col.key}
+                    scope="col"
                     className={cn(
                       "py-5 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground",
                       col.thClass
@@ -191,7 +197,11 @@ export function MobileCardList<T extends Record<string, any>>({
                     {col.label}
                   </th>
                 ))}
-                {renderActions && <th className="py-5 px-6" />}
+                {renderActions && (
+                  <th scope="col" className="py-5 px-6">
+                    <span className="sr-only">الإجراءات</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">

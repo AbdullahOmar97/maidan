@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@/lib/providers/query-provider";
 import { SessionProvider } from "@/lib/providers/session-provider";
 import { Toaster } from "sonner";
 import { SecurityShield } from "@/components/security/SecurityShield";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -62,6 +63,7 @@ export default function RootLayout({
           enableSystem={true}
           disableTransitionOnChange
         >
+          <ServiceWorkerRegister />
           <SecurityShield />
           <SessionProvider>
             <QueryClientProvider>

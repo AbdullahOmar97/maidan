@@ -8,6 +8,8 @@ import { Drawer } from "@/components/ui/drawer";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import type { Session } from "next-auth";
+import { useNetworkStatus } from "@/lib/hooks/use-network-status";
+import { WifiOff } from "lucide-react";
 
 interface DashboardShellProps {
   session: Session;
@@ -23,6 +25,7 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: clientSession, status } = useSession();
   const { setTheme } = useTheme();
+  const { isOnline } = useNetworkStatus();
   const initialThemeSyncedRef = useRef(false);
 
   useEffect(() => {
@@ -45,6 +48,7 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
 
     if (langPref === "en" || langPref === "ar") {
       document.documentElement.lang = langPref;
+      document.documentElement.dir = langPref === "ar" ? "rtl" : "ltr";
     }
 
     if (!initialThemeSyncedRef.current && uiPrefs?.theme) {
@@ -55,6 +59,26 @@ export function DashboardShell({ session, children }: DashboardShellProps) {
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden relative">
+      {/* ── Accessible Skip to Main Content Link (WCAG 2.4.1) ── */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-primary focus:text-white focus:font-black focus:rounded-xl focus:shadow-2xl focus:outline-none focus:ring-4 focus:ring-primary/40 text-xs uppercase tracking-wider"
+      >
+        تخطي إلى المحتوى الرئيسي / Skip to main content
+      </a>
+
+      {/* ── Offline Network Banner ── */}
+      {!isOnline && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 shadow-lg animate-in slide-in-from-top-2"
+        >
+          <WifiOff className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>انقطع الاتصال بالإنترنت. يجري العمل في وضع عدم الاتصال (Offline Mode).</span>
+        </div>
+      )}
+
       {/* ── Decorative Background Blobs ── */}
       <div
         className="absolute top-[-8%] start-[-8%] w-[35%] h-[35%] bg-primary/8 blur-[130px] rounded-full pointer-events-none z-0"

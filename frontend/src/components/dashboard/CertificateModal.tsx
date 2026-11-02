@@ -102,8 +102,8 @@ export default function CertificateModal({
       },
       errorCorrectionLevel: "H",
     })
-      .then((url) => setQrDataUrl(url))
-      .catch((e) => console.error("QR Code generation error:", e));
+      .then((url: string) => setQrDataUrl(url))
+      .catch((e: unknown) => console.error("QR Code generation error:", e));
   }, [certificateUuid, isModalOpen, publicUrl]);
 
   const handleCopyLink = () => {
@@ -140,6 +140,7 @@ export default function CertificateModal({
     status: certData?.status || "active",
     is_valid: certData?.is_valid ?? true,
     is_tampered: certData?.is_tampered,
+    created_at: certData?.created_at || new Date().toISOString(),
     tenant_info: {
       name: certData?.tenant_info?.name || clubName,
       business_name: certData?.tenant_info?.business_name,

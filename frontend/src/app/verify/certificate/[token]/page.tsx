@@ -16,6 +16,7 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import CertificateDocument from "@/components/dashboard/CertificateDocument";
+import { SpeechReaderButton } from "@/components/ui/speech-reader-button";
 
 export default function CertificateVerificationPage() {
   const params = useParams();
@@ -71,8 +72,8 @@ export default function CertificateVerificationPage() {
       },
       errorCorrectionLevel: "H",
     })
-      .then((url) => setQrDataUrl(url))
-      .catch((e) => console.error("QR Code generation error:", e));
+      .then((url: string) => setQrDataUrl(url))
+      .catch((e: unknown) => console.error("QR Code generation error:", e));
   }, [token]);
 
   // Auto-trigger print when requested via query param
@@ -245,7 +246,12 @@ export default function CertificateVerificationPage() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SpeechReaderButton
+            text={`شهادة معتمدة من ${data.tenant_info?.name || "الأكاديمية"} للطالب ${data.student_name} بنيل حزام ${data.belt_name_ar || data.belt_name} في رياضة ${data.martial_art || "الفنون القتالية"}، بتاريخ ${data.issue_date}. حالة الشهادة: ${isValid ? "موثقة ورسمية" : "ملغاة أو غير صالحة"}.`}
+            label="استماع للشهادة"
+            className="touch-target"
+          />
           <button
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all shadow-md active:scale-95 touch-target"

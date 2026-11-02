@@ -21,6 +21,7 @@ import { AddStudentModal } from "@/components/dashboard/AddStudentModal";
 import StudentQRCard from "@/components/dashboard/StudentQRCard";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import { toast } from "sonner";
+import { VoiceSearchButton } from "@/components/ui/voice-search-button";
 
 const STATUS_OPTIONS = [
   { value: "", label: "جميع الحالات" },
@@ -431,15 +432,24 @@ function StudentsContent() {
         {/* Filters & Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search */}
-          <div className="relative flex-1 group">
-            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all" />
+          <div className="relative flex-1 group flex items-center">
+            <Search className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all pointer-events-none" aria-hidden="true" />
             <input
-              type="text"
+              id="student-search-input"
+              type="search"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="ابحث بالاسم، رقم الطالب، أو رقم الهاتف..."
-              className="filter-input pe-12"
+              aria-label="ابحث بالاسم، رقم الطالب، أو رقم الهاتف"
+              className="filter-input ps-12 pe-12"
             />
+            <div className="absolute start-2 top-1/2 -translate-y-1/2">
+              <VoiceSearchButton
+                onTranscript={(text) => { setSearch(text); setPage(1); }}
+                inputName="بحث الطلاب"
+                className="w-8 h-8 rounded-xl"
+              />
+            </div>
           </div>
 
           {/* Location Filter */}

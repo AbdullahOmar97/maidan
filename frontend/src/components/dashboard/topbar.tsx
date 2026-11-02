@@ -15,6 +15,7 @@ import { cn, ARABIC_MONTHS_WITH_NUMBERS } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import { api, clearCachedSession } from "@/lib/api/client";
 import { toast } from "sonner";
+import { VoiceSearchButton } from "@/components/ui/voice-search-button";
 
 interface TopBarProps {
   user: Session["user"];
@@ -29,6 +30,7 @@ export function TopBar({ user, onMenuToggle, mobileOpen = false }: TopBarProps) 
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const queryClient = useQueryClient();
   const role = (user as any)?.role as UserRole;
   const userNotifPrefs = (user as any)?.notification_preferences;
@@ -195,19 +197,28 @@ export function TopBar({ user, onMenuToggle, mobileOpen = false }: TopBarProps) 
         {searchOpen ? (
           /* Expanded search on mobile — inset-e leaves room for profile/actions so bar doesn’t feel “gone” */
           <div className="absolute start-0 end-[7rem] inset-y-0 z-30 flex items-center gap-3 bg-card/95 px-4 backdrop-blur-3xl pt-[env(safe-area-inset-top,0px)] sm:pt-0 max-sm:end-[5.5rem] sm:static sm:z-auto sm:flex-1 sm:bg-transparent sm:backdrop-blur-none sm:px-0">
-            <div className="relative flex-1 group">
+            <div className="relative flex-1 group flex items-center">
               <Search
-                className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all"
+                className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all pointer-events-none"
                 aria-hidden="true"
               />
               <input
                 id="global-search"
                 type="search"
                 autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث عن طلاب، فواتير، أو حصص..."
-                className="w-full ps-6 pe-11 py-2.5 text-sm rounded-2xl bg-white/[0.05] border border-white/[0.08] focus:bg-white/[0.08] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
+                className="w-full ps-11 pe-11 py-2.5 text-sm rounded-2xl bg-white/[0.05] border border-white/[0.08] focus:bg-white/[0.08] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
                 aria-label="البحث العام"
               />
+              <div className="absolute start-1.5 top-1/2 -translate-y-1/2">
+                <VoiceSearchButton
+                  onTranscript={(text) => setSearchQuery(text)}
+                  inputName="البحث العام"
+                  className="w-8 h-8 rounded-lg"
+                />
+              </div>
             </div>
             <button
               type="button"
@@ -232,18 +243,27 @@ export function TopBar({ user, onMenuToggle, mobileOpen = false }: TopBarProps) 
 
             {/* Full search bar on sm+ */}
             <div className="hidden sm:flex items-center flex-1 max-w-md">
-              <div className="relative flex-1 group">
+              <div className="relative flex-1 group flex items-center">
                 <Search
-                  className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110"
+                  className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110 pointer-events-none"
                   aria-hidden="true"
                 />
                 <input
                   id="global-search-desktop"
                   type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث..."
-                  className="w-full ps-5 pe-11 py-2 text-sm rounded-xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
+                  className="w-full ps-11 pe-11 py-2 text-sm rounded-xl bg-white/[0.03] border border-white/[0.05] focus:bg-white/[0.05] focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/30 font-medium"
                   aria-label="البحث العام"
                 />
+                <div className="absolute start-1.5 top-1/2 -translate-y-1/2">
+                  <VoiceSearchButton
+                    onTranscript={(text) => setSearchQuery(text)}
+                    inputName="البحث العام"
+                    className="w-8 h-8 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
           </>
@@ -281,6 +301,8 @@ export function TopBar({ user, onMenuToggle, mobileOpen = false }: TopBarProps) 
                 notificationsOpen && "bg-white/10 text-white"
               )}
               aria-label="الإشعارات"
+              aria-expanded={notificationsOpen}
+              aria-haspopup="dialog"
             >
               <Bell className="w-4 h-4" aria-hidden="true" />
               {unreadCount > 0 && (
