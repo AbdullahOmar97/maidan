@@ -20,11 +20,12 @@ interface TopBarProps {
   user: Session["user"];
   /** Called when the hamburger is pressed to open the mobile drawer */
   onMenuToggle: () => void;
+  mobileOpen?: boolean;
 }
 
-export function TopBar({ user, onMenuToggle }: TopBarProps) {
+export function TopBar({ user, onMenuToggle, mobileOpen = false }: TopBarProps) {
   const pathname = usePathname();
-  const { update: updateSession } = useSession();
+  const { data: activeSession, update: updateSession } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -174,25 +175,26 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
   return (
     <header
-      className="h-[var(--topbar-height,4.5rem)] border-b border-white/[0.05] flex items-center justify-between px-3 sm:px-6 lg:px-8 bg-card/10 backdrop-blur-3xl shrink-0 relative z-20 gap-2 sm:gap-3"
+      className="min-h-[calc(var(--topbar-height,4.5rem)+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] border-b border-white/[0.05] flex items-center justify-between px-3 sm:px-6 lg:px-8 bg-card/10 backdrop-blur-3xl shrink-0 relative z-20 gap-2 sm:gap-3"
       role="banner"
     >
       {/* ── Left: Hamburger (mobile only) ── */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <button
           id="mobile-menu-btn"
+          type="button"
           onClick={onMenuToggle}
-          className="lg:hidden touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all active:scale-90 shrink-0"
+          className="lg:hidden touch-manipulation w-11 h-11 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 active:bg-white/10 active:opacity-75 transition-colors cursor-pointer select-none shrink-0"
           aria-label="فتح القائمة"
-          aria-expanded={false}
+          aria-expanded={mobileOpen}
         >
-          <Menu className="w-5 h-5" aria-hidden="true" />
+          <Menu className="w-5 h-5 pointer-events-none" aria-hidden="true" />
         </button>
 
         {/* ── Search: full bar on sm+, icon on xs ── */}
         {searchOpen ? (
           /* Expanded search on mobile — inset-e leaves room for profile/actions so bar doesn’t feel “gone” */
-          <div className="absolute start-0 end-[7rem] top-0 z-30 flex h-[5rem] items-center gap-3 bg-card/95 px-4 backdrop-blur-3xl max-sm:end-[5.5rem] sm:static sm:z-auto sm:flex-1 sm:bg-transparent sm:backdrop-blur-none sm:px-0">
+          <div className="absolute start-0 end-[7rem] inset-y-0 z-30 flex items-center gap-3 bg-card/95 px-4 backdrop-blur-3xl pt-[env(safe-area-inset-top,0px)] sm:pt-0 max-sm:end-[5.5rem] sm:static sm:z-auto sm:flex-1 sm:bg-transparent sm:backdrop-blur-none sm:px-0">
             <div className="relative flex-1 group">
               <Search
                 className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all"
@@ -208,22 +210,24 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
               />
             </div>
             <button
+              type="button"
               onClick={() => setSearchOpen(false)}
-              className="sm:hidden touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all"
+              className="sm:hidden touch-manipulation w-11 h-11 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 active:bg-white/10 active:opacity-75 transition-colors cursor-pointer select-none"
               aria-label="إغلاق البحث"
             >
-              <X className="w-5 h-5" aria-hidden="true" />
+              <X className="w-5 h-5 pointer-events-none" aria-hidden="true" />
             </button>
           </div>
         ) : (
           <>
             {/* Icon-only search button on mobile */}
             <button
+              type="button"
               onClick={() => setSearchOpen(true)}
-              className="sm:hidden touch-target w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 transition-all active:scale-90"
+              className="sm:hidden touch-manipulation w-11 h-11 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/5 active:bg-white/10 active:opacity-75 transition-colors cursor-pointer select-none"
               aria-label="فتح البحث"
             >
-              <Search className="w-5 h-5" aria-hidden="true" />
+              <Search className="w-5 h-5 pointer-events-none" aria-hidden="true" />
             </button>
 
             {/* Full search bar on sm+ */}

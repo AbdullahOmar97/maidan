@@ -73,23 +73,24 @@ export function Drawer({ open, onClose, children, title, className }: DrawerProp
         className={cn("drawer-panel", className)}
       >
         {/* Drawer header with close button */}
-        <div className="flex items-center justify-between px-5 h-[5rem] shrink-0 border-b border-white/[0.05]">
+        <div className="flex items-center justify-between px-5 min-h-[calc(4.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] shrink-0 border-b border-white/[0.05]">
           {title && (
             <span className="text-sm font-black text-muted-foreground uppercase tracking-widest">
               {title}
             </span>
           )}
           <button
+            type="button"
             onClick={onClose}
-            className="me-auto w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-white transition-all active:scale-90"
+            className="me-auto touch-manipulation w-11 h-11 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/20 active:opacity-75 flex items-center justify-center text-muted-foreground hover:text-white transition-colors cursor-pointer select-none"
             aria-label="إغلاق القائمة"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 pointer-events-none" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-[env(safe-area-inset-bottom,0px)]">
           {children}
         </div>
       </div>

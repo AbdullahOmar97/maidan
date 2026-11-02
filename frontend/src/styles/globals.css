@@ -316,6 +316,8 @@
     @apply fixed inset-y-0 start-0 z-50 flex flex-col bg-card border-e border-white/[0.06] shadow-2xl shadow-black/50 overflow-hidden;
     width: min(20rem, 88vw);
     height: 100%;
+    height: 100dvh;
+    -webkit-overflow-scrolling: touch;
     animation: slide-in-from-start 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
