@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { Award, Calendar, FileText, Loader2, CheckCircle } from "lucide-react";
+import { Award, Calendar, FileText, Loader2, CheckCircle, ShieldCheck, QrCode, ExternalLink, Printer } from "lucide-react";
 import { cn, parseApiError } from "@/lib/utils";
 import type { BeltRank, PaginatedResponse } from "@/types";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { FormField, Input, Textarea, ErrorBanner } from "@/components/ui/form-field";
+import { toast } from "sonner";
+import CertificateModal from "./CertificateModal";
 
 interface PromoteStudentDialogProps {
   isOpen: boolean;
@@ -38,6 +40,15 @@ export default function PromoteStudentDialog({
   const [includeTax, setIncludeTax] = useState(false);
   const [taxRate, setTaxRate] = useState<number | "">("");
 
+  const [issuedCertificate, setIssuedCertificate] = useState<{
+    uuid: string;
+    number?: string;
+    beltName: string;
+    beltColor: string;
+    martialArt: string;
+  } | null>(null);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
   const { data: ranksData, isLoading: ranksLoading } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
     queryKey: ["belts", "ranks"],
     queryFn: () => api.belts.ranks().then((r) => r.data),
@@ -46,13 +57,29 @@ export default function PromoteStudentDialog({
 
   const promotionMutation = useMutation({
     mutationFn: (data: any) => api.belts.promote(data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["student"] });
       queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["belts"] });
       queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      onClose();
+
+      const data = res?.data;
+      const certUuid = data?.certificate_uuid || data?.certificate_url?.split("/").filter(Boolean).pop();
+      const targetRank = ranks.find((r) => r.id === selectedRankId);
+      if (certUuid) {
+        setIssuedCertificate({
+          uuid: certUuid,
+          number: data?.certificate_number,
+          beltName: data?.belt_name || targetRank?.name || "الحزام الجديد",
+          beltColor: data?.belt_color || targetRank?.color_hex || "#ffffff",
+          martialArt: data?.martial_art || targetRank?.martial_art || "BJJ",
+        });
+        toast.success("تمت ترقية الطالب وإصدار الشهادة الرقمية بنجاح!");
+      } else {
+        toast.success("تمت ترقية الطالب بنجاح!");
+        onClose();
+      }
     },
   });
 
@@ -106,10 +133,103 @@ export default function PromoteStudentDialog({
     });
   };
 
+  const handleDone = () => {
+    setIssuedCertificate(null);
+    setIsCertModalOpen(false);
+    onClose();
+  };
+
   /* Build error message string */
   const errorMessage = promotionMutation.isError
     ? parseApiError(promotionMutation.error, "يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.")
     : null;
+
+  if (issuedCertificate) {
+    return (
+      <Modal open={isOpen} onClose={handleDone} size="sm">
+        <ModalHeader
+          icon={<Award className="w-5 h-5 text-emerald-400" />}
+          title="تمت ترقية الطالب وتوثيق الشهادة"
+          subtitle={studentName}
+          onClose={handleDone}
+        />
+        <ModalBody className="space-y-5 text-center py-4" dir="rtl">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-xl">
+            <Award className="w-8 h-8" />
+          </div>
+
+          <div>
+            <h4 className="text-base font-black text-white">تهانينا! تمت الترقية بنجاح</h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              تم إصدار وتوثيق شهادة الترقية الرسمية للطالب مع رمز QR وبصمة مشفرة لمنع التلاعب.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3.5 h-3.5 rounded-full border border-white/30 shrink-0"
+                style={{ backgroundColor: issuedCertificate.beltColor }}
+              />
+              <span className="font-bold text-white">{issuedCertificate.beltName}</span>
+              <span className="text-[10px] text-muted-foreground">({issuedCertificate.martialArt})</span>
+            </div>
+            {issuedCertificate.number && (
+              <span className="font-mono text-muted-foreground font-bold text-[11px]">
+                {issuedCertificate.number}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setIsCertModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-950/30 active:scale-95"
+            >
+              <Award className="w-4 h-4 text-amber-400" />
+              <span>عرض الشهادة والـ QR</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/verify/certificate/${issuedCertificate.uuid}`;
+                navigator.clipboard.writeText(url);
+                toast.success("تم نسخ رابط التحقق الإلكتروني للشهادة");
+              }}
+              className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <QrCode className="w-4 h-4 text-slate-400" />
+              <span>نسخ رابط التوثيق للشهادة</span>
+            </button>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            type="button"
+            onClick={handleDone}
+            className="w-full py-3 rounded-xl gradient-brand text-white text-xs font-black uppercase tracking-widest shadow-xl transition-all"
+          >
+            تم، إغلاق
+          </button>
+        </ModalFooter>
+
+        {isCertModalOpen && (
+          <CertificateModal
+            isOpen={isCertModalOpen}
+            onClose={() => setIsCertModalOpen(false)}
+            certificateUuid={issuedCertificate.uuid}
+            certificateNumber={issuedCertificate.number}
+            studentName={studentName}
+            beltName={issuedCertificate.beltName}
+            beltColor={issuedCertificate.beltColor}
+            martialArt={issuedCertificate.martialArt}
+            issueDate={promotedAt}
+          />
+        )}
+      </Modal>
+    );
+  }
 
   return (
     <Modal open={isOpen} onClose={onClose} size="sm">

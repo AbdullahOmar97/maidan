@@ -9,11 +9,12 @@ import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
 import BeltRankDialog from "@/components/dashboard/BeltRankDialog";
 import { PermissionGuard } from "@/components/dashboard/permission-guard";
 import ExamsTab from "@/components/dashboard/ExamsTab";
+import CertificatesTab from "@/components/dashboard/CertificatesTab";
 import { cn } from "@/lib/utils";
 
 
 export default function BeltsPage() {
-  const [activeTab, setActiveTab] = useState<"ranks" | "exams">("ranks");
+  const [activeTab, setActiveTab] = useState<"ranks" | "exams" | "certificates">("ranks");
   const [promotionDialog, setPromotionDialog] = useState<{
     isOpen: boolean;
     studentId?: number;
@@ -60,6 +61,7 @@ export default function BeltsPage() {
         {[
           { id: "ranks", label: "نظام الأحزمة والترقيات" },
           { id: "exams", label: "اختبارات الترقيات" },
+          { id: "certificates", label: "سجل الشهادات الموثقة" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -234,8 +236,10 @@ export default function BeltsPage() {
           )}
         </div>
       </div>
-      ) : (
+      ) : activeTab === "exams" ? (
         <ExamsTab />
+      ) : (
+        <CertificatesTab />
       )}
 
       {promotionDialog.isOpen && (

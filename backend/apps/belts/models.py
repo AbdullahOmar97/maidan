@@ -201,6 +201,14 @@ class ExamCandidate(models.Model):
                     topic="promotions",
                 )
 
+                # Auto-issue electronic promotion certificate
+                try:
+                    from apps.belts.utils import issue_or_get_candidate_certificate
+                    issue_or_get_candidate_certificate(self)
+                except Exception as e:
+                    import logging
+                    logging.getLogger("maidan.belts").warning(f"Failed to auto-issue candidate certificate: {e}")
+
 
 class BeltSyllabusRequirement(models.Model):
     """Syllabus movement or technical requirement defined for a belt rank."""

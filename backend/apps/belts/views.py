@@ -190,6 +190,15 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                 import logging
                 logging.getLogger("maidan.belts").warning(f"Failed to create promotion notification: {e}")
 
+            # Auto-issue electronic promotion certificate with QR & cryptographic fingerprint
+            try:
+                cert = issue_or_get_promotion_certificate(instance)
+                instance.certificate_url = f"/verify/certificate/{cert.uuid}"
+                instance.save(update_fields=["certificate_url"])
+            except Exception as e:
+                import logging
+                logging.getLogger("maidan.belts").warning(f"Failed to auto-issue promotion certificate: {e}")
+
     @action(detail=True, methods=["post"], url_path="issue-certificate")
     def issue_certificate(self, request, pk=None):
         student_belt = self.get_object()
