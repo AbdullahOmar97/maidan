@@ -106,6 +106,49 @@ export default function StudentDetailPage() {
     promotedAt?: string;
   } | null>(null);
 
+  const issuePromotionCertMutation = useMutation({
+    mutationFn: (promotionId: number) =>
+      api.belts.issuePromotionCertificate(promotionId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["student", id] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      const cert = res.data;
+      setViewingCertificate({
+        uuid: cert.uuid,
+        serial: cert.certificate_number,
+        studentName: cert.student_name || student?.full_name,
+        beltName: cert.belt_name,
+        beltColor: cert.belt_color,
+        martialArt: cert.martial_art,
+        promotedAt: cert.issue_date,
+      });
+      toast.success("تم إصدار وتوثيق الشهادة بنجاح!");
+    },
+    onError: () => toast.error("حدث خطأ أثناء إصدار الشهادة."),
+  });
+
+  const handleOpenBeltCertificate = (historyItem: any) => {
+    const token =
+      historyItem?.certificate_uuid ||
+      historyItem?.certificate_url?.split("/").filter(Boolean).pop();
+
+    if (token) {
+      setViewingCertificate({
+        uuid: token,
+        serial: historyItem?.certificate_number,
+        studentName: student?.full_name,
+        beltName: historyItem.belt_name,
+        beltColor: historyItem.color,
+        martialArt: historyItem.martial_art,
+        promotedAt: historyItem.promoted_at,
+      });
+    } else if (historyItem?.id) {
+      issuePromotionCertMutation.mutate(historyItem.id);
+    } else {
+      toast.error("لا يمكن الوصول لشهادة هذا السجل حالياً.");
+    }
+  };
+
   const studentId = Number(id);
 
   const { data: student, isLoading, error } = useQuery<Student>({
@@ -645,16 +688,8 @@ export default function StudentDetailPage() {
               <div
                 onClick={() => {
                   const currentBeltHistory = student.belt_history?.find((b) => b.is_current);
-                  const token = currentBeltHistory?.certificate_url?.split("/").filter(Boolean).pop();
-                  if (token) {
-                    setViewingCertificate({
-                      uuid: token,
-                      studentName: student.full_name,
-                      beltName: currentBeltHistory.belt_name,
-                      beltColor: currentBeltHistory.color,
-                      martialArt: currentBeltHistory.martial_art,
-                      promotedAt: currentBeltHistory.promoted_at,
-                    });
+                  if (currentBeltHistory) {
+                    handleOpenBeltCertificate(currentBeltHistory);
                   } else {
                     setActiveTab("belts");
                   }
@@ -1306,25 +1341,19 @@ export default function StudentDetailPage() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {token && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setViewingCertificate({
-                                  uuid: token,
-                                  studentName: student.full_name,
-                                  beltName: currentBeltHistory.belt_name,
-                                  beltColor: currentBeltHistory.color,
-                                  martialArt: currentBeltHistory.martial_art,
-                                  promotedAt: currentBeltHistory.promoted_at,
-                                });
-                              }}
-                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black transition-all flex items-center gap-1.5 shadow-md active:scale-95"
-                            >
+                          <button
+                            type="button"
+                            onClick={() => handleOpenBeltCertificate(currentBeltHistory)}
+                            disabled={issuePromotionCertMutation.isPending}
+                            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black transition-all flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-50"
+                          >
+                            {issuePromotionCertMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
                               <Award className="w-3.5 h-3.5" />
-                              <span>عرض وتوثيق الشهادة</span>
-                            </button>
-                          )}
+                            )}
+                            <span>عرض وتوثيق الشهادة</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => setIsPromoteDialogOpen(true)}
@@ -1394,28 +1423,15 @@ export default function StudentDetailPage() {
                                           الحالي
                                         </span>
                                       )}
-                                      {history.certificate_url && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const token = history.certificate_url?.split("/").filter(Boolean).pop();
-                                            if (token) {
-                                              setViewingCertificate({
-                                                uuid: token,
-                                                studentName: student.full_name,
-                                                beltName: history.belt_name,
-                                                beltColor: history.color,
-                                                martialArt: art,
-                                                promotedAt: history.promoted_at,
-                                              });
-                                            }
-                                          }}
-                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all shadow-sm active:scale-95"
-                                        >
-                                          <Award className="w-3.5 h-3.5 text-amber-400" />
-                                          <span>شهادة الترقية والـ QR</span>
-                                        </button>
-                                      )}
+                                      <button
+                                        type="button"
+                                        disabled={issuePromotionCertMutation.isPending}
+                                        onClick={() => handleOpenBeltCertificate({ ...history, martial_art: art })}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                      >
+                                        <Award className="w-3.5 h-3.5 text-amber-400" />
+                                        <span>شهادة الترقية والـ QR</span>
+                                      </button>
                                     </div>
                                     <p className="text-[10px] font-bold text-muted-foreground mt-1">تاريخ الترقية: {formatDate(history.promoted_at)}</p>
                                     <div className="mt-3 p-4 rounded-xl bg-white/[0.01] border border-white/5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">

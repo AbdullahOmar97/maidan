@@ -522,17 +522,26 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_belt_history(self, obj):
-        return [
-            {
+        res = []
+        for h in obj.belt_history.select_related("belt_rank").all()[:10]:
+            cert = getattr(h, "certificate", None)
+            cert_uuid = str(cert.uuid) if cert else None
+            cert_number = cert.certificate_number if cert else None
+            cert_url = f"/verify/certificate/{cert_uuid}" if cert_uuid else (h.certificate_url or "")
+
+            res.append({
+                "id": h.id,
                 "belt_name": h.belt_rank.name,
                 "color": h.belt_rank.color_hex,
                 "promoted_at": h.promoted_at,
                 "is_current": h.is_current,
                 "martial_art": h.belt_rank.martial_art,
                 "notes": h.notes,
-            }
-            for h in obj.belt_history.all()[:10]
-        ]
+                "certificate_url": cert_url,
+                "certificate_uuid": cert_uuid,
+                "certificate_number": cert_number,
+            })
+        return res
 
     def create(self, validated_data):
         initial_belt_id = validated_data.pop("initial_belt_id", None)

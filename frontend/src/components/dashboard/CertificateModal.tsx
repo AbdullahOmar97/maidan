@@ -20,7 +20,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface CertificateModalProps {
-  isOpen: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   certificateUuid: string;
   certificateNumber?: string;
@@ -35,6 +36,7 @@ interface CertificateModalProps {
 }
 
 export default function CertificateModal({
+  open,
   isOpen,
   onClose,
   certificateUuid,
@@ -50,6 +52,8 @@ export default function CertificateModal({
 }: CertificateModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+
+  const isModalOpen = Boolean(open ?? isOpen);
 
   // Compute public verification URL
   const publicUrl =
@@ -95,11 +99,11 @@ export default function CertificateModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal open={isModalOpen} onClose={onClose} size="2xl">
       <ModalHeader
         title="شهادة الترقية والاعتماد الإلكترونية"
-        description="عرض الشهادة الموثقة مع رمز الاستجابة السريعة (QR) ورابط التحقق العلني"
-        icon={Award}
+        subtitle="عرض الشهادة الموثقة مع رمز الاستجابة السريعة (QR) ورابط التحقق العلني"
+        icon={<Award className="w-5 h-5 text-amber-400" />}
         onClose={onClose}
       />
       <ModalBody>
