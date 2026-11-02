@@ -334,33 +334,49 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
                         <p className="text-xs">لا توجد إشعارات حالياً.</p>
                       </div>
                     ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => notif.status === "sent" && markReadMutation.mutate(notif.id)}
-                          className={cn(
-                            "pt-2 flex gap-3 text-xs leading-normal transition-all cursor-pointer rounded-xl p-2.5 active:bg-white/5",
-                            notif.status === "sent" ? "text-white font-bold bg-white/[0.03]" : "text-muted-foreground hover:text-white hover:bg-white/[0.01]"
-                          )}
-                        >
-                          <div className="flex-1 space-y-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="font-black text-xs text-white leading-snug break-words">
-                                {notif.subject || "تنبيه النظام"}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground shrink-0 font-medium pt-0.5 whitespace-nowrap">
-                                {formatRelativeTime(notif.created_at)}
-                              </span>
+                      notifications.map((notif) => {
+                        let displayContent = notif.content;
+                        if (displayContent && displayContent.includes("تمت ترقيتك")) {
+                          const studentName = (notif as any).student_name;
+                          const match = displayContent.match(/إلى حزام\s+(.+)$/);
+                          const beltPart = match ? match[1].replace(/\.$/, "").trim() : "";
+                          if (studentName) {
+                            displayContent = beltPart
+                              ? `تمت ترقية الطالب ${studentName} بنجاح إلى حزام ${beltPart}.`
+                              : `تمت ترقية الطالب ${studentName} بنجاح.`;
+                          } else {
+                            displayContent = displayContent.replace(/تهانينا!\s*تمت ترقيتك إلى حزام/, "تم تسجيل ترقية حزام جديدة إلى حزام");
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={notif.id}
+                            onClick={() => notif.status === "sent" && markReadMutation.mutate(notif.id)}
+                            className={cn(
+                              "pt-2 flex gap-3 text-xs leading-normal transition-all cursor-pointer rounded-xl p-2.5 active:bg-white/5",
+                              notif.status === "sent" ? "text-white font-bold bg-white/[0.03]" : "text-muted-foreground hover:text-white hover:bg-white/[0.01]"
+                            )}
+                          >
+                            <div className="flex-1 space-y-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-black text-xs text-white leading-snug break-words">
+                                  {notif.subject || "تنبيه النظام"}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground shrink-0 font-medium pt-0.5 whitespace-nowrap">
+                                  {formatRelativeTime(notif.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-line break-words">
+                                {displayContent}
+                              </p>
                             </div>
-                            <p className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-line break-words">
-                              {notif.content}
-                            </p>
+                            {notif.status === "sent" && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 self-start mt-1.5" />
+                            )}
                           </div>
-                          {notif.status === "sent" && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 self-start mt-1.5" />
-                          )}
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>

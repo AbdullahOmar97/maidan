@@ -36,6 +36,7 @@ class MessageTemplateSerializer(serializers.ModelSerializer):
 
 class NotificationLogSerializer(serializers.ModelSerializer):
     topic = serializers.SerializerMethodField()
+    student_name = serializers.ReadOnlyField(source="student.full_name")
 
     class Meta:
         model = NotificationLog
@@ -44,6 +45,57 @@ class NotificationLogSerializer(serializers.ModelSerializer):
 
     def get_topic(self, obj):
         return _infer_notification_topic(obj)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+
+        content = ret.get("content", "")
+        subject = ret.get("subject", "")
+        student = instance.student
+
+        # Check if the notification is a belt promotion notification
+        is_promotion = (
+            ret.get("topic") == "promotions"
+            or "ترقية" in subject
+            or "حزام" in subject
+            or "ترقيتك" in content
+        )
+
+        if is_promotion:
+            # Extract belt name if present
+            belt_name = ""
+            if "إلى حزام " in content:
+                belt_name = content.split("إلى حزام ", 1)[-1].rstrip(".").strip()
+            elif "حزام " in content:
+                belt_name = content.split("حزام ", 1)[-1].rstrip(".").strip()
+
+            user_role = getattr(user, "role", "") if user else ""
+            is_staff_viewer = (
+                not user
+                or getattr(user, "is_staff", False)
+                or user_role not in ("student", "parent")
+            )
+
+            if is_staff_viewer:
+                # Management/staff view: address management about the student
+                if "ترقيتك" in content or not content.startswith("تمت ترقية"):
+                    if student and student.full_name:
+                        ret["content"] = f"تمت ترقية الطالب {student.full_name} بنجاح إلى حزام {belt_name}." if belt_name else f"تمت ترقية الطالب {student.full_name} بنجاح."
+                    elif belt_name:
+                        ret["content"] = f"تم تسجيل ترقية حزام جديدة إلى حزام {belt_name}."
+                    else:
+                        ret["content"] = "تم تسجيل ترقية حزام جديدة بنجاح."
+            elif user_role == "parent":
+                # Parent view: address the parent regarding their child
+                child_name = student.full_name if student else "ابنكم/ابنتكم"
+                ret["content"] = f"تهانينا! تمت ترقية {child_name} إلى حزام {belt_name}." if belt_name else f"تهانينا! تمت ترقية {child_name}."
+            elif user_role == "student":
+                # Student view: direct address
+                ret["content"] = f"تهانينا! تمت ترقيتك إلى حزام {belt_name}." if belt_name else "تهانينا! تمت ترقيتك بنجاح."
+
+        return ret
 
 
 class BroadcastCampaignSerializer(serializers.ModelSerializer):

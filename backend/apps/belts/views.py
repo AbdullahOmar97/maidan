@@ -178,12 +178,13 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
                 instance.invoice = invoice
                 instance.save(update_fields=["invoice"])
 
-            # Send in-app notification to student
+            # Send in-app notification to club management / staff
             try:
                 from apps.messaging.utils import create_in_app_notification
+                belt_label = belt.name_ar or belt.name
                 create_in_app_notification(
                     subject="ترقية حزام جديدة",
-                    content=f"تهانينا! تمت ترقيتك إلى حزام {belt.name}.",
+                    content=f"تمت ترقية الطالب {student.full_name} بنجاح إلى حزام {belt_label}.",
                     student=student,
                     topic="promotions",
                 )
