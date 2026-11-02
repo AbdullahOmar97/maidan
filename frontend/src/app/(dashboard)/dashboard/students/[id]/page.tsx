@@ -10,12 +10,12 @@ import {
   TrendingUp, Download, Plus, Sparkles, ChevronLeft,
   Trash2, FileText, Eye, Shield, ShieldAlert, Search,
   Filter, Clock, QrCode, Camera, Upload,
-  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle, Archive, RotateCcw, RefreshCw
+  HeartPulse, ShieldCheck, Globe, CheckCircle2, AlertTriangle, Archive, RotateCcw, RefreshCw, MoreVertical
 } from "lucide-react";
 import { formatCurrency, formatDate, getStatusBadgeClass, getStatusLabel, cn, isInvoiceOverdue, parseApiError } from "@/lib/utils";
 import { useTenant } from "@/lib/providers/tenant-provider";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { Student, StudentNote, StudentDocument, AttendanceHistoryRecord, Invoice, Location } from "@/types";
 import PromoteStudentDialog from "@/components/dashboard/PromoteStudentDialog";
@@ -83,7 +83,35 @@ export default function StudentDetailPage() {
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isUnarchiveModalOpen, setIsUnarchiveModalOpen] = useState(false);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
   const { canRenewSubscription } = useBillingPermissions();
+
+  useEffect(() => {
+    if (!isActionMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setIsActionMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsActionMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isActionMenuOpen]);
 
   // Notes states
   const [isAddNoteOpen, setIsAddNoteOpen] = useState(false);
@@ -436,18 +464,20 @@ export default function StudentDetailPage() {
     <PermissionGuard permission="can_manage_students">
       <div className="space-y-8 pb-12">
         {/* Navigation & Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 relative z-30">
+          {/* Back button */}
           <button
             onClick={handleBack}
-            className="group flex items-center gap-2.5 text-sm font-bold text-muted-foreground hover:text-white transition-colors"
+            className="group flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm font-bold text-muted-foreground hover:text-white transition-colors shrink-0"
           >
-            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shrink-0">
               <ArrowRight className="w-4 h-4" />
             </div>
             <span>العودة للطلاب</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          {/* Desktop Actions (md and up) */}
+          <div className="hidden md:flex items-center gap-2 flex-wrap">
             <Link
               href="/dashboard/messaging"
               className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-primary hover:border-primary transition-all active:scale-90"
@@ -488,6 +518,128 @@ export default function StudentDetailPage() {
                 أرشفة الطالب
               </button>
             )}
+          </div>
+
+          {/* Mobile Actions (< md) */}
+          <div className="flex md:hidden items-center gap-1.5 shrink-0" ref={actionMenuRef}>
+            {/* Primary Action Button */}
+            {canRenewSubscription && targetMembershipForRenew ? (
+              <button
+                onClick={() => setIsRenewModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-brand text-white text-xs font-black shadow-lg shadow-primary/20 active:scale-95 transition-all whitespace-nowrap"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>تجديد الاشتراك</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleEditClick}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-bold active:scale-95 transition-all whitespace-nowrap"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>تعديل الملف</span>
+              </button>
+            )}
+
+            {/* Overflow Menu Button (...) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                className={cn(
+                  "w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90",
+                  isActionMenuOpen && "bg-white/15 border-white/20 text-primary"
+                )}
+                aria-label="المزيد من الإجراءات"
+                aria-expanded={isActionMenuOpen}
+                aria-haspopup="true"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {isActionMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+                    onClick={() => setIsActionMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="absolute top-full end-0 mt-2 z-50 w-52 bg-card/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 text-right"
+                    dir="rtl"
+                  >
+                    <button
+                      onClick={() => {
+                        setIsActionMenuOpen(false);
+                        handleEditClick();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-white hover:bg-white/10 transition-colors text-start"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 shrink-0">
+                        <Edit className="w-3.5 h-3.5" />
+                      </div>
+                      <span>تعديل الملف</span>
+                    </button>
+
+                    {canRenewSubscription && targetMembershipForRenew && (
+                      <button
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          setIsRenewModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-primary hover:bg-primary/10 transition-colors text-start"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </div>
+                        <span>تجديد الاشتراك</span>
+                      </button>
+                    )}
+
+                    <Link
+                      href="/dashboard/messaging"
+                      onClick={() => setIsActionMenuOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-white hover:bg-white/10 transition-colors text-start"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 shrink-0">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </div>
+                      <span>إرسال رسالة</span>
+                    </Link>
+
+                    <div className="h-px bg-white/10 my-1" />
+
+                    {student.is_archived ? (
+                      <button
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          setIsUnarchiveModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 transition-colors text-start"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </div>
+                        <span>استعادة الطالب</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          setIsArchiveModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-amber-400 hover:bg-amber-500/10 transition-colors text-start"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                          <Archive className="w-3.5 h-3.5" />
+                        </div>
+                        <span>أرشفة الطالب</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
