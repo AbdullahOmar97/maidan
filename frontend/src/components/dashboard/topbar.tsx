@@ -122,24 +122,41 @@ export function TopBar({ user, onMenuToggle }: TopBarProps) {
 
   const handleLogout = async () => {
     try {
-      const currentSession = (await getSession()) as any;
-      if (currentSession?.refreshToken) {
-        await api.auth.logout(currentSession.refreshToken);
+      const refreshToken = (activeSession as any)?.refreshToken;
+      if (refreshToken) {
+        await Promise.race([
+          api.auth.logout(refreshToken),
+          new Promise((resolve) => setTimeout(resolve, 2500)),
+        ]);
       }
     } catch {
       // Ignore logout network failure and proceed with local session cleanup
     }
+
     if (typeof window !== "undefined") {
       const themePref = localStorage.getItem("theme");
       localStorage.clear();
       sessionStorage.clear();
       if (themePref) localStorage.setItem("theme", themePref);
     }
+
     queryClient.clear();
     clearCachedSession();
-    await signOut({ redirect: false });
+
+    try {
+      await signOut({ redirect: false });
+    } catch {
+      // Fallback if client-side CSRF fetch fails
+    }
+
+    try {
+      await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
+    } catch {
+      // Ignore network errors before redirect
+    }
+
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.replace("/login");
     }
   };
 

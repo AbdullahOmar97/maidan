@@ -78,8 +78,13 @@ function redirectToLogin() {
   import("next-auth/react")
     .then(({ signOut }) => signOut({ redirect: false }))
     .catch(() => {})
-    .finally(() => {
-      window.location.href = "/login";
+    .finally(async () => {
+      try {
+        await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
+      } catch {
+        // Ignore network errors
+      }
+      window.location.replace("/login");
     });
 }
 
