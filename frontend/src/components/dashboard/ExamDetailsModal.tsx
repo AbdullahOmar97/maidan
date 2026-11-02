@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { X, Search, Check, AlertCircle, Save, Plus, Award, Loader2, Trash2 } from "lucide-react";
+import { X, Search, Check, AlertCircle, Save, Plus, Award, Loader2, Trash2, QrCode } from "lucide-react";
 import type { BeltExam, ExamCandidate, BeltRank, Student, PaginatedResponse } from "@/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import CertificateModal from "./CertificateModal";
 
 interface ExamDetailsModalProps {
   isOpen: boolean;
@@ -27,6 +28,68 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
     queryFn: () => api.belts.exams.candidates(exam.id).then((r: any) => r.data),
     enabled: isOpen,
   });
+
+  const [selectedCertificate, setSelectedCertificate] = useState<{
+    uuid: string;
+    serial?: string;
+    studentName?: string;
+    beltName?: string;
+    beltColor?: string;
+    martialArt?: string;
+    examName?: string;
+    issueDate?: string;
+    technicalGrade?: string;
+  } | null>(null);
+
+  const issueAllCertificatesMutation = useMutation({
+    mutationFn: () => api.belts.exams.issueCertificates(exam.id),
+    onSuccess: (res: any) => {
+      toast.success(`تم إصدار وتوثيق ${res.data.issued_count} شهادة بنجاح.`);
+      refetchCandidates();
+      queryClient.invalidateQueries({ queryKey: ["belts"] });
+    },
+    onError: () => toast.error("حدث خطأ أثناء إصدار الشهادات."),
+  });
+
+  const issueSingleCertificateMutation = useMutation({
+    mutationFn: (candidateId: number) =>
+      api.belts.exams.candidateCertificate(exam.id, candidateId),
+    onSuccess: (res: any) => {
+      toast.success("تم إصدار وتوثيق الشهادة بنجاح.");
+      refetchCandidates();
+      const cert = res.data;
+      setSelectedCertificate({
+        uuid: cert.uuid,
+        serial: cert.certificate_number,
+        studentName: cert.student_name,
+        beltName: cert.belt_name,
+        beltColor: cert.belt_color,
+        martialArt: cert.martial_art,
+        examName: cert.exam_name || exam.name,
+        issueDate: cert.issue_date,
+        technicalGrade: cert.technical_grade,
+      });
+    },
+    onError: () => toast.error("حدث خطأ أثناء إصدار شهادة الطالب."),
+  });
+
+  const handleOpenCertificate = (cand: ExamCandidate) => {
+    if (cand.certificate_uuid) {
+      setSelectedCertificate({
+        uuid: cand.certificate_uuid,
+        serial: cand.certificate_number || undefined,
+        studentName: cand.student_name,
+        beltName: cand.target_belt_name,
+        beltColor: cand.target_belt_color,
+        martialArt: exam.martial_art,
+        examName: exam.name,
+        issueDate: exam.date,
+        technicalGrade: cand.technical_grade,
+      });
+    } else {
+      issueSingleCertificateMutation.mutate(cand.id);
+    }
+  };
 
   // 2. Fetch all Belt Ranks for this exam's sport
   const { data: ranksData } = useQuery<PaginatedResponse<BeltRank> | BeltRank[]>({
@@ -178,12 +241,37 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
               </div>
             ) : (
               <div className="space-y-4">
+                {candidates.some((c) => c.status === "passed") && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                    <div className="flex items-center gap-2 text-amber-300 font-bold">
+                      <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        يوجد {candidates.filter((c) => c.status === "passed").length} طلاب اجتازوا الاختبار بنجاح.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => issueAllCertificatesMutation.mutate()}
+                      disabled={issueAllCertificatesMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+                    >
+                      {issueAllCertificatesMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Award className="w-3.5 h-3.5" />
+                      )}
+                      <span>إصدار وتوثيق شهادات الناجحين</span>
+                    </button>
+                  </div>
+                )}
                 {candidates.map((cand) => (
                   <CandidateRow
                     key={cand.id}
                     candidate={cand}
                     onGrade={handleGradeCandidate}
+                    onOpenCertificate={handleOpenCertificate}
                     isPending={gradeCandidateMutation.isPending}
+                    isIssuingCert={issueSingleCertificateMutation.isPending}
                   />
                 ))}
               </div>
@@ -312,6 +400,23 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
           )}
         </div>
       </div>
+
+      {/* Certificate Modal */}
+      {selectedCertificate && (
+        <CertificateModal
+          isOpen={Boolean(selectedCertificate)}
+          onClose={() => setSelectedCertificate(null)}
+          certificateUuid={selectedCertificate.uuid}
+          certificateNumber={selectedCertificate.serial}
+          studentName={selectedCertificate.studentName}
+          beltName={selectedCertificate.beltName}
+          beltColor={selectedCertificate.beltColor}
+          martialArt={selectedCertificate.martialArt}
+          examName={selectedCertificate.examName}
+          issueDate={selectedCertificate.issueDate}
+          technicalGrade={selectedCertificate.technicalGrade}
+        />
+      )}
     </div>
   );
 }
@@ -320,10 +425,12 @@ export default function ExamDetailsModal({ isOpen, onClose, exam }: ExamDetailsM
 interface CandidateRowProps {
   candidate: ExamCandidate;
   onGrade: (id: number, grade: string, notes: string, status: "pending" | "passed" | "failed") => void;
+  onOpenCertificate: (cand: ExamCandidate) => void;
   isPending: boolean;
+  isIssuingCert: boolean;
 }
 
-function CandidateRow({ candidate, onGrade, isPending }: CandidateRowProps) {
+function CandidateRow({ candidate, onGrade, onOpenCertificate, isPending, isIssuingCert }: CandidateRowProps) {
   const [grade, setGrade] = useState(candidate.technical_grade || "");
   const [notes, setNotes] = useState(candidate.instructor_notes || "");
   const [status, setStatus] = useState<"pending" | "passed" | "failed">(candidate.status);
@@ -403,10 +510,22 @@ function CandidateRow({ candidate, onGrade, isPending }: CandidateRowProps) {
       {/* Actions */}
       <div className="flex items-center justify-end gap-2 shrink-0">
         {candidate.status === "passed" ? (
-          <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black flex items-center gap-1">
-            <Check className="w-3.5 h-3.5" />
-            تمت الترقية
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" />
+              تمت الترقية
+            </span>
+            <button
+              type="button"
+              onClick={() => onOpenCertificate(candidate)}
+              disabled={isIssuingCert}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-sm"
+              title="عرض وتوثيق الشهادة ورابط الـ QR"
+            >
+              <Award className="w-3.5 h-3.5 text-amber-400" />
+              <span>{candidate.certificate_uuid ? "الشهادة والـ QR" : "إصدار الشهادة"}</span>
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => onGrade(candidate.id, grade, notes, status)}

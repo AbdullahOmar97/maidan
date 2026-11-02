@@ -217,6 +217,45 @@ class BeltExamTestCase(TestCase):
             # 4. Verify technical grade represents average percentage (9/10 = 90.0%)
             self.assertEqual(candidate.technical_grade, "90.0%")
 
+    def test_certificate_issuance_and_cryptographic_verification(self):
+        from apps.belts.utils import (
+            issue_or_get_candidate_certificate,
+            verify_certificate_fingerprint,
+        )
+        from apps.belts.models import PromotionCertificate
+
+        with schema_context(self.tenant.schema_name):
+            candidate = ExamCandidate.objects.create(
+                exam=self.exam,
+                student=self.student,
+                target_belt=self.blue_belt,
+                technical_grade="95%",
+                status=ExamCandidate.Result.PASSED,
+            )
+
+            cert = issue_or_get_candidate_certificate(candidate)
+            self.assertIsNotNone(cert)
+            self.assertTrue(cert.certificate_number.startswith("CERT-"))
+            self.assertEqual(cert.status, PromotionCertificate.Status.ACTIVE)
+            self.assertEqual(cert.student, self.student)
+            self.assertEqual(cert.belt_rank, self.blue_belt)
+            self.assertEqual(cert.technical_grade, "95%")
+
+            # Verify cryptographic fingerprint is valid
+            self.assertTrue(verify_certificate_fingerprint(cert))
+
+            # Simulate tampering: changing student_id or serial should invalidate hash
+            tampered_fingerprint = cert.digital_fingerprint
+            cert.digital_fingerprint = "0000000000000000000000000000000000000000000000000000000000000000"
+            self.assertFalse(verify_certificate_fingerprint(cert))
+
+            # Revocation test
+            cert.digital_fingerprint = tampered_fingerprint
+            cert.status = PromotionCertificate.Status.REVOKED
+            cert.revocation_reason = "Test revocation"
+            cert.save()
+            self.assertEqual(cert.status, PromotionCertificate.Status.REVOKED)
+
     def tearDown(self):
         with schema_context("public"):
             self.tenant.delete()

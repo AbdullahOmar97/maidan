@@ -159,12 +159,16 @@ export interface ArchivePrecheckData {
 }
 
 export interface BeltHistoryItem {
+  id?: number;
   belt_name: string;
   color: string;
   promoted_at: string;
   is_current: boolean;
   martial_art?: string;
   notes?: string;
+  certificate_url?: string;
+  certificate_uuid?: string;
+  certificate_number?: string;
 }
 
 export interface StudentNote {
@@ -669,8 +673,67 @@ export interface ExamCandidate {
   technical_grade: string;
   instructor_notes: string;
   status: "pending" | "passed" | "failed";
+  certificate_uuid?: string | null;
+  certificate_number?: string | null;
   graded_by_id: string | null;
   graded_at: string | null;
+  created_at: string;
+}
+
+export interface PromotionCertificate {
+  id: number;
+  uuid: string;
+  certificate_number: string;
+  student: number;
+  student_name: string;
+  student_number: string;
+  belt_rank: number;
+  belt_name: string;
+  belt_name_ar: string;
+  belt_color: string;
+  martial_art: string;
+  exam: number | null;
+  exam_name?: string;
+  exam_candidate: number | null;
+  student_belt: number | null;
+  issue_date: string;
+  status: "active" | "revoked";
+  revocation_reason?: string;
+  technical_grade?: string;
+  signed_by_name: string;
+  signed_by_title: string;
+  digital_fingerprint: string;
+  verification_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicCertificateVerification {
+  uuid: string;
+  certificate_number: string;
+  student_name: string;
+  belt_name: string;
+  belt_name_ar?: string;
+  belt_color: string;
+  martial_art: string;
+  exam_name?: string;
+  issue_date: string;
+  status: "active" | "revoked";
+  is_valid: boolean;
+  is_tampered?: boolean;
+  tamper_warning?: string;
+  revocation_reason?: string;
+  technical_grade?: string;
+  signed_by_name: string;
+  signed_by_title: string;
+  digital_fingerprint: string;
+  tenant_info: {
+    name: string;
+    business_name?: string;
+    logo_url?: string | null;
+    stamp_url?: string | null;
+    signature_url?: string | null;
+  };
   created_at: string;
 }
 

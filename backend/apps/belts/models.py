@@ -5,6 +5,7 @@ Belt rank system, student promotions, milestones.
 """
 
 from django.db import models
+import uuid
 from apps.students.models import Student
 
 
@@ -229,3 +230,52 @@ class CandidateSyllabusGrade(models.Model):
 
     def __str__(self):
         return f"{self.candidate} - {self.requirement.name}: {self.score}"
+
+
+class PromotionCertificate(models.Model):
+    """
+    Electronic Certificate for belt rank advancement and promotion exams.
+    Includes cryptographic fingerprinting (SHA-256) and public verification token.
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "سارية المفعول / Active"
+        REVOKED = "revoked", "ملغاة / Revoked"
+
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    certificate_number = models.CharField(max_length=50, unique=True, db_index=True)
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="certificates")
+    belt_rank = models.ForeignKey(Belt, on_delete=models.PROTECT, related_name="certificates")
+    student_belt = models.OneToOneField(
+        StudentBelt, on_delete=models.SET_NULL, null=True, blank=True, related_name="certificate"
+    )
+    exam = models.ForeignKey(
+        BeltExam, on_delete=models.SET_NULL, null=True, blank=True, related_name="certificates"
+    )
+    exam_candidate = models.OneToOneField(
+        ExamCandidate, on_delete=models.SET_NULL, null=True, blank=True, related_name="certificate"
+    )
+
+    issue_date = models.DateField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    revocation_reason = models.TextField(blank=True)
+
+    technical_grade = models.CharField(max_length=50, blank=True)
+    signed_by_name = models.CharField(max_length=150, blank=True)
+    signed_by_title = models.CharField(max_length=150, blank=True, default="المدرب المعتمد / Authorized Examiner")
+
+    digital_fingerprint = models.CharField(max_length=64, blank=True, db_index=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-issue_date", "-created_at"]
+        verbose_name = "Promotion Certificate"
+        verbose_name_plural = "Promotion Certificates"
+
+    def __str__(self):
+        return f"{self.certificate_number} — {self.student.full_name} ({self.belt_rank.name})"
+

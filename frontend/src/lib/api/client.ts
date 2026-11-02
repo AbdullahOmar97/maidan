@@ -314,6 +314,8 @@ export const api = {
     deleteRank: (id: number) => apiClient.delete(`/belts/ranks/${id}/`),
     eligibility: () => apiClient.get("/belts/eligibility/"),
     promote: (data: unknown) => apiClient.post("/belts/promotions/", data),
+    issuePromotionCertificate: (id: number, data?: { signed_by_name?: string; signed_by_title?: string }) =>
+      apiClient.post(`/belts/promotions/${id}/issue-certificate/`, data || {}),
     exams: {
       list: () => apiClient.get("/belts/exams/"),
       retrieve: (id: number) => apiClient.get(`/belts/exams/${id}/`),
@@ -325,6 +327,16 @@ export const api = {
         apiClient.post(`/belts/exams/${id}/add-candidates/`, data),
       grade: (id: number, data: { candidate_id: number; technical_grade: string; instructor_notes: string; status: "pending" | "passed" | "failed" }) =>
         apiClient.post(`/belts/exams/${id}/grade/`, data),
+      issueCertificates: (id: number, data?: { signed_by_name?: string; signed_by_title?: string }) =>
+        apiClient.post(`/belts/exams/${id}/issue-certificates/`, data || {}),
+      candidateCertificate: (id: number, candidateId: number, data?: { signed_by_name?: string; signed_by_title?: string }) =>
+        apiClient.post(`/belts/exams/${id}/candidate-certificate/`, { candidate_id: candidateId, ...(data || {}) }),
+    },
+    certificates: {
+      list: (params?: Record<string, unknown>) => apiClient.get("/belts/certificates/", { params }),
+      get: (id: number) => apiClient.get(`/belts/certificates/${id}/`),
+      verify: (uuid: string) => apiClient.get(`/belts/certificates/verify/${uuid}/`),
+      revoke: (id: number, reason: string) => apiClient.post(`/belts/certificates/${id}/revoke/`, { reason }),
     },
   },
 
@@ -533,6 +545,11 @@ export const api = {
     },
   },
 
+  // Public Verification
+  verifyCertificate: (uuid: string) =>
+    apiClient
+      .get(`/certificates/verify/${uuid}/`, { skipAuth: true })
+      .catch(() => apiClient.get(`/belts/verify/${uuid}/`, { skipAuth: true })),
 };
 
 export type ApiError = {

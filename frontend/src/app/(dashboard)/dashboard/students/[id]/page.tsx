@@ -32,6 +32,7 @@ import ArchiveStudentModal from "@/components/dashboard/ArchiveStudentModal";
 import RenewSubscriptionModal from "@/components/dashboard/RenewSubscriptionModal";
 import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
+import CertificateModal from "@/components/dashboard/CertificateModal";
 
 const LEAD_SOURCES_MAP: Record<string, string> = {
   walk_in: "زيارة مباشرة للنادي (Walk-in)",
@@ -95,6 +96,15 @@ export default function StudentDetailPage() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isLinkFamilyOpen, setIsLinkFamilyOpen] = useState(false);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
+  const [viewingCertificate, setViewingCertificate] = useState<{
+    uuid: string;
+    serial?: string;
+    studentName?: string;
+    beltName?: string;
+    beltColor?: string;
+    martialArt?: string;
+    promotedAt?: string;
+  } | null>(null);
 
   const studentId = Number(id);
 
@@ -1304,6 +1314,28 @@ export default function StudentDetailPage() {
                                           الحالي
                                         </span>
                                       )}
+                                      {history.certificate_url && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const token = history.certificate_url?.split("/").filter(Boolean).pop();
+                                            if (token) {
+                                              setViewingCertificate({
+                                                uuid: token,
+                                                studentName: student.full_name,
+                                                beltName: history.belt_name,
+                                                beltColor: history.color,
+                                                martialArt: art,
+                                                promotedAt: history.promoted_at,
+                                              });
+                                            }
+                                          }}
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all shadow-sm active:scale-95"
+                                        >
+                                          <Award className="w-3.5 h-3.5 text-amber-400" />
+                                          <span>شهادة الترقية والـ QR</span>
+                                        </button>
+                                      )}
                                     </div>
                                     <p className="text-[10px] font-bold text-muted-foreground mt-1">تاريخ الترقية: {formatDate(history.promoted_at)}</p>
                                     <div className="mt-3 p-4 rounded-xl bg-white/[0.01] border border-white/5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
@@ -1807,6 +1839,20 @@ export default function StudentDetailPage() {
           isOpen={isLinkFamilyOpen}
           onClose={() => setIsLinkFamilyOpen(false)}
         />
+
+        {viewingCertificate && (
+          <CertificateModal
+            isOpen={Boolean(viewingCertificate)}
+            onClose={() => setViewingCertificate(null)}
+            certificateUuid={viewingCertificate.uuid}
+            studentName={viewingCertificate.studentName || student?.full_name}
+            beltName={viewingCertificate.beltName}
+            beltColor={viewingCertificate.beltColor}
+            martialArt={viewingCertificate.martialArt}
+            issueDate={viewingCertificate.promotedAt}
+            clubName={tenant?.name}
+          />
+        )}
       </div>
     </PermissionGuard>
   );

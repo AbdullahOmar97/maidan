@@ -12,6 +12,7 @@ from .models import (
     ExamCandidate,
     BeltSyllabusRequirement,
     CandidateSyllabusGrade,
+    PromotionCertificate,
 )
 from .serializers import (
     BeltExamSerializer,
@@ -19,6 +20,13 @@ from .serializers import (
     ExamCandidateBulkCreateSerializer,
     BeltSyllabusRequirementSerializer,
     CandidateSyllabusGradeSerializer,
+    PromotionCertificateSerializer,
+    PublicCertificateVerificationSerializer,
+)
+from .utils import (
+    issue_or_get_candidate_certificate,
+    issue_or_get_promotion_certificate,
+    verify_certificate_fingerprint,
 )
 
 
@@ -32,7 +40,10 @@ class BeltRankSerializer(serializers.ModelSerializer):
 class StudentBeltSerializer(serializers.ModelSerializer):
     belt_name = serializers.ReadOnlyField(source="belt_rank.name")
     belt_color = serializers.ReadOnlyField(source="belt_rank.color_hex")
+    martial_art = serializers.ReadOnlyField(source="belt_rank.martial_art")
     student_name = serializers.SerializerMethodField()
+    certificate_uuid = serializers.SerializerMethodField()
+    certificate_number = serializers.SerializerMethodField()
     create_invoice = serializers.BooleanField(write_only=True, required=False, default=False)
     fee_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, write_only=True, required=False, allow_null=True
@@ -44,10 +55,25 @@ class StudentBeltSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentBelt
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "invoice", "promoted_by_id"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "invoice",
+            "promoted_by_id",
+            "certificate_uuid",
+            "certificate_number",
+        ]
 
     def get_student_name(self, obj):
         return obj.student.full_name
+
+    def get_certificate_uuid(self, obj):
+        cert = getattr(obj, "certificate", None)
+        return str(cert.uuid) if cert else None
+
+    def get_certificate_number(self, obj):
+        cert = getattr(obj, "certificate", None)
+        return cert.certificate_number if cert else None
 
 
 class PromotionEligibilitySerializer(serializers.ModelSerializer):
@@ -163,6 +189,18 @@ class StudentBeltViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 import logging
                 logging.getLogger("maidan.belts").warning(f"Failed to create promotion notification: {e}")
+
+    @action(detail=True, methods=["post"], url_path="issue-certificate")
+    def issue_certificate(self, request, pk=None):
+        student_belt = self.get_object()
+        signed_by_name = request.data.get("signed_by_name", "")
+        signed_by_title = request.data.get("signed_by_title", "المدرب المعتمد / Authorized Examiner")
+        cert = issue_or_get_promotion_certificate(
+            student_belt=student_belt,
+            signed_by_name=signed_by_name,
+            signed_by_title=signed_by_title,
+        )
+        return Response(PromotionCertificateSerializer(cert).data, status=status.HTTP_200_OK)
 
 
 class PromotionEligibilityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -298,3 +336,152 @@ class BeltExamViewSet(viewsets.ModelViewSet):
                     candidate.save(update_fields=["technical_grade"])
 
         return Response(ExamCandidateSerializer(candidate).data)
+
+    @action(detail=True, methods=["post"], url_path="issue-certificates")
+    def issue_certificates(self, request, pk=None):
+        exam = self.get_object()
+        signed_by_name = request.data.get("signed_by_name", "")
+        signed_by_title = request.data.get("signed_by_title", "المدرب المعتمد / Authorized Examiner")
+        passed_candidates = exam.candidates.filter(status=ExamCandidate.Result.PASSED)
+
+        issued = []
+        for cand in passed_candidates:
+            cert = issue_or_get_candidate_certificate(
+                candidate=cand,
+                signed_by_name=signed_by_name,
+                signed_by_title=signed_by_title,
+            )
+            issued.append(cert)
+
+        return Response(
+            {
+                "success": True,
+                "issued_count": len(issued),
+                "certificates": PromotionCertificateSerializer(issued, many=True).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="candidate-certificate")
+    def candidate_certificate(self, request, pk=None):
+        exam = self.get_object()
+        candidate_id = request.data.get("candidate_id")
+        if not candidate_id:
+            return Response({"error": "يجب تحديد المرشح."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            cand = exam.candidates.get(id=candidate_id)
+        except ExamCandidate.DoesNotExist:
+            return Response({"error": "المرشح غير موجود في هذا الاختبار."}, status=status.HTTP_404_NOT_FOUND)
+
+        if cand.status != ExamCandidate.Result.PASSED:
+            return Response(
+                {"error": "لا يمكن إصدار شهادة إلا بعد اجتياز الاختبار بنجاح."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        signed_by_name = request.data.get("signed_by_name", "")
+        signed_by_title = request.data.get("signed_by_title", "المدرب المعتمد / Authorized Examiner")
+        cert = issue_or_get_candidate_certificate(
+            candidate=cand,
+            signed_by_name=signed_by_name,
+            signed_by_title=signed_by_title,
+        )
+        return Response(PromotionCertificateSerializer(cert).data)
+
+
+class PromotionCertificateViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for Promotion Certificates (Staff only) + Public Verification Endpoint.
+    """
+
+    queryset = (
+        PromotionCertificate.objects.select_related(
+            "student", "belt_rank", "exam", "student_belt"
+        ).all()
+    )
+    serializer_class = PromotionCertificateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    filterset_fields = ["student", "belt_rank", "exam", "status"]
+    search_fields = ["certificate_number", "student__first_name", "student__last_name", "student__student_number"]
+
+    @action(detail=True, methods=["post"], url_path="revoke")
+    def revoke(self, request, pk=None):
+        cert = self.get_object()
+        reason = request.data.get("reason", "تم إلغاء الشهادة بقرار إداري / Revoked by admin")
+        cert.status = PromotionCertificate.Status.REVOKED
+        cert.revocation_reason = reason
+        cert.save(update_fields=["status", "revocation_reason", "updated_at"])
+        return Response(PromotionCertificateSerializer(cert).data)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"verify/(?P<token>[0-9a-fA-F-]+)",
+        permission_classes=[permissions.AllowAny],
+    )
+    def verify(self, request, token=None):
+        try:
+            cert = PromotionCertificate.objects.select_related(
+                "student", "belt_rank", "exam"
+            ).get(uuid=token)
+        except (PromotionCertificate.DoesNotExist, ValueError):
+            return Response(
+                {"detail": "الشهادة غير موجودة أو الرابط غير صالح.", "is_valid": False},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_tampered = not verify_certificate_fingerprint(cert)
+        data = PublicCertificateVerificationSerializer(cert).data
+        data["is_tampered"] = is_tampered
+        if is_tampered:
+            data["is_valid"] = False
+            data["tamper_warning"] = (
+                "فشل التحقق من البصمة الرقمية للشهادة. قد تكون البيانات تعرضت للتعديل."
+            )
+        return Response(data)
+
+
+from rest_framework.decorators import api_view, permission_classes
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def public_verify_certificate_cross_tenant(request, token):
+    """
+    Public fallback verification view that works across public and tenant schemas.
+    """
+    # 1. Try local schema
+    try:
+        cert = PromotionCertificate.objects.select_related("student", "belt_rank", "exam").get(uuid=token)
+        is_tampered = not verify_certificate_fingerprint(cert)
+        data = PublicCertificateVerificationSerializer(cert).data
+        data["is_tampered"] = is_tampered
+        if is_tampered:
+            data["is_valid"] = False
+            data["tamper_warning"] = "فشل التحقق من البصمة الرقمية للشهادة. قد تكون البيانات تعرضت للتعديل."
+        return Response(data)
+    except Exception:
+        pass
+
+    # 2. Iterate tenants if on public schema
+    from django_tenants.utils import schema_context
+    from apps.tenants.models import Tenant
+
+    for tenant in Tenant.objects.exclude(schema_name="public"):
+        try:
+            with schema_context(tenant.schema_name):
+                cert = PromotionCertificate.objects.select_related("student", "belt_rank", "exam").get(uuid=token)
+                is_tampered = not verify_certificate_fingerprint(cert)
+                data = PublicCertificateVerificationSerializer(cert).data
+                data["is_tampered"] = is_tampered
+                if is_tampered:
+                    data["is_valid"] = False
+                    data["tamper_warning"] = "فشل التحقق من البصمة الرقمية للشهادة. قد تكون البيانات تعرضت للتعديل."
+                return Response(data)
+        except Exception:
+            continue
+
+    return Response(
+        {"detail": "الشهادة غير موجودة أو الرابط غير صالح.", "is_valid": False},
+        status=status.HTTP_404_NOT_FOUND,
+    )

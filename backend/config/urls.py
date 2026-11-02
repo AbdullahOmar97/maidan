@@ -29,6 +29,11 @@ urlpatterns = [
     # Public kiosk check-in needs attendance routes when resolving on public schema.
     path("api/v1/attendance/", include("apps.attendance.urls")),
 
+    # Public certificate verification
+    path("api/v1/certificates/verify/<uuid:token>/", include([
+        path("", __import__("apps.belts.views", fromlist=["public_verify_certificate_cross_tenant"]).public_verify_certificate_cross_tenant, name="public-verify-cert"),
+    ])),
+
     # Tenant management (platform admin only)
     path("api/v1/platform/", include("apps.tenants.urls")),
 ]
