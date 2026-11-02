@@ -7,6 +7,7 @@ import { X, Search, Check, AlertCircle, Save, Plus, Award, Loader2, Trash2, QrCo
 import type { BeltExam, ExamCandidate, BeltRank, Student, PaginatedResponse } from "@/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getArabicBeltName } from "@/lib/beltUtils";
 import CertificateModal from "./CertificateModal";
 
 interface ExamDetailsModalProps {
@@ -456,12 +457,12 @@ function CandidateRow({ candidate, onGrade, onOpenCertificate, isPending, isIssu
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1">
             <span>الحزام الحالي:</span>
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: candidate.current_belt_color }} />
-            <span>{candidate.current_belt_name}</span>
+            <span>{getArabicBeltName(candidate.current_belt_name)}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[10px] text-primary font-bold mt-0.5">
             <span>الحزام المستهدف:</span>
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: candidate.target_belt_color }} />
-            <span>{candidate.target_belt_name}</span>
+            <span>{getArabicBeltName(candidate.target_belt_name)}</span>
           </div>
         </div>
       </div>

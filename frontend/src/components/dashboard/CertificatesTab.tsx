@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
+import { getArabicBeltName } from "@/lib/beltUtils";
 import CertificateModal from "./CertificateModal";
 import Link from "next/link";
 
@@ -164,7 +165,7 @@ export default function CertificatesTab() {
                         style={{ backgroundColor: cert.belt_color || "#ffffff" }}
                       />
                       <span className="text-xs font-bold text-slate-200">
-                        {cert.belt_name_ar || cert.belt_name}
+                        {getArabicBeltName(cert.belt_name, cert.belt_name_ar)}
                       </span>
                       <span className="text-[10px] text-muted-foreground">({cert.martial_art})</span>
                     </div>
@@ -235,6 +236,7 @@ export default function CertificatesTab() {
           certificateNumber={selectedCert.certificate_number}
           studentName={selectedCert.student_name}
           beltName={selectedCert.belt_name}
+          beltNameAr={selectedCert.belt_name_ar}
           beltColor={selectedCert.belt_color}
           martialArt={selectedCert.martial_art}
           examName={selectedCert.exam_name}

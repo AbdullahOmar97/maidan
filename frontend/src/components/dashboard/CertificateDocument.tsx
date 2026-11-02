@@ -4,6 +4,7 @@ import React from "react";
 import type { PublicCertificateVerification } from "@/types";
 import { Award, ShieldCheck, Calendar, Lock, QrCode as QrIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getArabicBeltName } from "@/lib/beltUtils";
 
 interface CertificateDocumentProps {
   data: PublicCertificateVerification;
@@ -16,6 +17,8 @@ export default function CertificateDocument({
   qrDataUrl,
   className,
 }: CertificateDocumentProps) {
+  const arabicBeltName = getArabicBeltName(data.belt_name, data.belt_name_ar);
+  const englishBeltName = data.belt_name && data.belt_name !== arabicBeltName ? data.belt_name : null;
   return (
     <div
       className={cn(
@@ -113,11 +116,11 @@ export default function CertificateDocument({
                 style={{ backgroundColor: data.belt_color || "#ffffff" }}
               />
               <span className="text-base sm:text-lg font-black text-white print:text-slate-900 print:text-sm">
-                {data.belt_name_ar || data.belt_name}
+                {arabicBeltName}
               </span>
-              {data.belt_name_ar && data.belt_name && (
+              {englishBeltName && (
                 <span className="text-xs text-slate-400 font-medium print:text-slate-600 print:text-[10px]">
-                  ({data.belt_name})
+                  ({englishBeltName})
                 </span>
               )}
             </div>

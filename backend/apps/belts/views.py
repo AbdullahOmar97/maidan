@@ -39,6 +39,7 @@ class BeltRankSerializer(serializers.ModelSerializer):
 
 class StudentBeltSerializer(serializers.ModelSerializer):
     belt_name = serializers.ReadOnlyField(source="belt_rank.name")
+    belt_name_ar = serializers.ReadOnlyField(source="belt_rank.name_ar")
     belt_color = serializers.ReadOnlyField(source="belt_rank.color_hex")
     martial_art = serializers.ReadOnlyField(source="belt_rank.martial_art")
     student_name = serializers.SerializerMethodField()

@@ -15,6 +15,7 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import type { PublicCertificateVerification } from "@/types";
+import { getArabicBeltName } from "@/lib/beltUtils";
 import CertificateDocument from "./CertificateDocument";
 
 interface CertificateModalProps {
@@ -25,6 +26,7 @@ interface CertificateModalProps {
   certificateNumber?: string;
   studentName?: string;
   beltName?: string;
+  beltNameAr?: string;
   beltColor?: string;
   martialArt?: string;
   examName?: string;
@@ -41,6 +43,7 @@ export default function CertificateModal({
   certificateNumber,
   studentName = "",
   beltName = "",
+  beltNameAr,
   beltColor = "#ffffff",
   martialArt = "Martial Arts",
   examName,
@@ -125,7 +128,7 @@ export default function CertificateModal({
     certificate_number: certData?.certificate_number || certificateNumber || `CERT-${certificateUuid.slice(0, 8)}`,
     student_name: certData?.student_name || studentName || "الطالب الرياضي",
     belt_name: certData?.belt_name || beltName,
-    belt_name_ar: certData?.belt_name_ar,
+    belt_name_ar: certData?.belt_name_ar || beltNameAr || getArabicBeltName(certData?.belt_name || beltName),
     belt_color: certData?.belt_color || beltColor,
     martial_art: certData?.martial_art || martialArt,
     exam_name: certData?.exam_name || examName,

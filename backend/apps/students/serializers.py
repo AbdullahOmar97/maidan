@@ -111,6 +111,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
         if belt:
             return {
                 "name": belt.belt_rank.name,
+                "name_ar": belt.belt_rank.name_ar or "",
                 "color": belt.belt_rank.color_hex,
                 "promoted_at": belt.promoted_at,
             }
@@ -220,6 +221,7 @@ class StudentListSerializer(serializers.ModelSerializer):
         if belt:
             return {
                 "name": belt.belt_rank.name,
+                "name_ar": belt.belt_rank.name_ar or "",
                 "color": belt.belt_rank.color_hex,
                 "promoted_at": belt.promoted_at,
             }
@@ -516,6 +518,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         if belt:
             return {
                 "name": belt.belt_rank.name,
+                "name_ar": belt.belt_rank.name_ar or "",
                 "color": belt.belt_rank.color_hex,
                 "promoted_at": belt.promoted_at,
             }
@@ -532,6 +535,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             res.append({
                 "id": h.id,
                 "belt_name": h.belt_rank.name,
+                "belt_name_ar": h.belt_rank.name_ar or "",
                 "color": h.belt_rank.color_hex,
                 "promoted_at": h.promoted_at,
                 "is_current": h.is_current,

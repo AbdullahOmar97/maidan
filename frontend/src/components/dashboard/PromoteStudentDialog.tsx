@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Award, Calendar, FileText, Loader2, CheckCircle, ShieldCheck, QrCode, ExternalLink, Printer } from "lucide-react";
 import { cn, parseApiError } from "@/lib/utils";
+import { getArabicBeltName } from "@/lib/beltUtils";
 import type { BeltRank, PaginatedResponse } from "@/types";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
@@ -44,6 +45,7 @@ export default function PromoteStudentDialog({
     uuid: string;
     number?: string;
     beltName: string;
+    beltNameAr?: string;
     beltColor: string;
     martialArt: string;
   } | null>(null);
@@ -72,6 +74,7 @@ export default function PromoteStudentDialog({
           uuid: certUuid,
           number: data?.certificate_number,
           beltName: data?.belt_name || targetRank?.name || "الحزام الجديد",
+          beltNameAr: data?.belt_name_ar || (targetRank as any)?.name_ar,
           beltColor: data?.belt_color || targetRank?.color_hex || "#ffffff",
           martialArt: data?.martial_art || targetRank?.martial_art || "BJJ",
         });
@@ -222,6 +225,7 @@ export default function PromoteStudentDialog({
             certificateNumber={issuedCertificate.number}
             studentName={studentName}
             beltName={issuedCertificate.beltName}
+            beltNameAr={issuedCertificate.beltNameAr}
             beltColor={issuedCertificate.beltColor}
             martialArt={issuedCertificate.martialArt}
             issueDate={promotedAt}
@@ -250,7 +254,9 @@ export default function PromoteStudentDialog({
                 className="w-3 h-3 rounded-full ring-1 ring-white/10"
                 style={{ backgroundColor: currentBeltColor ?? "#888" }}
               />
-              <span className="font-semibold text-xs">{currentBeltName ?? "لا يوجد"}</span>
+              <span className="font-semibold text-xs">
+                {currentBeltName ? getArabicBeltName(currentBeltName) : "لا يوجد"}
+              </span>
             </div>
           </div>
 
@@ -266,7 +272,7 @@ export default function PromoteStudentDialog({
                 <optgroup key={program} label={program} className="bg-slate-900 text-white font-bold">
                   {artRanks.map((rank) => (
                     <option key={rank.id} value={rank.id}>
-                      {rank.name}
+                      {rank.name_ar ? `${rank.name_ar} (${rank.name})` : getArabicBeltName(rank.name)}
                     </option>
                   ))}
                 </optgroup>

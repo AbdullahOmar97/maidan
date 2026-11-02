@@ -33,6 +33,7 @@ import RenewSubscriptionModal from "@/components/dashboard/RenewSubscriptionModa
 import { InvoicesList } from "@/components/dashboard/billing/InvoicesList";
 import { useBillingPermissions } from "@/lib/hooks/use-permission";
 import CertificateModal from "@/components/dashboard/CertificateModal";
+import { getArabicBeltName } from "@/lib/beltUtils";
 
 const LEAD_SOURCES_MAP: Record<string, string> = {
   walk_in: "زيارة مباشرة للنادي (Walk-in)",
@@ -101,6 +102,7 @@ export default function StudentDetailPage() {
     serial?: string;
     studentName?: string;
     beltName?: string;
+    beltNameAr?: string;
     beltColor?: string;
     martialArt?: string;
     promotedAt?: string;
@@ -118,6 +120,7 @@ export default function StudentDetailPage() {
         serial: cert.certificate_number,
         studentName: cert.student_name || student?.full_name,
         beltName: cert.belt_name,
+        beltNameAr: cert.belt_name_ar,
         beltColor: cert.belt_color,
         martialArt: cert.martial_art,
         promotedAt: cert.issue_date,
@@ -138,6 +141,7 @@ export default function StudentDetailPage() {
         serial: historyItem?.certificate_number,
         studentName: student?.full_name,
         beltName: historyItem.belt_name,
+        beltNameAr: historyItem.belt_name_ar,
         beltColor: historyItem.color,
         martialArt: historyItem.martial_art,
         promotedAt: historyItem.promoted_at,
@@ -698,8 +702,12 @@ export default function StudentDetailPage() {
                 title="عرض وتوثيق شهادة الحزام الحالي"
               >
                 <div className="flex items-center justify-center gap-1.5">
-                  <p className="text-2xl font-black text-primary">{student.current_belt?.name.split(" ")[0] || "—"}</p>
-                  <Award className="w-4 h-4 text-amber-400 group-hover/beltstat:scale-125 transition-transform" />
+                  <p className="text-xl sm:text-2xl font-black text-primary truncate max-w-[140px]">
+                    {student.current_belt
+                      ? getArabicBeltName(student.current_belt.name, (student.current_belt as any).name_ar)
+                      : "—"}
+                  </p>
+                  <Award className="w-4 h-4 text-amber-400 group-hover/beltstat:scale-125 transition-transform shrink-0" />
                 </div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
                   الحزام الحالي • الشهادة
@@ -1332,7 +1340,13 @@ export default function StudentDetailPage() {
                               </span>
                             </div>
                             <h5 className="text-base font-black text-white mt-0.5">
-                              {currentBeltHistory.belt_name} ({currentBeltHistory.martial_art || "رياضات قتالية"})
+                              {getArabicBeltName(currentBeltHistory.belt_name, (currentBeltHistory as any).belt_name_ar)}
+                              {currentBeltHistory.belt_name && currentBeltHistory.belt_name !== getArabicBeltName(currentBeltHistory.belt_name, (currentBeltHistory as any).belt_name_ar) && (
+                                <span className="text-xs text-muted-foreground font-normal ms-1">
+                                  ({currentBeltHistory.belt_name})
+                                </span>
+                              )}
+                              {" "}• {currentBeltHistory.martial_art || "رياضات قتالية"}
                             </h5>
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               تاريخ المنح: {formatDate(currentBeltHistory.promoted_at)}
@@ -1417,7 +1431,16 @@ export default function StudentDetailPage() {
                                   </div>
                                   <div className="flex-1">
                                     <div className="flex flex-wrap items-center gap-3">
-                                      <p className="text-lg font-black text-white">{history.belt_name}</p>
+                                      <div className="flex items-baseline gap-2">
+                                        <p className="text-lg font-black text-white">
+                                          {getArabicBeltName(history.belt_name, (history as any).belt_name_ar)}
+                                        </p>
+                                        {history.belt_name && history.belt_name !== getArabicBeltName(history.belt_name, (history as any).belt_name_ar) && (
+                                          <span className="text-xs text-muted-foreground font-medium">
+                                            ({history.belt_name})
+                                          </span>
+                                        )}
+                                      </div>
                                       {history.is_current && (
                                         <span className="px-2 py-0.5 rounded-lg bg-primary/20 text-primary border border-primary/30 text-[8px] font-black uppercase tracking-widest">
                                           الحالي
@@ -1943,6 +1966,7 @@ export default function StudentDetailPage() {
             certificateUuid={viewingCertificate.uuid}
             studentName={viewingCertificate.studentName || student?.full_name}
             beltName={viewingCertificate.beltName}
+            beltNameAr={viewingCertificate.beltNameAr}
             beltColor={viewingCertificate.beltColor}
             martialArt={viewingCertificate.martialArt}
             issueDate={viewingCertificate.promotedAt}
